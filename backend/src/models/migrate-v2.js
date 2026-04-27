@@ -132,6 +132,27 @@ async function runV2Migration(pool) {
     `);
     console.log('  - Created table: webhooks');
 
+    // Add consecutive_failures column for webhook retry budget tracking
+    await client.query(`ALTER TABLE webhooks ADD COLUMN IF NOT EXISTS consecutive_failures INTEGER DEFAULT 0`);
+    console.log('  - Altered table: webhooks (added consecutive_failures)');
+
+    // webhook_deliveries
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS webhook_deliveries (
+        id BIGSERIAL PRIMARY KEY,
+        webhook_id UUID REFERENCES webhooks(id) ON DELETE CASCADE,
+        event_id VARCHAR(255),
+        event_type VARCHAR(50),
+        attempt INTEGER,
+        success BOOLEAN,
+        status_code INTEGER,
+        response_snippet TEXT,
+        error TEXT,
+        delivered_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    console.log('  - Created table: webhook_deliveries');
+
     // Alter existing agent_identities table
     await client.query(`ALTER TABLE agent_identities ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES organizations(id)`);
     await client.query(`ALTER TABLE agent_identities ADD COLUMN IF NOT EXISTS created_by UUID`);
@@ -139,6 +160,26 @@ async function runV2Migration(pool) {
     await client.query(`ALTER TABLE agent_identities ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ`);
     await client.query(`ALTER TABLE agent_identities ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`);
     console.log('  - Altered table: agent_identities (added org_id, created_by, updated_by, updated_at, deleted_at)');
+
+    // Add login attempt tracking columns to users
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_count INTEGER DEFAULT 0`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ`);
+    console.log('  - Altered table: users (added failed_login_count, locked_until)');
+
+    // CHECK constraints on enum columns
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'manager', 'member', 'viewer'));
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `);
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE policy_rules ADD CONSTRAINT policy_action_check CHECK (action IN ('revoke', 'flag', 'notify', 'disable'));
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `);
+    console.log('  - Added CHECK constraints on enum columns');
 
     // Add owner_user_id FK after users table exists
     await client.query(`ALTER TABLE organizations DROP CONSTRAINT IF EXISTS fk_org_owner`);
@@ -158,6 +199,11 @@ async function runV2Migration(pool) {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_agent_groups_org ON agent_groups(org_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_policy_rules_org ON policy_rules(org_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_webhooks_org ON webhooks(org_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_agents_active ON agent_identities(org_id, status, bags_score DESC) WHERE is_demo = false AND revoked_at IS NULL`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_policy_rules_active ON policy_rules(org_id) WHERE enabled = true`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_webhooks_active ON webhooks(org_id) WHERE enabled = true`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_org_created ON audit_logs(org_id, created_at DESC)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_webhook ON webhook_deliveries(webhook_id, delivered_at DESC)`);
     console.log('  - Created v2 indexes');
 
     await client.query('COMMIT');

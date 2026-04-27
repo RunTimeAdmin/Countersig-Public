@@ -1,3 +1,4 @@
+# For production, set all secrets via environment variables or .env file
 # AgentID 2.0 — Docker Compose for local development
 # Production URL: https://agentid2.provenanceai.network
 version: '3.8'
@@ -9,8 +10,8 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: agentid
-      POSTGRES_PASSWORD: devpassword
+      POSTGRES_USER: ${POSTGRES_USER:-agentid}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
       POSTGRES_DB: agentid
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -28,13 +29,13 @@ services:
     container_name: agentid-redis
     ports:
       - "6379:6379"
-    command: redis-server --requirepass devpassword
+    command: redis-server --requirepass ${REDIS_PASSWORD:-devpassword}
     environment:
-      REDIS_PASSWORD: devpassword
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-devpassword}
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "devpassword", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-devpassword}", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -51,11 +52,11 @@ services:
       - "3002:3002"
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgresql://agentid:devpassword@postgres:5432/agentid
-      REDIS_URL: redis://:devpassword@redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-agentid}:${POSTGRES_PASSWORD:-devpassword}@postgres:5432/agentid
+      REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379
       CORS_ORIGIN: https://agentid2.provenanceai.network
       AGENTID_BASE_URL: https://agentid2.provenanceai.network
-      JWT_SECRET: local-dev-jwt-secret-change-in-production
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       JWT_EXPIRY: 15m
       JWT_REFRESH_EXPIRY: 7d
     volumes:

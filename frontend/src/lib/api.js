@@ -2,34 +2,17 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: '',
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
+    'X-Requested-With': 'AgentID',
   },
 });
-
-// Request interceptor for auth tokens if needed
-api.interceptors.request.use(
-  (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('agentid_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
 
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Handle specific error cases
-    if (error.response?.status === 401) {
-      localStorage.removeItem('agentid_token');
-    }
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Agent Registry

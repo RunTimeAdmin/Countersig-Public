@@ -91,8 +91,11 @@ async function getBadgeJSON(agentId) {
       widgetUrl
     };
 
-    // Cache the result
-    await setCache(cacheKey, JSON.stringify(result), config.badgeCacheTtl);
+    // Cache the result with jitter to prevent thundering herd
+    const baseTtl = config.badgeCacheTtl || 60;
+    const jitter = Math.floor(Math.random() * 30); // 0-30s jitter
+    const ttl = baseTtl + jitter;
+    await setCache(cacheKey, JSON.stringify(result), ttl);
 
     return result;
   } catch (error) {

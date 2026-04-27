@@ -5,8 +5,34 @@
 
 const axios = require('axios');
 const crypto = require('crypto');
-const { query } = require('../models/db');
+const { query, pool } = require('../models/db');
 const eventBus = require('./eventBus');
+const { assertPublicHttpsUrl } = require('../utils/urlValidator');
+
+/**
+ * Record a webhook delivery attempt to the database
+ * @param {string} webhookId - Webhook UUID
+ * @param {string} eventId - Event ID
+ * @param {string} eventType - Event type
+ * @param {number} attempt - Attempt number
+ * @param {boolean} success - Whether delivery succeeded
+ * @param {number|null} statusCode - HTTP status code
+ * @param {string|null} responseSnippet - Response body snippet
+ * @param {string|null} error - Error message
+ */
+async function recordDelivery(webhookId, eventId, eventType, attempt, success, statusCode, responseSnippet, error) {
+  try {
+    await pool.query(
+      `INSERT INTO webhook_deliveries (webhook_id, event_id, event_type, attempt, success, status_code, response_snippet, error)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [webhookId, eventId, eventType, attempt, success, statusCode,
+       responseSnippet ? String(responseSnippet).substring(0, 500) : null,
+       error ? String(error).substring(0, 500) : null]
+    );
+  } catch (err) {
+    console.error('[WebhookService] Failed to record delivery:', err.message);
+  }
+}
 
 /**
  * Deliver a single webhook payload
@@ -28,6 +54,13 @@ async function deliverWebhook(webhook, event) {
     .update(bodyString)
     .digest('hex');
 
+  // Re-validate URL at delivery time to prevent SSRF
+  try {
+    await assertPublicHttpsUrl(webhook.url);
+  } catch (err) {
+    return { success: false, statusCode: 0, error: `SSRF blocked: ${err.message}` };
+  }
+
   try {
     const response = await axios.post(webhook.url, body, {
       headers: {
@@ -35,7 +68,11 @@ async function deliverWebhook(webhook, event) {
         'X-AgentID-Signature': signature,
         'X-AgentID-Event': event.type
       },
-      timeout: 10000
+      timeout: 10000,
+      maxRedirects: 0,
+      maxContentLength: 64 * 1024,
+      maxBodyLength: 1024 * 1024,
+      validateStatus: () => true
     });
 
     return {
@@ -63,10 +100,27 @@ async function deliverWithRetry(webhook, event, maxRetries = 3) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const result = await deliverWebhook(webhook, event);
 
+    // Record delivery attempt
+    await recordDelivery(
+      webhook.id,
+      event.id,
+      event.type,
+      attempt + 1,
+      result.success,
+      result.statusCode,
+      null,
+      result.error
+    );
+
     if (result.success) {
       if (attempt > 0) {
         console.log(`[WebhookService] Webhook ${webhook.id} succeeded on attempt ${attempt + 1}`);
       }
+      // Reset consecutive failures on success
+      await pool.query(
+        'UPDATE webhooks SET consecutive_failures = 0 WHERE id = $1',
+        [webhook.id]
+      ).catch(err => console.error('[WebhookService] Failed to reset failure count:', err.message));
       return result;
     }
 
@@ -79,6 +133,24 @@ async function deliverWithRetry(webhook, event, maxRetries = 3) {
       const delay = Math.pow(4, attempt) * 1000;
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
+  }
+
+  // After final retry failure, track consecutive failures
+  try {
+    await pool.query(
+      `UPDATE webhooks SET
+        consecutive_failures = COALESCE(consecutive_failures, 0) + 1
+      WHERE id = $1`,
+      [webhook.id]
+    );
+    // Auto-disable after 100 consecutive failures
+    await pool.query(
+      `UPDATE webhooks SET enabled = false
+      WHERE id = $1 AND COALESCE(consecutive_failures, 0) >= 100`,
+      [webhook.id]
+    );
+  } catch (err) {
+    console.error('[WebhookService] Failed to update failure count:', err.message);
   }
 
   return {
@@ -142,5 +214,6 @@ module.exports = {
   deliverWebhook,
   deliverWithRetry,
   processEventWebhooks,
-  initWebhookListeners
+  initWebhookListeners,
+  recordDelivery
 };

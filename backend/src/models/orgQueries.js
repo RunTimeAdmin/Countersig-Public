@@ -3,7 +3,7 @@
  * Database operations for organizations, members, and org-level stats
  */
 
-const { query } = require('./db');
+const { query, pool } = require('./db');
 const crypto = require('crypto');
 
 const VALID_ROLES = ['admin', 'manager', 'member', 'viewer'];
@@ -65,11 +65,23 @@ async function updateOrganization(orgId, { name, description, settings }) {
  * @returns {Promise<boolean>}
  */
 async function deleteOrganization(orgId) {
-  const result = await query(
-    'UPDATE organizations SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL',
-    [orgId]
-  );
-  return result.rowCount > 0;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE organizations SET deleted_at = NOW() WHERE id = $1', [orgId]);
+    await client.query('UPDATE users SET deleted_at = NOW() WHERE org_id = $1 AND deleted_at IS NULL', [orgId]);
+    await client.query('UPDATE agent_identities SET deleted_at = NOW() WHERE org_id = $1 AND deleted_at IS NULL', [orgId]);
+    await client.query('UPDATE api_keys SET revoked_at = NOW() WHERE org_id = $1 AND revoked_at IS NULL', [orgId]);
+    await client.query('UPDATE webhooks SET enabled = false WHERE org_id = $1', [orgId]);
+    await client.query('UPDATE policy_rules SET enabled = false WHERE org_id = $1', [orgId]);
+    await client.query('COMMIT');
+    return { success: true };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /**

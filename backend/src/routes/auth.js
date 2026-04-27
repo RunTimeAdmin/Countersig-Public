@@ -12,9 +12,11 @@ const {
   verifyRefreshToken,
   storeRefreshToken,
   revokeRefreshToken,
+  revokeAllSessions,
   isRefreshTokenValid,
   expiryToSeconds
 } = require('../services/authService');
+const { authLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();
 
@@ -29,6 +31,8 @@ const ACCESS_MAX_AGE = expiryToSeconds(process.env.JWT_EXPIRY || '15m') * 1000;
 const REFRESH_MAX_AGE = expiryToSeconds(process.env.JWT_REFRESH_EXPIRY || '7d') * 1000;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const DUMMY_HASH = '$2a$12$' + 'a'.repeat(53); // valid bcrypt format, never matches
 
 /**
  * Parse a cookie value from the request header
@@ -57,7 +61,7 @@ function slugify(name) {
  * POST /auth/register
  * Register a new user and organization
  */
-router.post('/auth/register', async (req, res, next) => {
+router.post('/auth/register', authLimiter, async (req, res, next) => {
   try {
     const { email, password, name, orgName } = req.body;
 
@@ -113,8 +117,8 @@ router.post('/auth/register', async (req, res, next) => {
       await client.query('COMMIT');
 
       // Generate tokens
-      const { accessToken, refreshToken } = generateTokens(user);
-      await storeRefreshToken(user.id, refreshToken);
+      const { accessToken, refreshToken, tokenId } = generateTokens(user);
+      await storeRefreshToken(tokenId, user.id);
 
       res.cookie('aid_access', accessToken, { ...COOKIE_OPTIONS, maxAge: ACCESS_MAX_AGE });
       res.cookie('aid_refresh', refreshToken, { ...COOKIE_OPTIONS, maxAge: REFRESH_MAX_AGE });
@@ -138,7 +142,7 @@ router.post('/auth/register', async (req, res, next) => {
  * POST /auth/login
  * Authenticate existing user
  */
-router.post('/auth/login', async (req, res, next) => {
+router.post('/auth/login', authLimiter, async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -147,26 +151,68 @@ router.post('/auth/login', async (req, res, next) => {
     }
 
     const result = await query(
-      'SELECT id, email, password_hash, name, role, org_id FROM users WHERE email = $1 AND deleted_at IS NULL',
+      'SELECT id, email, password_hash, name, role, org_id, failed_login_count, locked_until FROM users WHERE email = $1 AND deleted_at IS NULL',
       [email.toLowerCase().trim()]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
     const user = result.rows[0];
 
-    const valid = await comparePassword(password, user.password_hash);
-    if (!valid) {
+    // Check if account is locked due to too many failed attempts
+    if (user && user.locked_until && new Date(user.locked_until) > new Date()) {
+      return res.status(423).json({
+        error: 'Account temporarily locked due to too many failed attempts. Try again later.'
+      });
+    }
+
+    const hashToCompare = user ? user.password_hash : DUMMY_HASH;
+    const valid = await comparePassword(password, hashToCompare);
+    if (!user || !valid) {
+      // Track failed login attempt if we found a user
+      if (user) {
+        try {
+          await pool.query(
+            `UPDATE users SET
+              failed_login_count = COALESCE(failed_login_count, 0) + 1,
+              locked_until = CASE
+                WHEN COALESCE(failed_login_count, 0) + 1 >= 5
+                THEN NOW() + INTERVAL '15 minutes'
+                ELSE locked_until
+              END
+            WHERE id = $1`,
+            [user.id]
+          );
+        } catch (trackErr) {
+          console.error('Failed to track login attempt:', trackErr.message);
+        }
+
+        // Audit log for failed login
+        try {
+          const { logAction } = require('../services/auditService');
+          await logAction({
+            orgId: user.org_id,
+            actorId: user.id,
+            actorType: 'user',
+            action: 'login_failed',
+            resourceType: 'user',
+            resourceId: user.id,
+            changes: null,
+            metadata: { ip: req.ip, userAgent: req.get('user-agent'), email }
+          });
+        } catch (auditErr) {
+          console.error('Failed to audit login failure:', auditErr.message);
+        }
+      }
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Update last_login
-    await query('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
+    // Reset failed login count and update last_login
+    await pool.query(
+      'UPDATE users SET failed_login_count = 0, locked_until = NULL, last_login = NOW() WHERE id = $1',
+      [user.id]
+    );
 
-    const { accessToken, refreshToken } = generateTokens(user);
-    await storeRefreshToken(user.id, refreshToken);
+    const { accessToken, refreshToken, tokenId } = generateTokens(user);
+    await storeRefreshToken(tokenId, user.id);
 
     res.cookie('aid_access', accessToken, { ...COOKIE_OPTIONS, maxAge: ACCESS_MAX_AGE });
     res.cookie('aid_refresh', refreshToken, { ...COOKIE_OPTIONS, maxAge: REFRESH_MAX_AGE });
@@ -189,7 +235,7 @@ router.post('/auth/login', async (req, res, next) => {
  * POST /auth/refresh
  * Rotate access and refresh tokens
  */
-router.post('/auth/refresh', async (req, res, next) => {
+router.post('/auth/refresh', authLimiter, async (req, res, next) => {
   try {
     const refreshToken = getCookie(req, 'aid_refresh');
     if (!refreshToken) {
@@ -207,7 +253,7 @@ router.post('/auth/refresh', async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid refresh token' });
     }
 
-    const valid = await isRefreshTokenValid(payload.userId, refreshToken);
+    const valid = await isRefreshTokenValid(payload.jti, payload.userId);
     if (!valid) {
       return res.status(401).json({ error: 'Refresh token revoked or expired' });
     }
@@ -225,8 +271,8 @@ router.post('/auth/refresh', async (req, res, next) => {
     const tokens = generateTokens(user);
 
     // Rotate: revoke old, store new
-    await revokeRefreshToken(user.id);
-    await storeRefreshToken(user.id, tokens.refreshToken);
+    await revokeRefreshToken(payload.jti, payload.userId);
+    await storeRefreshToken(tokens.tokenId, user.id);
 
     res.cookie('aid_access', tokens.accessToken, { ...COOKIE_OPTIONS, maxAge: ACCESS_MAX_AGE });
     res.cookie('aid_refresh', tokens.refreshToken, { ...COOKIE_OPTIONS, maxAge: REFRESH_MAX_AGE });
@@ -247,8 +293,8 @@ router.post('/auth/logout', async (req, res, next) => {
     if (refreshToken) {
       try {
         const payload = verifyRefreshToken(refreshToken);
-        if (payload && payload.userId) {
-          await revokeRefreshToken(payload.userId);
+        if (payload && payload.userId && payload.jti) {
+          await revokeRefreshToken(payload.jti, payload.userId);
         }
       } catch (err) {
         // Ignore invalid token on logout

@@ -6,6 +6,21 @@
 
 const { logAction } = require('../services/auditService');
 
+const SENSITIVE_FIELDS = new Set([
+  'rawKey', 'password', 'password_hash', 'secret',
+  'refreshToken', 'accessToken', 'token', 'key_hash'
+]);
+
+function scrub(obj) {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(scrub);
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = SENSITIVE_FIELDS.has(k) ? '[REDACTED]' : scrub(v);
+  }
+  return out;
+}
+
 /**
  * Map of HTTP method + path to action names
  */
@@ -139,7 +154,7 @@ function auditMiddleware(req, res, next) {
             action,
             resourceType,
             resourceId,
-            changes: responseBody,
+            changes: scrub(responseBody),
             metadata
           });
         }

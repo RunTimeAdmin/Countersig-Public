@@ -8,7 +8,13 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { redis } = require('../models/redis');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is required');
+}
+if (JWT_SECRET.length < 32) {
+  throw new Error('FATAL: JWT_SECRET must be at least 32 characters');
+}
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '15m';
 const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
 
@@ -26,7 +32,6 @@ function expiryToSeconds(expiry) {
   return value * multipliers[unit];
 }
 
-const REFRESH_TTL_SECONDS = expiryToSeconds(JWT_REFRESH_EXPIRY);
 
 /**
  * Hash a password with bcrypt (12 rounds)
@@ -50,22 +55,23 @@ async function comparePassword(password, hash) {
 /**
  * Generate access and refresh tokens for a user
  * @param {Object} user - User object with id, email, org_id, role
- * @returns {Object} { accessToken, refreshToken }
+ * @returns {Object} { accessToken, refreshToken, tokenId }
  */
 function generateTokens(user) {
+  const tokenId = crypto.randomUUID();
   const accessToken = jwt.sign(
-    { userId: user.id, email: user.email, orgId: user.org_id, role: user.role },
+    { userId: user.id, email: user.email, orgId: user.org_id, role: user.role, type: 'access' },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRY }
+    { expiresIn: JWT_EXPIRY, issuer: 'agentid.io', audience: 'agentid-api' }
   );
 
   const refreshToken = jwt.sign(
-    { userId: user.id, type: 'refresh' },
+    { userId: user.id, type: 'refresh', jti: tokenId },
     JWT_SECRET,
     { expiresIn: JWT_REFRESH_EXPIRY }
   );
 
-  return { accessToken, refreshToken };
+  return { accessToken, refreshToken, tokenId };
 }
 
 /**
@@ -74,9 +80,12 @@ function generateTokens(user) {
  * @returns {Object} Decoded payload
  */
 function verifyAccessToken(token) {
-  const decoded = jwt.verify(token, JWT_SECRET);
-  if (decoded.type === 'refresh') {
-    throw new Error('Token type mismatch: refresh token used as access token');
+  const decoded = jwt.verify(token, JWT_SECRET, {
+    issuer: 'agentid.io',
+    audience: 'agentid-api'
+  });
+  if (decoded.type !== 'access') {
+    throw new Error('Invalid token type: expected access token');
   }
   return decoded;
 }
@@ -111,14 +120,18 @@ function verifyApiKey(rawKey) {
 }
 
 /**
- * Store a refresh token in Redis
+ * Store a refresh token in Redis (per-token storage for multi-session support)
+ * @param {string} tokenId - Unique token ID (jti)
  * @param {string} userId - User ID
- * @param {string} refreshToken - Refresh token string
  * @returns {Promise<boolean>}
  */
-async function storeRefreshToken(userId, refreshToken) {
+async function storeRefreshToken(tokenId, userId) {
   try {
-    await redis.setex(`refresh:${userId}`, REFRESH_TTL_SECONDS, refreshToken);
+    const ttl = expiryToSeconds(JWT_REFRESH_EXPIRY);
+    await redis.setex(`refresh:${tokenId}`, ttl, userId);
+    // Track session for "logout all" support
+    await redis.sadd(`sessions:${userId}`, tokenId);
+    await redis.expire(`sessions:${userId}`, ttl);
     return true;
   } catch (err) {
     console.error('Redis storeRefreshToken error:', err.message);
@@ -127,13 +140,17 @@ async function storeRefreshToken(userId, refreshToken) {
 }
 
 /**
- * Revoke a user's refresh token in Redis
+ * Revoke a refresh token in Redis by tokenId
+ * @param {string} tokenId - Unique token ID (jti)
  * @param {string} userId - User ID
  * @returns {Promise<boolean>}
  */
-async function revokeRefreshToken(userId) {
+async function revokeRefreshToken(tokenId, userId) {
   try {
-    await redis.del(`refresh:${userId}`);
+    await redis.del(`refresh:${tokenId}`);
+    if (userId) {
+      await redis.srem(`sessions:${userId}`, tokenId);
+    }
     return true;
   } catch (err) {
     console.error('Redis revokeRefreshToken error:', err.message);
@@ -142,15 +159,42 @@ async function revokeRefreshToken(userId) {
 }
 
 /**
- * Check if a refresh token is valid in Redis
+ * Revoke all sessions for a user ("logout all" support)
  * @param {string} userId - User ID
- * @param {string} refreshToken - Refresh token string
  * @returns {Promise<boolean>}
  */
-async function isRefreshTokenValid(userId, refreshToken) {
+async function revokeAllSessions(userId) {
   try {
-    const stored = await redis.get(`refresh:${userId}`);
-    return stored === refreshToken;
+    const tokenIds = await redis.smembers(`sessions:${userId}`);
+    if (tokenIds.length > 0) {
+      const pipeline = redis.pipeline();
+      for (const tid of tokenIds) {
+        pipeline.del(`refresh:${tid}`);
+      }
+      pipeline.del(`sessions:${userId}`);
+      await pipeline.exec();
+    }
+    return true;
+  } catch (err) {
+    console.error('Redis revokeAllSessions error:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Check if a refresh token is valid in Redis (constant-time comparison)
+ * @param {string} tokenId - Unique token ID (jti)
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>}
+ */
+async function isRefreshTokenValid(tokenId, userId) {
+  try {
+    const stored = await redis.get(`refresh:${tokenId}`);
+    if (!stored || !userId) return false;
+    const storedBuf = Buffer.from(stored, 'utf8');
+    const userBuf = Buffer.from(userId, 'utf8');
+    if (storedBuf.length !== userBuf.length) return false;
+    return crypto.timingSafeEqual(storedBuf, userBuf);
   } catch (err) {
     console.error('Redis isRefreshTokenValid error:', err.message);
     return false;
@@ -167,6 +211,7 @@ module.exports = {
   verifyApiKey,
   storeRefreshToken,
   revokeRefreshToken,
+  revokeAllSessions,
   isRefreshTokenValid,
   expiryToSeconds
 };

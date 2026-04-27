@@ -30,6 +30,9 @@ function authorize(...allowedRoles) {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
+      if (!ROLE_HIERARCHY.hasOwnProperty(req.user.role)) {
+        console.warn(`[authorize] Unknown role encountered: ${req.user.role} for user ${req.user.userId}`);
+      }
       const userRoleLevel = ROLE_HIERARCHY[req.user.role] || 0;
       const minRequiredLevel = Math.min(
         ...allowedRoles.map(role => ROLE_HIERARCHY[role] || Infinity)

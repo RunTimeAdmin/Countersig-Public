@@ -4,6 +4,7 @@
  */
 
 const express = require('express');
+const crypto = require('crypto');
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');
 const { getAgent, getAgentsByOwner, listAgents, countAgents, discoverAgents, updateAgent, revokeAgent } = require('../models/queries');
@@ -20,9 +21,9 @@ const TIMESTAMP_WINDOW_MS = 5 * 60 * 1000;
 
 /**
  * GET /agents
- * List agents with optional filters
+ * List agents with optional filters (requires authentication, scoped to org)
  */
-router.get('/agents', optionalAuth, defaultLimiter, async (req, res, next) => {
+router.get('/agents', authenticate, defaultLimiter, async (req, res, next) => {
   try {
     const { status, capability, limit, offset, includeDemo } = req.query;
 
@@ -35,7 +36,7 @@ router.get('/agents', optionalAuth, defaultLimiter, async (req, res, next) => {
       parsedLimit = 100;
     }
 
-    const orgId = req.user ? req.user.orgId : null;
+    const orgId = req.user.orgId;
 
     const agents = await listAgents({
       status,
@@ -51,6 +52,54 @@ router.get('/agents', optionalAuth, defaultLimiter, async (req, res, next) => {
 
     return res.status(200).json({
       agents: transformAgents(agents),
+      total,
+      limit: parsedLimit,
+      offset: parsedOffset
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /public/agents
+ * Public registry - only shows agents with limited fields (no sensitive data)
+ */
+router.get('/public/agents', defaultLimiter, async (req, res, next) => {
+  try {
+    const { status, capability, limit, offset } = req.query;
+
+    let parsedLimit = parseInt(limit, 10) || 50;
+    let parsedOffset = parseInt(offset, 10) || 0;
+
+    if (parsedLimit > 100) {
+      parsedLimit = 100;
+    }
+
+    const agents = await listAgents({
+      status: status || 'active',
+      capability,
+      limit: parsedLimit,
+      offset: parsedOffset,
+      includeDemo: false,
+      orgId: null
+    });
+
+    const total = await countAgents({ status: status || 'active', capability, includeDemo: false, orgId: null });
+
+    // Only return public-safe fields
+    const publicAgents = agents.map(a => ({
+      agent_id: a.agent_id,
+      name: a.name,
+      pubkey: a.pubkey,
+      status: a.status,
+      bags_score: a.bags_score,
+      capabilities: a.capabilities,
+      registered_at: a.registered_at
+    }));
+
+    return res.status(200).json({
+      agents: publicAgents,
       total,
       limit: parsedLimit,
       offset: parsedOffset
@@ -119,9 +168,9 @@ router.get('/agents/:agentId', defaultLimiter, async (req, res, next) => {
 
 /**
  * GET /discover
- * A2A discovery - find agents by capability
+ * A2A discovery - find agents by capability (requires authentication)
  */
-router.get('/discover', defaultLimiter, async (req, res, next) => {
+router.get('/discover', authenticate, defaultLimiter, async (req, res, next) => {
   try {
     const { capability } = req.query;
 
@@ -222,15 +271,34 @@ router.put('/agents/:agentId/update', authenticate, authLimiter, async (req, res
     const pubkey = agent.pubkey;
 
     // 3. Verify ownership: construct message and verify Ed25519 signature
-    const message = `AGENTID-UPDATE:${agentId}:${timestamp}`;
+    // Compute hash of the fields being updated to bind signature to payload
+    const updateFieldsForHash = { name, description, capabilities, creatorX, tokenMint };
+    const fieldsHash = crypto
+      .createHash('sha256')
+      .update(JSON.stringify(updateFieldsForHash))
+      .digest('hex');
+
+    // The expected message now includes the fields hash
+    const expectedMessage = `AGENTID-UPDATE:${agentId}:${timestamp}:${fieldsHash}`;
+    // Old format for backward compatibility
+    const legacyMessage = `AGENTID-UPDATE:${agentId}:${timestamp}`;
     let isSignatureValid = false;
 
     try {
-      const messageBytes = Buffer.from(message, 'utf-8');
+      const messageBytes = Buffer.from(expectedMessage, 'utf-8');
       const sigBytes = bs58.decode(signature);
       const pubkeyBytes = bs58.decode(pubkey);
 
       isSignatureValid = nacl.sign.detached.verify(messageBytes, sigBytes, pubkeyBytes);
+
+      // Backward compatibility: try legacy format if new format fails
+      if (!isSignatureValid) {
+        const legacyBytes = Buffer.from(legacyMessage, 'utf-8');
+        isSignatureValid = nacl.sign.detached.verify(legacyBytes, sigBytes, pubkeyBytes);
+        if (isSignatureValid) {
+          console.warn('Deprecated signature format used for agent update (no field binding). Agent ID:', agentId);
+        }
+      }
     } catch (sigError) {
       console.error('Signature verification error:', sigError.message);
       return res.status(401).json({

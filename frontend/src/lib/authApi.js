@@ -5,7 +5,10 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 const authClient = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
-  headers: { 'Content-Type': 'application/json' }
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'AgentID'
+  }
 });
 
 // Add response interceptor for 401 -> auto refresh

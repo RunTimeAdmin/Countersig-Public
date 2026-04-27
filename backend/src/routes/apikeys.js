@@ -6,7 +6,17 @@
 const express = require('express');
 const { query } = require('../models/db');
 const { authenticate } = require('../middleware/authenticate');
+const { authorize, ROLES } = require('../middleware/authorize');
 const { generateApiKey } = require('../services/authService');
+
+const VALID_SCOPES = new Set([
+  'read', 'write',
+  'agents:read', 'agents:write',
+  'audit:read', 'audit:export',
+  'webhooks:read', 'webhooks:write',
+  'policies:read', 'policies:write',
+  'org:read', 'org:write'
+]);
 
 const router = express.Router();
 
@@ -17,7 +27,7 @@ router.use(authenticate);
  * POST /api-keys
  * Create a new API key
  */
-router.post('/api-keys', async (req, res, next) => {
+router.post('/api-keys', authorize(ROLES.ADMIN), async (req, res, next) => {
   try {
     const { name, scopes, expiresAt } = req.body;
 
@@ -27,6 +37,25 @@ router.post('/api-keys', async (req, res, next) => {
 
     const { rawKey, keyHash, keyPrefix } = generateApiKey();
     const parsedScopes = Array.isArray(scopes) && scopes.length > 0 ? scopes : ['read'];
+    const invalid = parsedScopes.filter(s => !VALID_SCOPES.has(s));
+    if (invalid.length) {
+      return res.status(400).json({ error: `Invalid scopes: ${invalid.join(', ')}. Valid: ${[...VALID_SCOPES].join(', ')}` });
+    }
+
+    if (expiresAt) {
+      const expDate = new Date(expiresAt);
+      if (isNaN(expDate.getTime())) {
+        return res.status(400).json({ error: 'expiresAt must be a valid ISO date' });
+      }
+      if (expDate <= new Date()) {
+        return res.status(400).json({ error: 'expiresAt must be in the future' });
+      }
+      const maxExpiry = new Date();
+      maxExpiry.setFullYear(maxExpiry.getFullYear() + 2);
+      if (expDate > maxExpiry) {
+        return res.status(400).json({ error: 'expiresAt cannot be more than 2 years in the future' });
+      }
+    }
 
     const result = await query(
       `INSERT INTO api_keys (org_id, user_id, key_hash, key_prefix, name, scopes, expires_at)
@@ -85,7 +114,7 @@ router.get('/api-keys', async (req, res, next) => {
  * DELETE /api-keys/:id
  * Revoke an API key
  */
-router.delete('/api-keys/:id', async (req, res, next) => {
+router.delete('/api-keys/:id', authorize(ROLES.ADMIN), async (req, res, next) => {
   try {
     const { id } = req.params;
 

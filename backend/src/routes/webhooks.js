@@ -9,6 +9,7 @@ const { query } = require('../models/db');
 const { authenticate } = require('../middleware/authenticate');
 const { authorize, ROLES } = require('../middleware/authorize');
 const { orgContext } = require('../middleware/orgContext');
+const { assertPublicHttpsUrl } = require('../utils/urlValidator');
 
 const router = express.Router();
 
@@ -49,12 +50,20 @@ router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.A
   try {
     const { url, events, secret } = req.body;
 
-    if (!url || typeof url !== 'string' || !url.startsWith('https://')) {
-      return res.status(400).json({ error: 'URL must start with https://' });
+    try {
+      await assertPublicHttpsUrl(url);
+    } catch (err) {
+      return res.status(400).json({ error: `Invalid webhook URL: ${err.message}` });
     }
 
     const webhookSecret = secret || crypto.randomBytes(32).toString('hex');
+    if (secret && secret.length < 32) {
+      return res.status(400).json({ error: 'Custom webhook secret must be at least 32 characters' });
+    }
     const parsedEvents = Array.isArray(events) ? events : null;
+    if (!Array.isArray(events) || events.length === 0) {
+      return res.status(400).json({ error: 'events array is required and must contain at least one event type' });
+    }
 
     const result = await query(
       `INSERT INTO webhooks (org_id, url, events, secret)
@@ -88,15 +97,20 @@ router.put('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authori
     let paramIndex = 1;
 
     if (url !== undefined) {
-      if (typeof url !== 'string' || !url.startsWith('https://')) {
-        return res.status(400).json({ error: 'URL must start with https://' });
+      try {
+        await assertPublicHttpsUrl(url);
+      } catch (err) {
+        return res.status(400).json({ error: `Invalid webhook URL: ${err.message}` });
       }
       updates.push(`url = $${paramIndex++}`);
       values.push(url.trim());
     }
     if (events !== undefined) {
+      if (!Array.isArray(events) || events.length === 0) {
+        return res.status(400).json({ error: 'events array is required and must contain at least one event type' });
+      }
       updates.push(`events = $${paramIndex++}`);
-      values.push(Array.isArray(events) ? JSON.stringify(events) : null);
+      values.push(JSON.stringify(events));
     }
     if (enabled !== undefined) {
       updates.push(`enabled = $${paramIndex++}`);

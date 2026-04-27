@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 // Required environment variables - server will not start without these
-const required = ['DATABASE_URL', 'BAGS_API_KEY', 'REDIS_URL'];
+const required = ['DATABASE_URL', 'BAGS_API_KEY', 'REDIS_URL', 'JWT_SECRET'];
 const missing = required.filter(key => !process.env[key]);
 if (missing.length > 0) {
   console.error('========================================');
@@ -15,7 +15,7 @@ if (missing.length > 0) {
 }
 
 // Recommended environment variables - warn but allow startup
-const recommended = ['CORS_ORIGIN', 'AGENTID_BASE_URL', 'JWT_SECRET'];
+const recommended = ['CORS_ORIGIN', 'AGENTID_BASE_URL'];
 const missingRecommended = recommended.filter(key => !process.env[key]);
 if (missingRecommended.length > 0) {
   console.warn('WARNING: Missing recommended environment variables (using defaults):');
@@ -25,6 +25,7 @@ if (missingRecommended.length > 0) {
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const crypto = require('crypto');
 const config = require('./src/config');
 const errorHandler = require('./src/middleware/errorHandler');
 const { defaultLimiter } = require('./src/middleware/rateLimit');
@@ -53,7 +54,30 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true
+  },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"]
+    }
+  }
+}));
+
+// Request ID middleware
+app.use((req, res, next) => {
+  req.id = req.get('X-Request-Id') || crypto.randomUUID();
+  res.set('X-Request-Id', req.id);
+  next();
+});
 
 // CORS middleware
 app.use(cors({
@@ -79,6 +103,21 @@ app.use(defaultLimiter);
 
 // Audit middleware (logs mutating requests after response is sent)
 app.use(auditMiddleware);
+
+// CSRF protection - require custom header on mutating requests
+app.use((req, res, next) => {
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    // Skip CSRF check for public endpoints
+    const publicPaths = ['/public/', '/badge/', '/widget/', '/health'];
+    if (publicPaths.some(p => req.path.startsWith(p))) {
+      return next();
+    }
+    if (req.get('X-Requested-With') !== 'AgentID') {
+      return res.status(403).json({ error: 'CSRF validation failed' });
+    }
+  }
+  next();
+});
 
 // API routes
 app.use('/', registerRoutes);       // POST /register

@@ -1,0 +1,1946 @@
+﻿AgentID 2.0 — Code Review and Security Analysis
+Repository: https://github.com/RunTimeAdmin/AgentID-2.0 Commit reviewed: main HEAD (single commit, "Initial commit") Scope: backend (Node/Express), frontend (React/Vite), database schema, deployment
+Context for this review
+The repo already contains AgentID_Code_Review.md and AgentID_Security_Audit.md. Both target AgentID 1.0 (April/May 2025) and predate every new subsystem in 2.0: multi-tenant orgs, users + JWT, API keys, RBAC, audit logs with hash chaining, policy engine, webhooks. The cryptographic core (Ed25519 challenge-response) is largely unchanged from 1.0 and remains correctly implemented. This review focuses on the 2.0 additions, which is where almost every new vulnerability lives.
+
+
+Headline numbers from this review:
+
+
+* 8 Critical findings
+* 9 High findings
+* 15 Medium findings
+* 11 Low findings
+
+
+The 1.0 critical bugs (bags x-api-key header, widget URL, env var validation, reporter pubkey unverified) are all fixed in 2.0. Good. New problems took their place.
+
+
+________________
+
+
+CRITICAL
+C1. Webhook SSRF — internal network is reachable from any admin
+Location: backend/src/routes/webhooks.js lines 52, 91; backend/src/services/webhookService.js lines 32-39.
+
+
+The only validation on webhook.url is url.startsWith('https://'). That blocks http:// and file:// and not much else. A malicious admin (or a stolen admin session) registers a webhook pointing to:
+
+
+https://169.254.169.254/latest/meta-data/iam/security-credentials/
+
+
+https://internal-elb.aws.local/admin
+
+
+https://10.0.0.1:8200/v1/secret/data/anything
+
+
+https://localhost-rebind.example.com/   (DNS rebinding to 127.0.0.1)
+
+
+Then the attacker triggers any event the webhook subscribes to. axios.post(webhook.url, body, ...) runs on your server, hits the internal target, and you get back any response that fits in axios's default. Even better for the attacker: Promise.allSettled is fired and forgotten, so failures are invisible to them but the connection still happens.
+
+
+The HMAC signature is irrelevant here. The attacker controls the URL; they can verify whatever signature your server sends.
+
+
+Fix:
+
+
+// In a new utils/url.js
+
+
+const dns = require('dns').promises;
+
+
+const net = require('net');
+
+
+const PRIVATE_RANGES = [
+
+
+  /^10\./,
+
+
+  /^172\.(1[6-9]|2\d|3[0-1])\./,
+
+
+  /^192\.168\./,
+
+
+  /^127\./,
+
+
+  /^169\.254\./,
+
+
+  /^0\./,
+
+
+  /^::1$/,
+
+
+  /^fc00:/i,
+
+
+  /^fe80:/i
+
+
+];
+
+
+async function assertPublicHttpsUrl(rawUrl) {
+
+
+  const u = new URL(rawUrl);                              // throws on garbage
+
+
+  if (u.protocol !== 'https:') throw new Error('https only');
+
+
+  if (u.username || u.password) throw new Error('userinfo not allowed');
+
+
+  const host = u.hostname;
+
+
+  const addrs = await dns.lookup(host, { all: true });    // resolve once
+
+
+  for (const { address } of addrs) {
+
+
+    if (net.isIP(address) === 0) continue;
+
+
+    if (PRIVATE_RANGES.some(re => re.test(address))) {
+
+
+      throw new Error(`URL resolves to non-routable address: ${address}`);
+
+
+    }
+
+
+  }
+
+
+  return { url: u.toString(), addrs };                    // pin these IPs
+
+
+}
+
+
+Then in webhookService.deliverWebhook, re-validate at delivery time and pin the resolved IP into axios config (use a custom httpsAgent with lookup) so DNS rebinding can't swap the target between validation and delivery. Also set maxRedirects: 0 and maxContentLength/maxBodyLength to small values; right now a target can stream a 10GB response and OOM the worker.
+
+
+Impact: cloud credential theft, internal API access from the AgentID host, lateral movement. Effort: 4-6 hours including tests and the IP pinning.
+
+
+________________
+
+
+C2. JWT_SECRET silently falls back to a hardcoded string
+Location: backend/src/services/authService.js line 11.
+
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production';
+
+
+server.js does check for required env vars, but JWT_SECRET is in the "recommended" list (line 18), not the "required" list. A misconfigured staging/preview environment, a Heroku review app, a CI runner, or any container that lost an env var ends up issuing tokens signed with a string anybody who's read the GitHub repo knows. Anyone can mint themselves an admin token for any org.
+
+
+Worse: docker-compose.yml line 58 ships a hardcoded JWT_SECRET: local-dev-jwt-secret-change-in-production. If anyone uses the compose file as a starting point and forgets to change that, they're shipping a known secret.
+
+
+Fix:
+
+
+// authService.js
+
+
+const JWT_SECRET = process.env.JWT_SECRET;
+
+
+if (!JWT_SECRET) {
+
+
+  throw new Error('JWT_SECRET is required');
+
+
+}
+
+
+if (JWT_SECRET.length < 32) {
+
+
+  throw new Error('JWT_SECRET must be at least 32 characters');
+
+
+}
+
+
+And move JWT_SECRET to the required list in server.js. While you're there, validate that it's not the default string in production. Docker compose should use ${JWT_SECRET:?error} syntax to fail at compose time if the host env doesn't supply it.
+
+
+Impact: total auth bypass. Effort: 15 minutes.
+
+
+________________
+
+
+C3. Cross-tenant agent listing and discovery via unauthenticated routes
+Location: backend/src/routes/agents.js lines 25, 124.
+
+
+router.get('/agents', optionalAuth, defaultLimiter, async (req, res, next) => {
+
+
+  // ...
+
+
+  const orgId = req.user ? req.user.orgId : null;       // null when unauth
+
+
+  const agents = await listAgents({ ..., orgId });       // orgId passed as filter
+
+
+In queries.js listAgents() line 152, the orgId filter is only applied if truthy:
+
+
+if (orgId) {
+
+
+  conditions.push(`org_id = $${paramIndex}`);
+
+
+  // ...
+
+
+}
+
+
+So an unauthenticated request to GET /agents?limit=100 returns the top 100 agents across every org in the system, sorted by bags_score descending. Same for GET /discover?capability=anything. This is your tenant boundary, fully bypassed by simply not sending a cookie.
+
+
+Whether this matters depends on your product model. If agents are intentionally public (Bags-style discovery), say so explicitly and add a per-org public_directory: bool flag. If they're tenant-private, this is a P0 leak.
+
+
+Fix (assuming tenant-private by default):
+
+
+// In agents.js GET /agents
+
+
+router.get('/agents', authenticate, defaultLimiter, async (req, res, next) => {
+
+
+  // ...
+
+
+  const agents = await listAgents({ ..., orgId: req.user.orgId });
+
+
+});
+
+
+For the public directory case, add an explicit GET /public/agents route that filters WHERE org_id IN (SELECT id FROM organizations WHERE public_directory = true).
+
+
+Impact: cross-tenant data exposure of agent registry, capabilities, scores. Effort: 30 minutes plus migration if you add the public flag.
+
+
+________________
+
+
+C4. Audit log stores raw API keys in plaintext via changes: responseBody
+Location: backend/src/middleware/auditMiddleware.js lines 105-108, 142.
+
+
+The middleware overrides res.json to capture the response body, then writes it into audit_logs.changes for every mutating request. The response body of POST /api-keys is:
+
+
+return res.status(201).json({
+
+
+  id: apiKey.id,
+
+
+  rawKey,                 // <-- the actual unhashed API key
+
+
+  name: apiKey.name,
+
+
+  // ...
+
+
+});
+
+
+So every API key creation event lands in the audit table with the full plaintext key in the changes column. Indefinitely. Visible to anyone with GET /audit/logs access (managers and above) plus anyone with database read access (DBAs, backups, replicas, anyone who restores a snapshot).
+
+
+This converts the audit log from a defensive mechanism into a credential trove.
+
+
+Fix the symptom and the root cause. Symptom: scrub sensitive fields before logging. Root cause: never log full response bodies; log only what you need.
+
+
+// auditMiddleware.js
+
+
+const SENSITIVE_FIELDS = new Set(['rawKey', 'password', 'secret', 'refreshToken', 'accessToken']);
+
+
+function scrub(obj) {
+
+
+  if (obj === null || typeof obj !== 'object') return obj;
+
+
+  if (Array.isArray(obj)) return obj.map(scrub);
+
+
+  const out = {};
+
+
+  for (const [k, v] of Object.entries(obj)) {
+
+
+    out[k] = SENSITIVE_FIELDS.has(k) ? '[REDACTED]' : scrub(v);
+
+
+  }
+
+
+  return out;
+
+
+}
+
+
+// Then:
+
+
+changes: scrub(responseBody)
+
+
+Better: don't store the full response. Store a small structured record per action (resource id, fields changed, count). Right now the audit log is also storing every successful login response (which contains user role/orgId — less catastrophic but still reveals account structure to anyone with audit read access).
+
+
+Same review needed for: webhook secret reveal on POST /orgs/:orgId/webhooks (returns full secret in body), agent registration response.
+
+
+Impact: full credential exposure to anyone with audit read access; permanent leak in backups. Effort: 1-2 hours including migration to scrub existing rows.
+
+
+________________
+
+
+C5. Audit hash chain doesn't actually cover the audited content
+Location: backend/src/services/auditService.js lines 84-93.
+
+
+The "tamper-evident" hash chain is computed over only four fields:
+
+
+const hashPayload = JSON.stringify({
+
+
+  action,
+
+
+  resource_id: resourceId,
+
+
+  actor_id: actorId,
+
+
+  timestamp
+
+
+});
+
+
+const entryHash = computeHash(prevHash + hashPayload);
+
+
+Not in the hash: org_id, actor_type, resource_type, changes, metadata, risk_score. An attacker with database write access can do all of the following without breaking the chain:
+
+
+* Rewrite the changes field of any entry (replace evidence of what was actually done).
+* Move entries between orgs by changing org_id.
+* Downgrade the risk_score on any sensitive action.
+* Modify metadata (IP, user agent, statusCode) to make a hostile login look benign.
+
+
+verifyAuditChain() will report valid: true because it recomputes the hash using the same four fields. The chain proves "an action of this type happened against this resource at this timestamp" and nothing else.
+
+
+Fix: hash the entire row payload. Pin the schema:
+
+
+function buildHashPayload(entry) {
+
+
+  return JSON.stringify({
+
+
+    org_id: entry.orgId,
+
+
+    actor_id: entry.actorId,
+
+
+    actor_type: entry.actorType,
+
+
+    action: entry.action,
+
+
+    resource_type: entry.resourceType,
+
+
+    resource_id: entry.resourceId,
+
+
+    changes: entry.changes,            // post-scrubbing
+
+
+    metadata: entry.metadata,
+
+
+    risk_score: entry.riskScore,
+
+
+    timestamp: entry.timestamp
+
+
+  });
+
+
+}
+
+
+Use a deterministic JSON serializer (e.g. safe-stable-stringify) so key ordering doesn't change the hash. Update verifyAuditChain to use the same canonical form. Document the canonical form so the chain remains verifiable across versions.
+
+
+Optional but worth it: sign each entry hash with a server-side HMAC key separate from JWT_SECRET, so even an attacker with full DB write can't recompute valid hashes without also stealing that key.
+
+
+Impact: claimed tamper protection is materially weakened; compliance posture ("we have an immutable audit log") is misleading. Effort: 4 hours including data migration and verifier update.
+
+
+________________
+
+
+C6. Update message signature doesn't bind to the field changes
+Location: backend/src/routes/agents.js lines 225, 263-300.
+
+
+The signed message is:
+
+
+const message = `AGENTID-UPDATE:${agentId}:${timestamp}`;
+
+
+The actual update payload (name, description, capabilities, creatorX, etc.) is read from the request body and applied separately. The signature only proves "the owner authorized SOME update at timestamp T." It does not prove the owner authorized THESE specific changes.
+
+
+Within the 5-minute window, an attacker who captures one valid signed update on the wire (or recovers it from a leaked log, or pulls it from a misconfigured proxy) can replay it with completely different field values. They keep the signature, swap the body. Server validates signature against the message (which doesn't include the body), accepts it.
+
+
+Same bug pattern in the /agents/:agentId/revoke route (line 387) — the message format is AGENTID-REVOKE:{agentId}:{timestamp} with no other binding. Less dangerous since revoke has no parameters to swap, but the timestamp window means a single signed revoke can be re-fired up to 5 minutes later (which the freshness window technically covers, but only if the body is also rejected on resubmission, which it isn't).
+
+
+Fix: bind the payload into the signed message.
+
+
+// Client side
+
+
+const fieldsHash = crypto
+
+
+  .createHash('sha256')
+
+
+  .update(canonicalJSON({ name, description, capabilities, creatorX, tokenMint }))
+
+
+  .digest('hex');
+
+
+const message = `AGENTID-UPDATE:${agentId}:${timestamp}:${fieldsHash}`;
+
+
+Server reconstructs fieldsHash from the actual request body and verifies the signature against the rebuilt message. Now the signature is non-malleable across field changes.
+
+
+Impact: authenticated update tampering by anyone who can observe one update message. Effort: 1 hour including frontend signing change.
+
+
+________________
+
+
+C7. POST /agents/:agentId/attest is unauthenticated
+Location: backend/src/routes/attestations.js line 27.
+
+
+router.post('/agents/:agentId/attest', authLimiter, async (req, res, next) => {
+
+
+No authenticate middleware. Anyone on the internet can:
+
+
+1. POST {success: true} 100,000 times to any agent ID and watch the success counter run up.
+2. Trigger refreshAndStoreScore() repeatedly on any agent in any org.
+3. Skew any agent's bags_score upward without ever proving they interacted with the agent.
+
+
+The reputation system is the entire value prop and it's open-mic. The flag endpoint (/flag) at least requires a signature from a claimed reporterPubkey, but an attacker can generate Solana keypairs for free, so the flag system also collapses if any single attacker is willing to spend a few minutes:
+
+
+# Sybil three keypairs, sign three flag messages, get the agent auto-flagged
+
+
+for i in 1 2 3; do
+
+
+  solana-keygen new --outfile /tmp/key$i.json --no-bip39-passphrase
+
+
+  # sign AGENTID-FLAG:{agentId}:{pubkey$i}:{ts}, POST it
+
+
+done
+
+
+The auto-flag threshold of 3 unresolved flags (line 170) makes this a 3-key, ~30-second attack on any agent's reputation across orgs.
+
+
+Fix:
+
+
+* Attest: require authentication and check that the calling user belongs to the same org as the agent (or accept signed attestations from the agent's own keypair, similar to the verify flow).
+* Flag: add per-org flag rate limits, require flagger to be authenticated (their org user), and decouple the auto-flag from a hard threshold. Use weighted scoring where flags from inside the org count more than external flags. Better: don't auto-flag; queue for review.
+
+
+Impact: full reputation system manipulation by unauthenticated attackers. Effort: 2-3 hours.
+
+
+________________
+
+
+C8. API key auth and RBAC are disconnected — scoped keys cannot pass any authorization check
+Location: backend/src/middleware/authenticate.js line 68; backend/src/middleware/authorize.js line 33.
+
+
+authenticate.js sets req.user.role = 'api_key' for API-key-authenticated requests. authorize.js looks up the role in ROLE_HIERARCHY:
+
+
+const ROLE_HIERARCHY = {
+
+
+  admin: 4,
+
+
+  manager: 3,
+
+
+  member: 2,
+
+
+  viewer: 1
+
+
+};
+
+
+// ...
+
+
+const userRoleLevel = ROLE_HIERARCHY[req.user.role] || 0;
+
+
+'api_key' is not in the hierarchy, so it gets level 0. Every route that uses authorize(ROLES.X) rejects API key requests, regardless of the scopes you assigned to the key. The scope JSON column on api_keys is set, stored, listed in the UI, and never enforced.
+
+
+Effectively: API keys can only call routes that don't use authorize(). Right now those routes are mostly the public-ish read-only ones plus the un-authenticated attest route. Programmatic admin via API key is impossible.
+
+
+Either model needs to be fixed. The cleaner model is: API keys inherit the role of the user who created them, optionally narrowed by scopes. Store both role and scopes on the key row. Pass them through to req.user:
+
+
+// authenticate.js, when API key matches
+
+
+req.user = {
+
+
+  userId: apiKey.user_id,
+
+
+  orgId: apiKey.org_id,
+
+
+  role: apiKey.role,           // store role on the key
+
+
+  scopes: apiKey.scopes,
+
+
+  apiKeyId: apiKey.id,
+
+
+  isApiKey: true               // for any code that needs to differentiate
+
+
+};
+
+
+Then authorize() works the same way for both auth modes, and a new requireScope('agents:write') middleware can enforce scope-level restrictions on top.
+
+
+Right now your API key product is non-functional for write operations. This is the kind of bug a customer hits 30 seconds after signing up.
+
+
+Impact: API keys are effectively read-only despite advertising scopes. Effort: 3-4 hours including migration to add role to api_keys table.
+
+
+________________
+
+
+HIGH
+H1. No CSRF protection on cookie-authenticated routes
+Location: backend/server.js (no CSRF middleware); backend/src/routes/auth.js line 24 (sameSite: 'lax').
+
+
+Auth uses HttpOnly cookies. sameSite: 'lax' blocks most cross-site form posts but allows top-level navigation requests (clicking a link), which means:
+
+
+* An attacker hosts evil.com with a form that POSTs to https://agentid2.provenanceai.network/api-keys.
+* A logged-in admin clicks "click here for free Bitcoin."
+* Browser sends the cookie because it's a top-level navigation.
+* New API key is created in the admin's org.
+
+
+The browser-only attack surface is limited (lax blocks subresource POSTs and AJAX), but the navigation pivot is real for any state change that can be triggered with a top-level form submission.
+
+
+Fix: double-submit CSRF token, or SameSite: 'strict', or use CORS preflight as a CSRF gate (require a custom header like X-Requested-With and verify it server-side; lax-mode browsers don't include custom headers on top-level navigation).
+
+
+// Cheap fix: require X-Requested-With on all mutating routes
+
+
+app.use((req, res, next) => {
+
+
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+
+
+    if (req.get('X-Requested-With') !== 'AgentID') {
+
+
+      return res.status(403).json({ error: 'CSRF check failed' });
+
+
+    }
+
+
+  }
+
+
+  next();
+
+
+});
+
+
+And configure the frontend axios client to set that header.
+
+
+Impact: CSRF on state-changing routes; depends on attacker's ability to lure an admin to a hostile page. Effort: 1-2 hours.
+
+
+________________
+
+
+H2. Login endpoint has user-enumeration timing leak
+Location: backend/src/routes/auth.js lines 154-163.
+
+
+if (result.rows.length === 0) {
+
+
+  return res.status(401).json({ error: 'Invalid email or password' });   // fast path
+
+
+}
+
+
+const user = result.rows[0];
+
+
+const valid = await comparePassword(password, user.password_hash);       // slow path (~100ms bcrypt)
+
+
+if (!valid) {
+
+
+  return res.status(401).json({ error: 'Invalid email or password' });
+
+
+}
+
+
+Both paths return the same error message, but the timing differs by ~100ms. An attacker measuring response times can determine whether an email is registered, then target it with credential stuffing.
+
+
+Fix: always run bcrypt, even for missing users.
+
+
+const DUMMY_HASH = '$2a$12$' + 'a'.repeat(53);   // valid bcrypt format that will never match
+
+
+// ...
+
+
+const user = result.rows[0];
+
+
+const hashToCompare = user ? user.password_hash : DUMMY_HASH;
+
+
+const valid = await comparePassword(password, hashToCompare);
+
+
+if (!user || !valid) {
+
+
+  return res.status(401).json({ error: 'Invalid email or password' });
+
+
+}
+
+
+Impact: user enumeration enables targeted credential stuffing. Effort: 10 minutes.
+
+
+________________
+
+
+H3. No login attempt tracking, no account lockout
+Location: backend/src/routes/auth.js (no failed attempt counter); users table schema (no failed_login_count column).
+
+
+/auth/login has no per-account rate limit, no lockout, no exponential backoff. The only barrier is the global defaultLimiter (100 req/15min per IP). For credential stuffing with a botnet that distributes across thousands of IPs, this is no defense.
+
+
+Failed logins also aren't audited because the audit middleware skips entries without req.user.orgId, which is unset on login failure (login failure happens before the cookie is issued). So there's no detective control either.
+
+
+Fix: add failed_login_count and locked_until to users. On bad password, increment the counter. After 5 failures, lock the account for 15 minutes and require email-based unlock. Audit failed logins explicitly inside the route handler (don't rely on the middleware).
+
+
+Impact: credential stuffing attacks succeed against weak passwords; no detection. Effort: 2-3 hours including migration.
+
+
+________________
+
+
+H4. authLimiter not applied to login/register/refresh
+Location: backend/src/routes/auth.js lines 60, 141, 192.
+
+
+None of the three auth routes use authLimiter. The global defaultLimiter allows 100 requests per 15 minutes per IP. That's way too generous for password endpoints.
+
+
+Fix:
+
+
+const { authLimiter } = require('../middleware/rateLimit');
+
+
+router.post('/auth/login', authLimiter, async (req, res, next) => { ... });
+
+
+router.post('/auth/register', authLimiter, async (req, res, next) => { ... });
+
+
+router.post('/auth/refresh', authLimiter, async (req, res, next) => { ... });
+
+
+Better: use a custom limiter keyed on email rather than IP for /auth/login so a single IP behind NAT doesn't lock out an entire office, but a single account being attacked from a botnet does get the slowdown.
+
+
+Impact: authentication endpoints are not adequately rate-limited. Effort: 5 minutes for IP-based; 1 hour for email-keyed.
+
+
+________________
+
+
+H5. Refresh token comparison is not constant-time
+Location: backend/src/services/authService.js line 153.
+
+
+const stored = await redis.get(`refresh:${userId}`);
+
+
+return stored === refreshToken;
+
+
+JavaScript === on strings short-circuits at the first differing character. The timing difference is small but observable across thousands of network requests, especially in a co-located attacker scenario. JWTs are signed (so even forging one is hard), but the constant-time comparison is free defense in depth.
+
+
+Fix:
+
+
+const crypto = require('crypto');
+
+
+function safeEqual(a, b) {
+
+
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+
+
+  const ab = Buffer.from(a, 'utf8');
+
+
+  const bb = Buffer.from(b, 'utf8');
+
+
+  if (ab.length !== bb.length) return false;
+
+
+  return crypto.timingSafeEqual(ab, bb);
+
+
+}
+
+
+return safeEqual(stored, refreshToken);
+
+
+Impact: small. Worth fixing because it's a reflex pattern, not a difficult one. Effort: 5 minutes.
+
+
+________________
+
+
+H6. Single-key refresh token model breaks concurrent sessions and creates rotation race
+Location: backend/src/services/authService.js lines 121, 136.
+
+
+Refresh tokens are stored with the key refresh:${userId} — one slot per user. Consequences:
+
+
+* Logging in on a second device kicks the first device off (the second setex overwrites).
+* Rotation race: /auth/refresh does revokeRefreshToken(userId) then storeRefreshToken(userId, newToken). If two refresh requests arrive in close succession (frontend tab + service worker), the second storeRefreshToken may complete first, then the first request's revoke deletes the new token, logging the user out.
+* No way to revoke a single device's session without revoking all of them.
+
+
+Fix: index by token id, not user id. Generate a tokenId per refresh token (UUID, embedded in the JWT as jti), store refresh:${tokenId} with value userId, and verify by token id on refresh:
+
+
+function generateTokens(user) {
+
+
+  const tokenId = crypto.randomUUID();
+
+
+  const refreshToken = jwt.sign(
+
+
+    { userId: user.id, type: 'refresh', jti: tokenId },
+
+
+    JWT_SECRET,
+
+
+    { expiresIn: JWT_REFRESH_EXPIRY }
+
+
+  );
+
+
+  return { accessToken: ..., refreshToken, tokenId };
+
+
+}
+
+
+async function storeRefreshToken(tokenId, userId) {
+
+
+  await redis.setex(`refresh:${tokenId}`, REFRESH_TTL_SECONDS, userId);
+
+
+}
+
+
+This also enables a per-user "logout all sessions" by maintaining a user_sessions:${userId} set of token ids and deleting them all.
+
+
+Impact: bad UX (concurrent session breakage), occasional spurious logouts on rotation race. Effort: 3-4 hours.
+
+
+________________
+
+
+H7. Frontend reads tokens from localStorage — XSS can steal them
+Location: frontend/src/lib/api.js line 14.
+
+
+const token = localStorage.getItem('agentid_token');
+
+
+if (token) {
+
+
+  config.headers.Authorization = `Bearer ${token}`;
+
+
+}
+
+
+The backend uses HttpOnly cookies, which is the secure pattern. The frontend interceptor reads agentid_token from localStorage and adds it as a Bearer header anyway. If anything ever writes a token there (legacy code, partial implementation, future regression), it becomes XSS-stealable.
+
+
+AuthProvider.jsx also stores user state in localStorage.getItem('agentid_user') — that's just user metadata and probably fine, but the agentid_token slot is a foot-gun.
+
+
+Fix: remove the localStorage read. The HttpOnly cookies handle session auth. For API key use cases (like a CLI tool), require explicit configuration rather than reading from localStorage where XSS can find it.
+
+
+api.interceptors.request.use((config) => {
+
+
+  config.withCredentials = true;        // send the HttpOnly cookies
+
+
+  return config;
+
+
+});
+
+
+Impact: latent XSS-to-account-takeover vector. Effort: 15 minutes.
+
+
+________________
+
+
+H8. SERIALIZABLE + FOR UPDATE on every audit log insert creates a write bottleneck
+Location: backend/src/services/auditService.js lines 71, 75.
+
+
+await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
+
+
+const prevResult = await client.query(
+
+
+  'SELECT entry_hash FROM audit_logs WHERE org_id = $1 ORDER BY id DESC LIMIT 1 FOR UPDATE',
+
+
+  [orgId]
+
+
+);
+
+
+Every audit log insert serializes against every other audit log insert in the same org. Under modest load (50 RPS for a busy customer), you'll see serialization failures, retry storms, and end-of-quarter audit burst pain.
+
+
+The FOR UPDATE does correctly prevent two concurrent inserts from both reading the same prevHash and creating a fork in the chain, so there's a real correctness reason for the lock. But SERIALIZABLE on top is overkill for this read-and-write pattern.
+
+
+Fix:
+
+
+* Drop the SERIALIZABLE isolation. READ COMMITTED (Postgres default) is sufficient when you have the explicit FOR UPDATE row lock.
+* Consider moving audit log writes to an async queue (Redis stream, Kafka, or even an in-process queue with bounded concurrency) so the request path isn't blocked on the lock.
+* For bulk operations (e.g. policy engine triggering 1,000 revokes), batch into a single audit entry rather than one per agent.
+
+
+await client.query('BEGIN');                              // default READ COMMITTED
+
+
+const prevResult = await client.query(
+
+
+  'SELECT entry_hash FROM audit_logs WHERE org_id = $1 ORDER BY id DESC LIMIT 1 FOR UPDATE',
+
+
+  [orgId]
+
+
+);
+
+
+Impact: scaling ceiling on audit-heavy orgs. Effort: 30 minutes for the isolation change; 1-2 days for the async queue.
+
+
+________________
+
+
+H9. JWTs lack aud and iss claims
+Location: backend/src/services/authService.js lines 56-66.
+
+
+The signed JWT contains userId, email, orgId, role, and type. No aud (audience) or iss (issuer). If JWT_SECRET is ever reused across services (the same Anthropic-style "platform key"), tokens issued by service A pass verification on service B. verifyAccessToken doesn't even check iss/aud so even if you set them, they'd be ignored.
+
+
+Fix:
+
+
+function generateTokens(user) {
+
+
+  const opts = {
+
+
+    expiresIn: JWT_EXPIRY,
+
+
+    issuer: 'agentid.io',
+
+
+    audience: 'agentid-api'
+
+
+  };
+
+
+  const accessToken = jwt.sign({ ... }, JWT_SECRET, opts);
+
+
+  // ...
+
+
+}
+
+
+function verifyAccessToken(token) {
+
+
+  const decoded = jwt.verify(token, JWT_SECRET, {
+
+
+    issuer: 'agentid.io',
+
+
+    audience: 'agentid-api'
+
+
+  });
+
+
+  // ...
+
+
+}
+
+
+Impact: low until you scale to multiple services with shared secrets; cheap defense in depth. Effort: 15 minutes.
+
+
+________________
+
+
+MEDIUM
+M1. authorize() silently treats unknown roles as level 0
+Location: backend/src/middleware/authorize.js line 33.
+
+
+const userRoleLevel = ROLE_HIERARCHY[req.user.role] || 0;
+
+
+If a future migration introduces a new role string and you forget to add it to the hierarchy, every check fails closed (good) but silently (bad). Log a warning when this happens so the regression is visible.
+
+
+if (!ROLE_HIERARCHY.hasOwnProperty(req.user.role)) {
+
+
+  console.warn(`[authorize] Unknown role: ${req.user.role}`);
+
+
+}
+
+
+const userRoleLevel = ROLE_HIERARCHY[req.user.role] || 0;
+
+
+Effort: 5 minutes.
+
+
+________________
+
+
+M2. API key scopes never validated against an allowed set
+Location: backend/src/routes/apikeys.js line 29.
+
+
+const parsedScopes = Array.isArray(scopes) && scopes.length > 0 ? scopes : ['read'];
+
+
+Any string is accepted. A user can create a key with scopes: ["admin", "*", "delete_universe"]. Combined with H8 (RBAC and API keys disconnected), this is currently inert, but if you fix the RBAC integration without also fixing scope validation, you've created a privilege escalation primitive.
+
+
+Fix: define an enum, reject anything else.
+
+
+const VALID_SCOPES = new Set(['read', 'agents:read', 'agents:write', 'audit:read', 'webhooks:write', ...]);
+
+
+const invalid = parsedScopes.filter(s => !VALID_SCOPES.has(s));
+
+
+if (invalid.length) {
+
+
+  return res.status(400).json({ error: `Unknown scopes: ${invalid.join(', ')}` });
+
+
+}
+
+
+Effort: 30 minutes.
+
+
+________________
+
+
+M3. Any authenticated user can create or revoke API keys
+Location: backend/src/routes/apikeys.js lines 14, 20, 88.
+
+
+router.use(authenticate);                                  // any role can pass
+
+
+router.post('/api-keys', async ...);                       // no authorize()
+
+
+router.delete('/api-keys/:id', async ...);                 // no authorize()
+
+
+A viewer in an org can create admin-scoped API keys (well, scope-validated keys, eventually) and revoke any other user's keys. RBAC needs to be applied here.
+
+
+router.post('/api-keys', authorize(ROLES.ADMIN), async ...);
+
+
+router.delete('/api-keys/:id', authorize(ROLES.ADMIN), async ...);
+
+
+Effort: 5 minutes.
+
+
+________________
+
+
+M4. Webhook secret has no minimum length
+Location: backend/src/routes/webhooks.js line 56.
+
+
+const webhookSecret = secret || crypto.randomBytes(32).toString('hex');
+
+
+If the user provides a secret, it's accepted as-is. secret: "a" is valid. The HMAC-SHA256 signature on a one-character secret is trivially forgeable.
+
+
+Fix:
+
+
+if (secret && secret.length < 32) {
+
+
+  return res.status(400).json({ error: 'Custom secret must be at least 32 characters' });
+
+
+}
+
+
+Effort: 5 minutes.
+
+
+________________
+
+
+M5. Missing partial indexes on filter columns
+Location: backend/src/models/migrate-v2.js.
+
+
+The listAgents query filters by org_id AND status AND is_demo = false AND revoked_at IS NULL. There's an idx_agent_identities_org on (org_id), but no composite or partial index. For a 1M-row agent table, the planner will use the org_id index then heap-scan the rest. Add:
+
+
+CREATE INDEX IF NOT EXISTS idx_agents_active
+
+
+  ON agent_identities(org_id, status, bags_score DESC)
+
+
+  WHERE is_demo = false AND revoked_at IS NULL;
+
+
+Same pattern for policy_rules (filters by org_id and enabled = true) and webhooks:
+
+
+CREATE INDEX IF NOT EXISTS idx_policy_rules_active
+
+
+  ON policy_rules(org_id) WHERE enabled = true;
+
+
+CREATE INDEX IF NOT EXISTS idx_webhooks_active
+
+
+  ON webhooks(org_id) WHERE enabled = true;
+
+
+audit_logs query filters by org_id then orders by created_at DESC. The current idx_audit_logs_org and idx_audit_logs_created are independent. A composite is much faster:
+
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_org_created
+
+
+  ON audit_logs(org_id, created_at DESC);
+
+
+Effort: 30 minutes.
+
+
+________________
+
+
+M6. No CHECK constraints on enum-like columns
+Location: backend/src/models/migrate-v2.js.
+
+
+users.role, agent_identities.status, webhooks.enabled, policy_rules.action are all VARCHAR with application-side validation only. A bug or a direct DB write can put 'super_admin' in users.role or 'execute_arbitrary_code' in policy_rules.action and the application will silently treat it as no-op (level 0 in the hierarchy, "unknown action" in the engine).
+
+
+Fix:
+
+
+ALTER TABLE users ADD CONSTRAINT users_role_check
+
+
+  CHECK (role IN ('admin', 'manager', 'member', 'viewer'));
+
+
+ALTER TABLE agent_identities ADD CONSTRAINT agents_status_check
+
+
+  CHECK (status IN ('active', 'flagged', 'revoked', 'disabled'));
+
+
+ALTER TABLE policy_rules ADD CONSTRAINT policy_action_check
+
+
+  CHECK (action IN ('revoke', 'flag', 'notify', 'disable'));
+
+
+Effort: 20 minutes including migration safety.
+
+
+________________
+
+
+M7. No CASCADE behavior on org delete
+Location: backend/src/models/migrate-v2.js.
+
+
+organizations has child tables (users, api_keys, audit_logs, policy_rules, webhooks, agent_identities) with FK references but no ON DELETE clause. Deleting an org will fail with FK constraint errors. There is also no soft-delete propagation: setting organizations.deleted_at doesn't hide the org's agents from listAgents.
+
+
+Decide your model:
+
+
+* Hard delete with cascade: ON DELETE CASCADE on every FK.
+* Soft delete with propagation: filter WHERE deleted_at IS NULL on org joins, and have a scheduled cleanup that hard-deletes tombstoned orgs after a retention period.
+
+
+Effort: 1-2 hours depending on choice.
+
+
+________________
+
+
+M8. Demo agent cleanup is gameable via name substring
+Location: backend/src/routes/register.js line 158; backend/src/models/queries.js line 480.
+
+
+const isDemo = name && name.toLowerCase().includes('demo agent');
+
+
+DELETE FROM agent_identities
+
+
+WHERE is_demo = true AND registered_at < NOW() - INTERVAL '24 hours'
+
+
+A user can opt into 24-hour cleanup by including "demo agent" in the name. They can also avoid cleanup by NOT including it. Two adjacent footguns:
+
+
+1. A real agent named "Production Demo Agent" gets auto-deleted after 24 hours.
+2. The demo flag is a checkbox dressed up as a string match, with no UI signal.
+
+
+Fix: make isDemo an explicit boolean field on the registration request, validated by org policy (e.g. only the demo org can create demo agents).
+
+
+Effort: 30 minutes.
+
+
+________________
+
+
+M9. Per-pubkey throttle uses non-atomic INCR + EXPIRE
+Location: backend/src/routes/register.js lines 124-129.
+
+
+const regCount = await redis.incr(pubkeyThrottleKey);
+
+
+if (regCount === 1) await redis.expire(pubkeyThrottleKey, 86400);
+
+
+If the process crashes between the incr and the expire, the key has no TTL and persists forever. Subsequent registrations always fail at count > 5.
+
+
+Fix: use Lua script or pipeline+EXPIRE-on-every-call:
+
+
+const lua = `
+
+
+  local v = redis.call('INCR', KEYS[1])
+
+
+  if v == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+
+
+  return v
+
+
+`;
+
+
+const regCount = await redis.eval(lua, 1, pubkeyThrottleKey, 86400);
+
+
+Effort: 15 minutes.
+
+
+________________
+
+
+M10. Webhook events default to "all events" if empty
+Location: backend/src/services/webhookService.js lines 109-111.
+
+
+if (!webhook.events || (Array.isArray(webhook.events) && webhook.events.length === 0)) {
+
+
+  return true;       // matches every event type
+
+
+}
+
+
+Convenient default, but counterintuitive: a user creating a webhook without specifying events probably wants no events, not all events. They will then get blasted with traffic and assume the system is broken.
+
+
+Fix: require the events field explicitly on POST and PUT.
+
+
+if (!Array.isArray(events) || events.length === 0) {
+
+
+  return res.status(400).json({ error: 'events array is required and must be non-empty' });
+
+
+}
+
+
+Effort: 10 minutes.
+
+
+________________
+
+
+M11. Policy engine evaluates rules sequentially in event listener
+Location: backend/src/services/policyEngine.js lines 156-164.
+
+
+for (const rule of result.rows) {
+
+
+  const matches = evaluateCondition(rule.condition, event);
+
+
+  if (matches) {
+
+
+    const actionResult = await executeAction(rule, event);  // sequential
+
+
+    triggered.push(...);
+
+
+  }
+
+
+}
+
+
+If an org has 200 enabled rules and an event matches 50 of them, every action waits on the previous (each action is a DB write or an event publish). Under load, the event listener accumulates back-pressure.
+
+
+Fix: parallelize matching actions with Promise.allSettled:
+
+
+const matched = result.rows.filter(rule => evaluateCondition(rule.condition, event));
+
+
+const results = await Promise.allSettled(
+
+
+  matched.map(rule => executeAction(rule, event))
+
+
+);
+
+
+Better: move policy execution to a queue worker, not the event listener.
+
+
+Effort: 30 minutes for parallelization; longer for queue migration.
+
+
+________________
+
+
+M12. Webhook delivery has no per-attempt audit record
+Location: backend/src/services/webhookService.js.
+
+
+deliverWithRetry retries 3 times, then drops the failure on the floor. There's no webhook_deliveries table, so customers can't see why their integration is broken. They report "AgentID isn't sending events" and you have no logs to correlate with.
+
+
+Fix: persist every delivery attempt (success or failure) with status code, response body snippet, attempt number, next retry time. Schema:
+
+
+CREATE TABLE webhook_deliveries (
+
+
+  id BIGSERIAL PRIMARY KEY,
+
+
+  webhook_id UUID REFERENCES webhooks(id) ON DELETE CASCADE,
+
+
+  event_id UUID,
+
+
+  event_type VARCHAR(50),
+
+
+  attempt INT,
+
+
+  success BOOLEAN,
+
+
+  status_code INT,
+
+
+  response_snippet TEXT,
+
+
+  error TEXT,
+
+
+  delivered_at TIMESTAMPTZ DEFAULT NOW()
+
+
+);
+
+
+Add a UI page so customers can debug their own webhooks.
+
+
+Effort: half a day.
+
+
+________________
+
+
+M13. Audit middleware doesn't capture failed login attempts
+Location: backend/src/middleware/auditMiddleware.js line 134.
+
+
+if (orgId) {
+
+
+  await logAction({ ... });
+
+
+}
+
+
+Failed logins have no req.user, so orgId is null, so the audit log skips them. Successful logins are logged. The detective control is upside-down: you can see who logged in successfully but not who tried 10,000 times and failed.
+
+
+Fix: log auth failures explicitly inside the route handler. They need a different schema (no actor_id because the actor isn't authenticated) but they should still be in the audit table with actor_type = 'anonymous' and the attempted email in metadata.
+
+
+Effort: 1 hour.
+
+
+________________
+
+
+M14. verifyAccessToken doesn't check that the token type is access
+Location: backend/src/services/authService.js lines 76-82.
+
+
+function verifyAccessToken(token) {
+
+
+  const decoded = jwt.verify(token, JWT_SECRET);
+
+
+  if (decoded.type === 'refresh') {
+
+
+    throw new Error('Token type mismatch: refresh token used as access token');
+
+
+  }
+
+
+  return decoded;
+
+
+}
+
+
+This rejects refresh tokens, but accepts tokens with type undefined or any other string. Combined with the lack of aud claim (H9), a token from another service signed with the same secret could pass.
+
+
+Fix: require decoded.type === 'access' (and start setting type: 'access' on access tokens).
+
+
+Effort: 5 minutes plus token migration window for in-flight sessions.
+
+
+________________
+
+
+M15. No max payload size or response size limit on webhook deliveries
+Location: backend/src/services/webhookService.js lines 32-39.
+
+
+Axios defaults: no maxContentLength, no maxBodyLength, follows up to 5 redirects, no response size cap. A malicious webhook target can:
+
+
+* Stream a 10 GB response and OOM your worker.
+* Redirect chain into an internal target (defeats SSRF protection if not carefully implemented).
+* Hold the connection open just under 10 seconds × 4 retries = 40 seconds of socket time per event.
+
+
+Fix:
+
+
+const response = await axios.post(webhook.url, body, {
+
+
+  headers: { ... },
+
+
+  timeout: 10000,
+
+
+  maxRedirects: 0,
+
+
+  maxContentLength: 64 * 1024,
+
+
+  maxBodyLength: 1024 * 1024,
+
+
+  validateStatus: () => true             // don't throw on 4xx/5xx; we handle it
+
+
+});
+
+
+Effort: 20 minutes.
+
+
+________________
+
+
+LOW
+L1. docker-compose.yml ships hardcoded secrets
+Location: docker-compose.yml lines 13, 31, 33, 58.
+
+
+POSTGRES_PASSWORD: devpassword, redis-server --requirepass devpassword, JWT_SECRET: local-dev-jwt-secret-change-in-production. Fine for dev. Risky if anyone copies the compose file as a production starting point.
+
+
+Fix: use ${POSTGRES_PASSWORD:?Must set POSTGRES_PASSWORD} syntax with no defaults; document a .env file for compose. Add a docker-compose.override.yml for local dev only.
+
+
+Effort: 30 minutes.
+
+
+________________
+
+
+L2. No CSP or HSTS configuration
+Location: backend/server.js line 56.
+
+
+helmet() with default config sets a basic CSP for the API (which doesn't render HTML, so it's mostly fine) but the badge widget at /widget/:agentId returns full HTML and is iframe-embedded on third-party sites. The default CSP may break legitimate embeds, or be too loose for the inline <style> and <script> it generates.
+
+
+Define an explicit CSP for the widget route specifically. HSTS should be enabled (helmet.hsts({ maxAge: 31536000, includeSubDomains: true })) once you've fully migrated to HTTPS.
+
+
+Effort: 1 hour including testing on third-party domains.
+
+
+________________
+
+
+L3. No request ID / trace ID middleware
+Location: backend/server.js.
+
+
+When debugging a customer issue across audit logs, application logs, and webhook deliveries, there's no shared identifier. Add a request ID:
+
+
+const { v4: uuidv4 } = require('uuid');
+
+
+app.use((req, res, next) => {
+
+
+  req.id = req.get('X-Request-Id') || uuidv4();
+
+
+  res.set('X-Request-Id', req.id);
+
+
+  next();
+
+
+});
+
+
+Then include req.id in every log line and audit metadata.
+
+
+Effort: 30 minutes.
+
+
+________________
+
+
+L4. console.log/console.warn instead of structured logging
+Location: across the codebase.
+
+
+console.warn('Rate limit exceeded for IP: ${req.ip}'), console.error('Audit middleware logging error:', err.message), etc. Hard to ship to a log aggregator, hard to filter on log level, hard to correlate.
+
+
+Use pino or winston with JSON output. Drop in a logger middleware that captures method, path, status, latency, request id.
+
+
+Effort: half a day.
+
+
+________________
+
+
+L5. verifyAuditChain loads all entries into memory
+Location: backend/src/services/auditService.js line 296.
+
+
+const result = await query('SELECT * FROM audit_logs WHERE org_id = $1 ORDER BY id ASC', [orgId]);
+
+
+For an org with 10M audit entries, this loads everything into a single query buffer. Memory and time both grow linearly. There's also no progress callback; the verifier holds open the connection for as long as it takes.
+
+
+Fix: stream with a server-side cursor:
+
+
+const cursor = client.query(new Cursor('SELECT ... ORDER BY id ASC'));
+
+
+while (true) {
+
+
+  const rows = await cursor.read(1000);
+
+
+  if (!rows.length) break;
+
+
+  for (const row of rows) { /* verify */ }
+
+
+}
+
+
+Effort: 1 hour.
+
+
+________________
+
+
+L6. expiresAt for API keys not validated
+Location: backend/src/routes/apikeys.js line 35.
+
+
+expiresAt accepted as raw user input. Could be in the past (creates a key that's already revoked), could be the year 9999, could be malformed string (Postgres will reject, but the error reaches the user as 500).
+
+
+Fix: validate it's a valid ISO date in the future, within a reasonable max (1-2 years).
+
+
+Effort: 15 minutes.
+
+
+________________
+
+
+L7. No tests for routes/* (only services and middleware)
+Location: backend/tests/.
+
+
+Tests cover auditService, authService, bagsReputation, orgQueries, pkiChallenge, policyEngine, rbac, transform. No tests for the actual HTTP layer. Several of the bugs above (C3 cross-tenant, C7 unauth attest, M3 missing authorize) would be caught by basic supertest integration tests.
+
+
+Add tests/integration/ with supertest:
+
+
+const request = require('supertest');
+
+
+const app = require('../server');
+
+
+describe('GET /agents authorization', () => {
+
+
+  it('rejects unauthenticated requests', async () => {
+
+
+    const res = await request(app).get('/agents');
+
+
+    expect(res.status).toBe(401);                // currently returns 200 with cross-tenant data
+
+
+  });
+
+
+});
+
+
+Effort: 1-2 days for meaningful coverage.
+
+
+________________
+
+
+L8. Badge cache TTL matches widget reload interval — no headroom
+Location: backend/src/config/index.js line 26; backend/src/services/badgeBuilder.js (widget HTML auto-reloads every 60s).
+
+
+badgeCacheTtl: parseInt(process.env.BADGE_CACHE_TTL, 10) || 60,
+
+
+Widget reloads every 60 seconds. Cache TTL is 60 seconds. So every reload has roughly equal odds of hitting expired cache, regenerating, and waiting on database + reputation calculation. With many concurrent embedded widgets at peak, all expiring on the same minute boundary, you get a thundering herd.
+
+
+Fix: stagger the cache TTL slightly above the reload interval (e.g. 90 seconds), and add jitter to the widget reload so they don't synchronize.
+
+
+Effort: 15 minutes.
+
+
+________________
+
+
+L9. authenticate() updates last_used on every API key request
+Location: backend/src/middleware/authenticate.js line 64.
+
+
+await query('UPDATE api_keys SET last_used = NOW() WHERE id = $1', [apiKey.id]);
+
+
+For a hot API key (e.g. a customer's CI bot), every request triggers an UPDATE on the api_keys table. That's a write on the auth path.
+
+
+Fix: throttle the update. Only write if the existing last_used is more than 60 seconds old:
+
+
+UPDATE api_keys SET last_used = NOW()
+
+
+WHERE id = $1 AND (last_used IS NULL OR last_used < NOW() - INTERVAL '60 seconds')
+
+
+Effort: 10 minutes.
+
+
+________________
+
+
+L10. No retry budget or dead-letter for webhooks
+Location: backend/src/services/webhookService.js.
+
+
+After 3 retries with exponential backoff, failed deliveries are dropped. No dead letter queue, no permanent failure tracking, no automatic webhook disable after N consecutive failures. A perpetually-broken webhook keeps firing and failing forever, eating worker capacity.
+
+
+Fix: track consecutive failures on the webhooks row. After 100 consecutive failures, set enabled = false and emit a webhook.disabled event so the customer is notified.
+
+
+Effort: half a day.
+
+
+________________
+
+
+L11. No frontend or backend ESLint / Prettier config in CI
+Location: backend/package.json, frontend/package.json.
+
+
+Backend has no linter at all. Frontend has eslint.config.js but no CI step that runs it. New PRs ship style drift. For a security-sensitive project, lint rules like no-eval, no-new-func, security/detect-object-injection should be enforced.
+
+
+Add eslint-plugin-security and run npm run lint in CI on every PR.
+
+
+Effort: 2 hours.
+
+
+________________
+
+
+What's gone right
+It's worth naming the things this codebase does correctly, since this review is a long list of what to change:
+
+
+* All SQL is parameterized. No string concatenation, no template literals into queries. The dynamic update builder in queries.js updateAgent correctly uses positional parameters.
+* Ed25519 challenge-response is implemented correctly with tweetnacl. Single-use nonces, expiry, base58 encoding all consistent.
+* HTML escaping in badgeBuilder.js (both escapeHtml and escapeXml) is applied to user-controlled fields in the widget output.
+* Tenant isolation via orgContext middleware is enforced on the routes that use it (orgs, policies, webhooks, audit).
+* Refresh token rotation on /auth/refresh is the right pattern, even if H6 needs to be addressed.
+* Hash-chained audit log is the right idea, even if C5 needs the chain to actually cover the data.
+* The bagsAuthVerifier x-api-key bug from the 1.0 review is fixed.
+* The widgetUrl base URL bug from the 1.0 review is fixed (uses config.agentIdBaseUrl).
+* Required env var validation at startup exists and exits cleanly with a helpful message.
+* Test scaffolding covers the cryptographic services and the policy engine (~1650 lines).
+
+
+The architecture is sound. Most of the criticals are application-layer bugs from a complex multi-tenant addition, not foundational design problems.
+
+
+________________
+
+
+Suggested execution order
+If I were prioritizing this against limited dev time, I'd go:
+
+
+Week 1 (Critical, day-zero exploitable):
+
+
+1. C2 JWT_SECRET hardcoded fallback (15 min)
+2. C3 Cross-tenant agent listing (30 min)
+3. C7 Unauth attest endpoint (1 hour)
+4. C4 Audit log raw API key exposure (2 hours)
+5. C1 Webhook SSRF (4-6 hours)
+6. H4 authLimiter on auth routes (5 min)
+7. H2 Login timing leak (10 min)
+
+
+Week 2 (Critical, harder to exploit but real):
+
+
+1. C5 Audit hash chain coverage (4 hours)
+2. C6 Update message field binding (1 hour)
+3. C8 API key + RBAC integration (3-4 hours)
+4. H3 Login attempt tracking (2-3 hours)
+5. H1 CSRF protection (1-2 hours)
+
+
+Week 3 (High-value cleanup):
+
+
+1. H6 Refresh token model (3-4 hours)
+2. H7 Frontend localStorage cleanup (15 min)
+3. H8 Audit log isolation level (30 min)
+4. M1-M15 in priority order
+
+
+Total time to address all Critical + High: roughly 25-35 dev hours. Not a small batch but not unreasonable for a 2.0 hardening sprint.
+
+
+________________
+
+
+Suggested feature additions (separate from fixes)
+Beyond bug fixes, things that would materially strengthen the product:
+
+
+1. Agent identity rotation: cryptographic key rotation flow that allows an agent owner to migrate from pubkey_old to pubkey_new without losing their reputation score. Sign a binding message with both keys, server validates both signatures, updates the row. Closes the "lost key = lost identity" gap.
+
+
+2. Per-environment config visibility: a /health/config endpoint (admin-only) that reports which env vars are set without revealing values. Helps debug missing config in staging.
+
+
+3. Webhook delivery dashboard: per-webhook view of last 100 deliveries with status, retry status, response codes. Combined with M12 above, this is the difference between "AgentID is broken" and "your endpoint returned 500 yesterday at 3pm."
+
+
+4. Org-level usage metrics: rate of registrations, verifications, attestations per org per day. Useful for both the operator (capacity planning) and the customer (knowing they're under attack).
+
+
+5. Bring-your-own-key for SAID binding: today the binding posts to a single SAID gateway. Allow orgs to register their own gateway URL for private/permissioned identity registries.
+
+
+6. Anomaly detection on attestation flow: if an agent's success-rate drops 50% in 1 hour, flag for review. Currently the attest endpoint accepts whatever and the score updates without context.
+
+
+7. Public widget customization: today every widget looks the same. Let orgs upload a small theme JSON (colors, logo URL) so embedded widgets match the host site's design.
+
+
+8. SBOM and dependency scanning in CI: this is a security product. Running npm audit and osv-scanner on every PR is table stakes. The current package.json has reasonably current deps but no automated check.
+
+
+9. Secret scanning on commits: gitleaks or GitHub's native secret scanning. The hardcoded secrets in docker-compose.yml would have flagged.
+
+
+10. Postgres row-level security (RLS): you're already filtering by org_id in queries. RLS makes that filter mandatory at the database level, so a future bug (someone forgets the filter) doesn't leak data. It's a real engineering investment but it's the best defense for a multi-tenant SaaS.
+
+
+________________
+
+
+
+
+End of review.

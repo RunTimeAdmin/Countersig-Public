@@ -120,10 +120,14 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
       });
     }
 
-    // 5. Per-pubkey throttling: max 5 registrations per pubkey per 24 hours
+    // 5. Per-pubkey throttling: max 5 registrations per pubkey per 24 hours (atomic INCR+EXPIRE)
     const pubkeyThrottleKey = `reg:pubkey:${pubkey}`;
-    const regCount = await redis.incr(pubkeyThrottleKey);
-    if (regCount === 1) await redis.expire(pubkeyThrottleKey, 86400);
+    const luaScript = `
+      local v = redis.call('INCR', KEYS[1])
+      if v == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+      return v
+    `;
+    const regCount = await redis.eval(luaScript, 1, pubkeyThrottleKey, 86400);
     if (regCount > 5) {
       return res.status(429).json({ error: 'Too many registrations for this public key. Maximum 5 per 24 hours.' });
     }
@@ -155,7 +159,7 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
     }
 
     // 6. Check if this is a demo agent
-    const isDemo = name && name.toLowerCase().includes('demo agent');
+    const isDemo = req.body.isDemo === true; // explicit boolean, not name-based
 
     // 7. Store agent record
     const agent = await createAgent({

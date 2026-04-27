@@ -14,6 +14,7 @@ const {
 } = require('../models/queries');
 const { refreshAndStoreScore } = require('../services/bagsReputation');
 const { defaultLimiter, authLimiter } = require('../middleware/rateLimit');
+const { authenticate } = require('../middleware/authenticate');
 const { transformAgent, isValidSolanaAddress } = require('../utils/transform');
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');
@@ -24,7 +25,7 @@ const router = express.Router();
  * POST /agents/:agentId/attest
  * Record a successful/failed action
  */
-router.post('/agents/:agentId/attest', authLimiter, async (req, res, next) => {
+router.post('/agents/:agentId/attest', authenticate, authLimiter, async (req, res, next) => {
   try {
     const { agentId } = req.params;
     const { success, action } = req.body;
@@ -43,6 +44,11 @@ router.post('/agents/:agentId/attest', authLimiter, async (req, res, next) => {
         error: 'Agent not found',
         agentId
       });
+    }
+
+    // Verify agent belongs to caller's org
+    if (agent.org_id && req.user.orgId && agent.org_id !== req.user.orgId) {
+      return res.status(403).json({ error: 'Access denied: agent does not belong to your organization' });
     }
 
     // Increment action counters
@@ -78,7 +84,7 @@ router.post('/agents/:agentId/attest', authLimiter, async (req, res, next) => {
  * POST /agents/:agentId/flag
  * Flag suspicious behavior with cryptographic proof-of-ownership
  */
-router.post('/agents/:agentId/flag', authLimiter, async (req, res, next) => {
+router.post('/agents/:agentId/flag', authenticate, authLimiter, async (req, res, next) => {
   try {
     const { agentId } = req.params;
     const { reporterPubkey, signature, timestamp, reason, evidence } = req.body;

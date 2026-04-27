@@ -152,17 +152,13 @@ async function evaluateEvent(event) {
       [orgId]
     );
 
-    const triggered = [];
-    for (const rule of result.rows) {
-      const matches = evaluateCondition(rule.condition, event);
-      if (matches) {
-        const actionResult = await executeAction(rule, event);
-        triggered.push({
-          rule,
-          actionResult
-        });
-      }
-    }
+    const matched = result.rows.filter(rule => evaluateCondition(rule.condition, event));
+    const results = await Promise.allSettled(
+      matched.map(rule => executeAction(rule, event))
+    );
+    const triggered = results
+      .filter(r => r.status === 'fulfilled')
+      .map(r => r.value);
 
     return triggered;
   } catch (err) {

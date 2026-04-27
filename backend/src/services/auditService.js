@@ -52,6 +52,27 @@ function computeHash(data) {
 }
 
 /**
+ * Build a deterministic hash payload from an audit entry.
+ * Sorts keys to ensure consistent hashing across environments.
+ * @param {Object} entry - Audit entry data
+ * @returns {string} - JSON string of all audit fields
+ */
+function buildHashPayload(entry) {
+  return JSON.stringify({
+    org_id: entry.orgId || entry.org_id || null,
+    actor_id: entry.actorId || entry.actor_id || null,
+    actor_type: entry.actorType || entry.actor_type || null,
+    action: entry.action || null,
+    resource_type: entry.resourceType || entry.resource_type || null,
+    resource_id: entry.resourceId || entry.resource_id || null,
+    changes: entry.changes || null,
+    metadata: entry.metadata || null,
+    risk_score: entry.riskScore || entry.risk_score || 0,
+    timestamp: entry.timestamp || null
+  });
+}
+
+/**
  * Log an audited action with tamper-evident hash chaining
  * @param {Object} params - Log parameters
  * @returns {Promise<Object>} - Created log entry
@@ -68,7 +89,7 @@ async function logAction({
 }) {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
+    await client.query('BEGIN');
 
     // 1. Get previous hash for this org
     const prevResult = await client.query(
@@ -80,12 +101,18 @@ async function logAction({
       ? prevResult.rows[0].entry_hash
       : '0'.repeat(64);
 
-    // 2. Build hash payload
+    // 2. Build hash payload using buildHashPayload for all fields
     const timestamp = new Date().toISOString();
-    const hashPayload = JSON.stringify({
+    const hashPayload = buildHashPayload({
+      orgId,
+      actorId,
+      actorType,
       action,
-      resource_id: resourceId,
-      actor_id: actorId,
+      resourceType,
+      resourceId,
+      changes,
+      metadata,
+      riskScore: calculateRiskScore(action, metadata),
       timestamp
     });
 
@@ -293,58 +320,58 @@ async function exportAuditLogs({ orgId, format = 'json', startDate, endDate }) {
  * @returns {Promise<Object>} - Verification result
  */
 async function verifyAuditChain(orgId) {
-  const result = await query(
-    'SELECT * FROM audit_logs WHERE org_id = $1 ORDER BY id ASC',
-    [orgId]
-  );
+  const client = await pool.connect();
+  try {
+    let offset = 0;
+    const batchSize = 1000;
+    let totalEntries = 0;
+    let prevHash = '0'.repeat(64);
 
-  const entries = result.rows;
-  const totalEntries = entries.length;
+    while (true) {
+      const result = await client.query(
+        'SELECT * FROM audit_logs WHERE org_id = $1 ORDER BY id ASC LIMIT $2 OFFSET $3',
+        [orgId, batchSize, offset]
+      );
 
-  if (totalEntries === 0) {
-    return { valid: true, totalEntries: 0, firstInvalidEntry: null };
-  }
+      if (result.rows.length === 0) break;
 
-  let expectedPrevHash = '0'.repeat(64);
+      for (const entry of result.rows) {
+        totalEntries++;
 
-  for (let i = 0; i < entries.length; i += 1) {
-    const entry = entries[i];
+        // Verify prev_hash links correctly
+        if (entry.prev_hash !== prevHash) {
+          return { valid: false, totalEntries, firstInvalidEntry: entry.id };
+        }
 
-    // Verify prev_hash links correctly
-    if (entry.prev_hash !== expectedPrevHash) {
-      return {
-        valid: false,
-        totalEntries,
-        firstInvalidEntry: entry.id
-      };
+        // Recompute entry hash using buildHashPayload for all fields
+        const expectedPayload = buildHashPayload({
+          org_id: entry.org_id,
+          actor_id: entry.actor_id,
+          actor_type: entry.actor_type,
+          action: entry.action,
+          resource_type: entry.resource_type,
+          resource_id: entry.resource_id,
+          changes: entry.changes,
+          metadata: entry.metadata,
+          risk_score: entry.risk_score,
+          timestamp: entry.created_at ? entry.created_at.toISOString() : null
+        });
+        const expectedHash = computeHash(prevHash + expectedPayload);
+
+        if (entry.entry_hash !== expectedHash) {
+          return { valid: false, totalEntries, firstInvalidEntry: entry.id };
+        }
+        prevHash = entry.entry_hash;
+      }
+
+      offset += batchSize;
+      if (result.rows.length < batchSize) break;
     }
 
-    // Recompute entry hash
-    const hashPayload = JSON.stringify({
-      action: entry.action,
-      resource_id: entry.resource_id,
-      actor_id: entry.actor_id,
-      timestamp: new Date(entry.created_at).toISOString()
-    });
-
-    const expectedEntryHash = computeHash(entry.prev_hash + hashPayload);
-
-    if (entry.entry_hash !== expectedEntryHash) {
-      return {
-        valid: false,
-        totalEntries,
-        firstInvalidEntry: entry.id
-      };
-    }
-
-    expectedPrevHash = entry.entry_hash;
+    return { valid: true, totalEntries, firstInvalidEntry: null };
+  } finally {
+    client.release();
   }
-
-  return {
-    valid: true,
-    totalEntries,
-    firstInvalidEntry: null
-  };
 }
 
 module.exports = {
@@ -352,5 +379,6 @@ module.exports = {
   calculateRiskScore,
   getAuditLogs,
   exportAuditLogs,
-  verifyAuditChain
+  verifyAuditChain,
+  buildHashPayload
 };
