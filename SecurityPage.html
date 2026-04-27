@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Security — AgentID</title>
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #111118;
+      --bg-tertiary: #1a1a24;
+      --bg-card: #13131c;
+      --border-default: #2a2a3a;
+      --border-accent: #3a3a50;
+      --accent-cyan: #00d4ff;
+      --accent-purple: #8b5cf6;
+      --accent-green: #10b981;
+      --accent-yellow: #f59e0b;
+      --accent-red: #ef4444;
+      --text-primary: #f0f0f8;
+      --text-secondary: #a0a0b8;
+      --text-muted: #606078;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 10, 15, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-default);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+
+    .nav-logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .nav-brand-text {
+      font-size: 1.1rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--accent-cyan);
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(180deg, rgba(0,212,255,0.05) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border-default);
+      padding: 5rem 2rem 4rem;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--accent-green);
+      padding: 0.35rem 1rem;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--accent-green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+    }
+
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-stat {
+      text-align: center;
+    }
+
+    .hero-stat-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.25rem;
+    }
+
+    /* MAIN LAYOUT */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+    }
+
+    /* SECTION */
+    .section {
+      margin-bottom: 5rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .section-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+
+    .icon-green { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .icon-cyan { background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.2); }
+    .icon-purple { background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); }
+    .icon-yellow { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); }
+    .icon-red { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .section-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    /* CARDS */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-default);
+      border-radius: 16px;
+      padding: 1.75rem;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover {
+      border-color: var(--border-accent);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-body {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* THE BIG GUARANTEE */
+    .guarantee-box {
+      background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(0,212,255,0.05));
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 20px;
+      padding: 2.5rem;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .guarantee-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .guarantee-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent-green);
+      margin-bottom: 0.75rem;
+    }
+
+    .guarantee-text {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* FLOW DIAGRAM */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .flow-step {
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+
+    .flow-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .flow-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .flow-line {
+      width: 2px;
+      flex: 1;
+      min-height: 2rem;
+      background: linear-gradient(to bottom, var(--accent-cyan), transparent);
+      margin: 0.25rem 0;
+    }
+
+    .flow-content {
+      padding-bottom: 2rem;
+      flex: 1;
+    }
+
+    .flow-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.35rem;
+    }
+
+    .flow-desc {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .flow-code {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+      font-size: 0.8rem;
+      color: var(--accent-cyan);
+      margin-top: 0.75rem;
+      overflow-x: auto;
+    }
+
+    .flow-tag {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--accent-green);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 0.5rem;
+    }
+
+    /* DATABASE TABLE */
+    .db-table-wrapper {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border-default);
+      margin-bottom: 1.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: var(--bg-tertiary);
+    }
+
+    th {
+      padding: 0.9rem 1.25rem;
+      text-align: left;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    td {
+      padding: 0.9rem 1.25rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid rgba(42, 42, 58, 0.5);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.8rem;
+      color: var(--accent-cyan);
+    }
+
+    /* RISK BADGES */
+    .risk {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .risk-none { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+    .risk-low { background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+    .risk-medium { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); }
+    .risk-high { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+
+    /* ATTACK SCENARIOS */
+    .scenario {
+      background: var(--bg-card);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .scenario-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .scenario-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .scenario-body {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .scenario-code {
+      background: var(--bg-tertiary);
+      border-left: 3px solid var(--border-accent);
+      border-radius: 0 8px 8px 0;
+      padding: 0.75rem 1rem;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.75rem;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .scenario-code .rejected { color: #ef4444; }
+    .scenario-code .accepted { color: #10b981; }
+    .scenario-code .label { color: var(--accent-cyan); }
+
+    /* BEST PRACTICES */
+    .practice-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .practice-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .practice-icon {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: var(--accent-green);
+      margin-top: 0.15rem;
+    }
+
+    .practice-icon.warn {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--accent-yellow);
+    }
+
+    /* AUDIT BANNER */
+    .audit-banner {
+      background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(0,212,255,0.05));
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 16px;
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .audit-banner-icon {
+      font-size: 2.5rem;
+      flex-shrink: 0;
+    }
+
+    .audit-banner-content h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.35rem;
+    }
+
+    .audit-banner-content p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .audit-banner-link {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(139, 92, 246, 0.2);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      color: #a78bfa;
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .audit-banner-link:hover {
+      background: rgba(139, 92, 246, 0.3);
+      color: white;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border-default);
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.825rem;
+    }
+
+    footer a { color: var(--accent-cyan); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* RESPONSIVE */
+    @media (max-width: 640px) {
+      .hero-stats { gap: 1.5rem; }
+      .nav-links { display: none; }
+      .audit-banner { flex-direction: column; }
+      .audit-banner-link { margin-left: 0; width: 100%; justify-content: center; }
+      .scenario-code { font-size: 0.72rem; }
+    }
+  </style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-brand">
+    <div class="nav-logo">🔐</div>
+    <span class="nav-brand-text">AgentID</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/">Registry</a></li>
+    <li><a href="/discover">Discover</a></li>
+    <li><a href="/register">Register</a></li>
+    <li><a href="/security" class="active">Security</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">Security Audit — May 2025</div>
+  <h1>Your Agent's Keys<br><span>Stay With You. Always.</span></h1>
+  <p>AgentID verifies agent identity without ever seeing, requesting, or storing private keys. Here's exactly how.</p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-value">0</div>
+      <div class="hero-stat-label">Private Keys Stored</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-value">Ed25519</div>
+      <div class="hero-stat-label">Cryptographic Standard</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-value">2^128</div>
+      <div class="hero-stat-label">Operations to Brute Force</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-value">5 min</div>
+      <div class="hero-stat-label">Challenge Expiry</div>
+    </div>
+  </div>
+</section>
+
+<!-- MAIN -->
+<main class="container">
+
+  <!-- THE GUARANTEE -->
+  <div class="guarantee-box">
+    <div class="guarantee-icon">🔒</div>
+    <div class="guarantee-title">The Core Guarantee</div>
+    <p class="guarantee-text">
+      AgentID never asks for your private key — not in the registration form, not in the API, not anywhere. 
+      We verify you <em>own</em> your keypair by asking you to sign a one-time challenge. 
+      The signature proves ownership. The private key never moves.
+    </p>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon icon-cyan">⚡</div>
+      <div>
+        <div class="section-title">How Verification Works</div>
+        <div class="section-subtitle">The challenge-response flow — same model used by SSH and Solana</div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-left">
+          <div class="flow-number">1</div>
+          <div class="flow-line"></div>
+        </div>
+        <div class="flow-content">
+          <div class="flow-title">AgentID Issues a Challenge <span class="flow-tag">Random Nonce</span></div>
+          <div class="flow-desc">We generate a cryptographically random one-time message tied to your pubkey and a 5-minute expiry. This nonce has never been used before and never will be again.</div>
+          <div class="flow-code">AGENTID-VERIFY:{your_pubkey}:{random_nonce}:{timestamp}</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-left">
+          <div class="flow-number">2</div>
+          <div class="flow-line"></div>
+        </div>
+        <div class="flow-content">
+          <div class="flow-title">Your Agent Signs Locally <span class="flow-tag">Private Key Stays Home</span></div>
+          <div class="flow-desc">Your agent signs the challenge message using its private key — entirely on your own machine or server. The private key never leaves your environment.</div>
+          <div class="flow-code">signature = Ed25519.sign(challenge_message, YOUR_private_key)
+→ send back only the signature, not the key</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-left">
+          <div class="flow-number">3</div>
+          <div class="flow-line"></div>
+        </div>
+        <div class="flow-content">
+          <div class="flow-title">AgentID Verifies the Signature <span class="flow-tag">Public Key Only</span></div>
+          <div class="flow-desc">We verify the signature using only your public key — a mathematical operation that confirms the signature was produced by the matching private key without ever seeing it.</div>
+          <div class="flow-code">valid = Ed25519.verify(signature, challenge_message, public_key)
+nonce consumed → cannot be replayed</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-left">
+          <div class="flow-number">4</div>
+        </div>
+        <div class="flow-content">
+          <div class="flow-title">Registration Complete ✓</div>
+          <div class="flow-desc">If the signature is valid, your agent is registered. The nonce is permanently deleted. The process cannot be replayed — even with the same signature.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT WE STORE -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon icon-green">🗄️</div>
+      <div>
+        <div class="section-title">What We Store</div>
+        <div class="section-subtitle">Complete inventory of every field in every table — no surprises</div>
+      </div>
+    </div>
+
+    <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+      The database contains three tables. Every column is listed below. 
+      There is no hidden table, no private key column, no session token store.
+    </p>
+
+    <div class="db-table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Table</th>
+            <th>Field</th>
+            <th>What It Stores</th>
+            <th>Sensitivity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td rowspan="10" style="font-weight:600; color: var(--accent-cyan);">agent_identities</td><td class="mono">pubkey</td><td>Ed25519 public key (base58)</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">name</td><td>Agent display name</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">description</td><td>Agent description text</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">token_mint</td><td>Solana token mint address</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">capability_set</td><td>JSON array of capability tags</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">creator_x</td><td>Creator's Twitter handle (optional)</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">creator_wallet</td><td>Creator's Solana wallet (optional)</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">bags_score</td><td>Computed reputation score 0–100</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">status</td><td>active / suspended</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">created_at</td><td>Registration timestamp</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td rowspan="3" style="font-weight:600; color: var(--accent-cyan);">agent_verifications</td><td class="mono">pubkey</td><td>Ed25519 public key</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">verified_at</td><td>First verification timestamp</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">last_verified</td><td>Most recent verification</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td rowspan="5" style="font-weight:600; color: var(--accent-cyan);">agent_flags</td><td class="mono">agent_pubkey</td><td>Pubkey of flagged agent</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">reporter_pubkey</td><td>Reporter's pubkey (self-asserted*)</td><td><span class="risk risk-medium">⚠ Unverified</span></td></tr>
+          <tr><td class="mono">reason</td><td>Flag reason text</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">resolved</td><td>Review status boolean</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+          <tr><td class="mono">created_at</td><td>Flag timestamp</td><td><span class="risk risk-none">✓ Public</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="font-size: 0.8rem; color: var(--text-muted);">
+      * reporter_pubkey is self-asserted in the current version. Cryptographic proof of reporter identity is on the Sprint 2 roadmap.
+    </p>
+
+    <div style="background: var(--bg-tertiary); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 1.25rem; margin-top: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+      <span style="font-size: 1.5rem;">💡</span>
+      <p style="font-size: 0.875rem; color: var(--text-secondary);">
+        <strong style="color: var(--accent-green);">Worst case database breach:</strong> An attacker sees agent names, pubkeys, and scores — data that is largely public by design. 
+        They cannot impersonate any agent or forge any signature. Zero private keys are at risk because zero private keys are stored.
+      </p>
+    </div>
+  </div>
+
+  <!-- ATTACK SCENARIOS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon icon-purple">🛡️</div>
+      <div>
+        <div class="section-title">Attack Scenarios</div>
+        <div class="section-subtitle">What an attacker can try and why it fails</div>
+      </div>
+    </div>
+
+    <div class="scenario">
+      <div class="scenario-header">
+        <div class="scenario-title">🔴 Register as an agent you don't own</div>
+        <span class="risk risk-none">✓ Blocked</span>
+      </div>
+      <div class="scenario-body">An attacker knows InfraWatch's public key and tries to register as InfraWatch. They cannot produce a valid Ed25519 signature without the matching private key — an operation requiring 2¹²⁸ attempts to brute force.</div>
+      <div class="scenario-code"><span class="label">Attacker submits:</span>  pubkey = DVKMPX3... (InfraWatch's real pubkey)
+<span class="label">AgentID issues:</span>    "Sign: AGENTID-VERIFY:DVKMPX3:RANDOM_NONCE:TIMESTAMP"
+<span class="label">Attacker tries:</span>    fabricated signature
+<span class="label">AgentID checks:</span>   Ed25519.verify(fakeSig, message, pubkey)
+<span class="rejected">Result: ❌ REJECTED — Invalid signature</span></div>
+    </div>
+
+    <div class="scenario">
+      <div class="scenario-header">
+        <div class="scenario-title">🔴 Replay a previously captured signature</div>
+        <span class="risk risk-none">✓ Blocked</span>
+      </div>
+      <div class="scenario-body">An attacker intercepts a valid challenge-response exchange and tries to replay it to impersonate the agent at a later time.</div>
+      <div class="scenario-code"><span class="label">Attacker captures:</span>  valid {pubkey, nonce: "a7f3k9", signature} from previous exchange
+<span class="label">Attacker replays:</span>   same data 10 minutes later
+<span class="label">AgentID checks:</span>    Redis.get("challenge:DVKMPX3:a7f3k9") → <span class="rejected">NOT FOUND (consumed + expired)</span>
+<span class="rejected">Result: ❌ REJECTED — Nonce not found or expired</span></div>
+    </div>
+
+    <div class="scenario">
+      <div class="scenario-header">
+        <div class="scenario-title">🔴 Extract private keys from AgentID's database</div>
+        <span class="risk risk-none">✓ Not Possible</span>
+      </div>
+      <div class="scenario-body">An attacker gains full read access to the PostgreSQL database and attempts to find private keys to impersonate agents.</div>
+      <div class="scenario-code"><span class="label">Attacker dumps:</span>  SELECT * FROM agent_identities;
+<span class="label">Attacker finds:</span>  pubkeys, names, scores, descriptions
+<span class="label">Attacker looks for:</span> private_key column
+<span class="rejected">Result: ❌ COLUMN DOES NOT EXIST — Private keys are never stored anywhere in AgentID</span></div>
+    </div>
+
+    <div class="scenario">
+      <div class="scenario-header">
+        <div class="scenario-title">⚠️ Submit false flags to damage an agent's reputation</div>
+        <span class="risk risk-medium">Known — Sprint 2 Fix</span>
+      </div>
+      <div class="scenario-body">An attacker submits multiple flags against a legitimate agent claiming false reporter pubkeys. The flag submission endpoint currently does not require cryptographic proof that the reporter owns the claimed pubkey. This is a known issue being addressed in Sprint 2.</div>
+      <div class="scenario-code"><span class="label">Attacker POSTs:</span>  { agentPubkey: "DVKMPX3...", reporterPubkey: "MADE_UP", reason: "scam" }
+<span class="label">Current behavior:</span> Flag is accepted (reporter pubkey not verified)
+<span class="label">Sprint 2 fix:</span>    Require Ed25519 signature from reporter proving pubkey ownership
+<span class="accepted">After fix: ❌ Rejected without valid reporter signature</span></div>
+    </div>
+  </div>
+
+  <!-- BEST PRACTICES -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon icon-yellow">📋</div>
+      <div>
+        <div class="section-title">Security Best Practices for Agent Operators</div>
+        <div class="section-subtitle">How to keep your agent identity secure on your end</div>
+      </div>
+    </div>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-title">🔑 Generating Your Keypair</div>
+        <ul class="practice-list">
+          <li class="practice-item">
+            <div class="practice-icon">✓</div>
+            Generate on a machine you control — never use an online generator
+          </li>
+          <li class="practice-item">
+            <div class="practice-icon">✓</div>
+            Use the provided AgentID keygen script or a trusted tool
+          </li>
+          <li class="practice-item">
+            <div class="practice-icon warn">!</div>
+            Never share your private key in support chats, screenshots, or forms
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🗄️ Storing Your Private Key</div>
+        <ul class="practice-list">
+          <li class="practice-item">
+            <div class="practice-icon">✓</div>
+            Store in a <span class="mono">.env</span> file on your server — verify it's in <span class="mono">.gitignore</span>
+          </li>
+          <li class="practice-item">
+            <div class="practice-icon">✓</div>
+            Use a secrets manager (Doppler, AWS Secrets Manager) for production
+          </li>
+          <li class="practice-item">
+            <div class="practice-icon warn">!</div>
+            Never commit <span class="mono">.env</span> to GitHub — treat it like your master password
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🚨 If Your Key is Compromised</div>
+        <ul class="practice-list">
+          <li class="practice-item">
+            <div class="practice-icon">✓</div>
+            Generate a fresh keypair immediately and register a new agent identity
+          </li>
+          <li class="practice-item">
+            <div class="practice-icon">✓</div>
+            Flag your old agent identity noting the compromise
+          </li>
+          <li class="practice-item">
+            <div class="practice-icon warn">!</div>
+            Contact the AgentID team to request suspension of the compromised pubkey
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🤖 For Autonomous Agents</div>
+        <ul class="practice-list">
+          <li class="practice-item">
+            <div class="practice-icon">✓</div>
+            One keypair per agent — never share keypairs across services
+          </li>
+          <li class="practice-item">
+            <div class="practice-icon">✓</div>
+            Check registration status on startup — re-register with a new key if needed
+          </li>
+          <li class="practice-item">
+            <div class="practice-icon warn">!</div>
+            Monitor your reputation score for unexpected drops — may indicate false flag activity
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUDIT BANNER -->
+  <div class="section">
+    <div class="audit-banner">
+      <div class="audit-banner-icon">📄</div>
+      <div class="audit-banner-content">
+        <h3>Full Security Audit Available</h3>
+        <p>A complete internal security audit covering all attack surfaces, database schema, cryptographic model, and Sprint 2 roadmap items is available for review.</p>
+      </div>
+      <a href="/docs/security-audit" class="audit-banner-link">
+        Read Full Audit →
+      </a>
+    </div>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <p>AgentID — Bags-native trust verification for AI agents &nbsp;·&nbsp; Built by <a href="https://x.com/YOUR_HANDLE">David Cooper</a> (CCIE #14019) &nbsp;·&nbsp; <a href="https://github.com/RunTimeAdmin/AgentID">GitHub</a> &nbsp;·&nbsp; <a href="/security">Security</a></p>
+  <p style="margin-top: 0.5rem;">Private keys are never stored, transmitted, or requested by AgentID.</p>
+</footer>
+
+</body>
+</html>

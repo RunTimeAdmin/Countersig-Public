@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentID — Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+
+  <!-- TOP NAV -->
+  <header class="topnav">
+    <div class="topnav-inner">
+      <div class="topnav-logo">
+        <div class="logo-mark">
+          <span class="logo-left">A</span><span class="logo-right">I</span>
+        </div>
+        <span class="logo-text">AgentID <span class="logo-sub">Docs</span></span>
+      </div>
+      <nav class="topnav-links">
+        <a href="https://agentid.provenanceai.network" target="_blank" class="btn-launch">Launch App ↗</a>
+      </nav>
+      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+    </div>
+  </header>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+
+        <div class="sidebar-section">
+          <div class="sidebar-label">Getting Started</div>
+          <a href="#overview" class="sidebar-link active" data-section="overview">Overview</a>
+          <a href="#agent-owner" class="sidebar-link" data-section="agent-owner">Agent Owner Guide</a>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-label">Integration</div>
+          <a href="#widget" class="sidebar-link" data-section="widget">Widget Integration</a>
+          <a href="#trustmark" class="sidebar-link" data-section="trustmark">Trustmark Developer Guide</a>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-label">Reference</div>
+          <a href="#api" class="sidebar-link" data-section="api">API Reference</a>
+          <a href="#developer" class="sidebar-link" data-section="developer">Developer Guide</a>
+          <a href="#deployment" class="sidebar-link" data-section="deployment">Deployment Guide</a>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-label">Resources</div>
+          <a href="https://github.com/RunTimeAdmin/AgentID" target="_blank" class="sidebar-link ext">GitHub ↗</a>
+          <a href="https://agentid.provenanceai.network" target="_blank" class="sidebar-link ext">Live App ↗</a>
+          <a href="https://agentid.provenanceai.network/health" target="_blank" class="sidebar-link ext">API Status ↗</a>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="content">
+
+      <!-- ===================== OVERVIEW ===================== -->
+      <section id="overview" class="doc-section">
+        <div class="section-badge">Getting Started</div>
+        <h1>AgentID Documentation</h1>
+        <p class="lead">AgentID is the <strong>trust verification layer for AI agents</strong> operating in the Bags ecosystem. Every AI agent gets a cryptographic identity, a 5-factor reputation score, and an embeddable trust badge.</p>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🌐</div>
+          <div>
+            <strong>Live Platform:</strong> <a href="https://agentid.provenanceai.network" target="_blank">agentid.provenanceai.network</a><br/>
+            <strong>Author:</strong> David Cooper, CCIE #14019 &nbsp;|&nbsp; <strong>Version:</strong> 1.0.0
+          </div>
+        </div>
+
+        <h2>What is AgentID?</h2>
+        <p>AgentID bridges three systems that exist independently but have never been connected in the Bags ecosystem: the Bags Ed25519 agent authentication API, the SAID Identity Gateway, and a custom Bags-specific reputation scoring engine.</p>
+
+        <div class="arch-diagram">
+          <div class="arch-box blue">Bags Agent Auth</div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box purple">AgentID Registry<br/><small>Node.js / Express / PG</small></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box green">Trust Badge / Widget<br/><small>JSON / SVG / iframe</small></div>
+        </div>
+        <div class="arch-plus">+ SAID Gateway &nbsp;&nbsp; + 5-Factor Reputation Score</div>
+
+        <h2>Core Primitives</h2>
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">🔐</div>
+            <h3>Cryptographic Identity</h3>
+            <p>Ed25519 PKI challenge-response verification. Same protocol Bags uses natively. No new trust assumptions.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">📊</div>
+            <h3>5-Factor Reputation Score</h3>
+            <p>Fee activity, success rate, age, SAID trust, and community attestations combine into a single 0–100 BAGS Score.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🏅</div>
+            <h3>Embeddable Trust Badge</h3>
+            <p>One iframe embed or JSON API call. Any Bags app can display an agent's verification status instantly.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔍</div>
+            <h3>Agent Discovery</h3>
+            <p>Public registry sorted by reputation score. Find verified agents by capability, status, or score.</p>
+          </div>
+        </div>
+
+        <h2>Trust Score Model</h2>
+        <table>
+          <thead>
+            <tr><th>Factor</th><th>Weight</th><th>Max Points</th><th>How to Improve</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>⚡ Fee Activity</td><td>30%</td><td>30 pts</td><td>More active on-chain usage (1 pt per 0.1 SOL)</td></tr>
+            <tr><td>✅ Success Rate</td><td>25%</td><td>25 pts</td><td>Ensure your agent operates reliably</td></tr>
+            <tr><td>📅 Registration Age</td><td>20%</td><td>20 pts</td><td>1 point per day, max 20 (builds automatically)</td></tr>
+            <tr><td>🌐 SAID Trust</td><td>15%</td><td>15 pts</td><td>Cross-chain reputation via SAID Protocol</td></tr>
+            <tr><td>🤝 Community</td><td>10%</td><td>10 pts</td><td>Avoid being flagged (10=none, 5=one, 0=two+)</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Score Tiers</h2>
+        <div class="tier-grid">
+          <div class="tier-card tier-high">
+            <div class="tier-score">80–100</div>
+            <div class="tier-label">HIGH</div>
+            <div class="tier-desc">Highly trusted, strong activity history</div>
+          </div>
+          <div class="tier-card tier-medium">
+            <div class="tier-score">60–79</div>
+            <div class="tier-label">MEDIUM</div>
+            <div class="tier-desc">Moderately trusted, established presence</div>
+          </div>
+          <div class="tier-card tier-low">
+            <div class="tier-score">40–59</div>
+            <div class="tier-label">LOW</div>
+            <div class="tier-desc">New or limited-activity agent</div>
+          </div>
+          <div class="tier-card tier-unverified">
+            <div class="tier-score">0–39</div>
+            <div class="tier-label">UNVERIFIED</div>
+            <div class="tier-desc">Insufficient data or flagged concerns</div>
+          </div>
+        </div>
+
+        <div class="doc-nav-bottom">
+          <span></span>
+          <a href="#agent-owner" class="btn-next">Agent Owner Guide →</a>
+        </div>
+      </section>
+
+      <!-- ===================== AGENT OWNER GUIDE ===================== -->
+      <section id="agent-owner" class="doc-section hidden">
+        <div class="section-badge">Getting Started</div>
+        <h1>Agent Owner Guide</h1>
+        <p class="lead">Everything you need to register your AI agent, get verified, and display a trust badge to users in the Bags ecosystem.</p>
+
+        <div class="toc">
+          <div class="toc-title">On this page</div>
+          <a href="#ao-prereqs">Prerequisites</a>
+          <a href="#ao-step1">Step 1: Register Your Agent</a>
+          <a href="#ao-step2">Step 2: Verify Your Agent</a>
+          <a href="#ao-step3">Step 3: Display Your Trust Mark</a>
+          <a href="#ao-score">Understanding Your Score</a>
+          <a href="#ao-pitfalls">Common Pitfalls</a>
+          <a href="#ao-checklist">Checklist</a>
+        </div>
+
+        <h2 id="ao-prereqs">Prerequisites</h2>
+
+        <h3>1. Ed25519 Keypair (Public Key + Private Key)</h3>
+        <p>Think of it like a digital lock and key: your <strong>Public Key</strong> is the lock (share it freely), and your <strong>Private Key</strong> is the key (never share it — it proves ownership).</p>
+
+        <h4>Generate Your Keypair</h4>
+        <pre><code class="lang-bash">cd AgentID/backend
+node -e "const nacl = require('tweetnacl'); const bs58 = require('bs58'); \
+const kp = nacl.sign.keyPair(); \
+console.log('PUBLIC KEY:', bs58.encode(kp.publicKey)); \
+console.log('PRIVATE KEY:', bs58.encode(kp.secretKey));"</code></pre>
+
+        <div class="callout callout-danger">
+          <div class="callout-icon">🔴</div>
+          <div>
+            <strong>CRITICAL SECURITY WARNINGS</strong><br/>
+            • <strong>NEVER share your private key</strong> with anyone — not even AgentID support<br/>
+            • Store your private key in a password manager, encrypted file, or secure env variable<br/>
+            • If you lose your private key, there is no recovery mechanism — you'll need to register a new agent<br/>
+            • Anyone with your private key can impersonate your agent
+          </div>
+        </div>
+
+        <h3>2. Your Agent's Basic Information</h3>
+        <ul>
+          <li><strong>Name</strong> — e.g. "TradeBot Pro", "CryptoAssistant"</li>
+          <li><strong>Description</strong> — 1–2 sentences about what your agent does</li>
+          <li><strong>Capabilities</strong> — comma-separated list (e.g. trading, analysis, notifications)</li>
+          <li><strong>X/Twitter Handle</strong> (optional) — for social verification</li>
+          <li><strong>Wallet Address</strong> (optional) — associated blockchain address</li>
+        </ul>
+
+        <h2 id="ao-step1">Step 1: Register Your Agent</h2>
+        <p>You have three options. Choose the one that works best for you.</p>
+
+        <div class="tabs" id="register-tabs">
+          <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="web-ui">Web Interface</button>
+            <button class="tab-btn" data-tab="demo">Demo Page</button>
+            <button class="tab-btn" data-tab="curl">curl / API</button>
+          </div>
+
+          <div class="tab-content active" id="tab-web-ui">
+            <p>Go to <a href="https://agentid.provenanceai.network/register" target="_blank">agentid.provenanceai.network/register</a> and follow the 4-step wizard:</p>
+            <div class="steps">
+              <div class="step"><div class="step-num">1</div><div><strong>Agent Identity</strong> — Enter your Public Key and agent Name, click Next</div></div>
+              <div class="step"><div class="step-num">2</div><div><strong>Sign Challenge</strong> — Copy the challenge message, sign it with your private key, paste signature back, click Next</div></div>
+              <div class="step"><div class="step-num">3</div><div><strong>Metadata</strong> — Add description, capabilities (comma-separated), optional X handle and wallet, click Next</div></div>
+              <div class="step"><div class="step-num">4</div><div><strong>Confirm</strong> — Review all info and click Submit</div></div>
+            </div>
+            <div class="callout callout-success">
+              <div class="callout-icon">✅</div>
+              <div><strong>After success:</strong> You'll see your Agent ID (a UUID like <code>550e8400-e29b-41d4-a716-446655440000</code>). <strong>Save this — you'll need it for everything else!</strong></div>
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-demo">
+            <p>The demo page at <a href="https://agentid.provenanceai.network/demo" target="_blank">agentid.provenanceai.network/demo</a> is perfect for learning the flow before using your real keys. It will:</p>
+            <ul>
+              <li>Generate a temporary keypair in your browser</li>
+              <li>Walk through all 4 steps automatically</li>
+              <li>Show you exactly what happens at each stage</li>
+              <li>Display the trust badge at the end</li>
+            </ul>
+            <p>Use this to familiarize yourself, then use the Web Interface for your real registration.</p>
+          </div>
+
+          <div class="tab-content" id="tab-curl">
+            <pre><code class="lang-bash">curl -X POST https://agentid.provenanceai.network/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pubkey": "YOUR_PUBLIC_KEY",
+    "name": "My Agent",
+    "description": "An AI agent that helps with trading",
+    "capabilities": ["trading", "analysis"],
+    "signature": "YOUR_SIGNATURE",
+    "message": "YOUR_MESSAGE",
+    "nonce": "YOUR_NONCE"
+  }'</code></pre>
+            <p class="note">The signature requires Ed25519 signing — see the <a href="#trustmark">Trustmark Developer Guide</a> for complete code examples.</p>
+          </div>
+        </div>
+
+        <h2 id="ao-step2">Step 2: Verify Your Agent (PKI Challenge-Response)</h2>
+        <p>Verification proves you actually control the private key. This is what makes your agent <strong>Verified</strong> instead of just Registered.</p>
+
+        <table>
+          <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-warning">UNVERIFIED</span></td><td>Registered but key ownership not proven. Lower trust tier applies.</td></tr>
+            <tr><td><span class="badge badge-success">VERIFIED</span></td><td>Challenge-response complete, proving you control the private key. Full trust score applies.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Verification via curl</h3>
+        <pre><code class="lang-bash"># Step 1: Request a challenge
+curl -X POST https://agentid.provenanceai.network/verify/challenge \
+  -H "Content-Type: application/json" \
+  -d '{"agentId": "YOUR_AGENT_ID"}'
+# Response: {"nonce": "...", "challenge": "...", "expiresIn": 300}
+
+# Step 2: Sign the challenge with your private key (see Developer Guide)
+
+# Step 3: Submit verification
+curl -X POST https://agentid.provenanceai.network/verify/response \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentId": "YOUR_AGENT_ID",
+    "nonce": "NONCE_FROM_STEP_1",
+    "signature": "YOUR_SIGNATURE"
+  }'</code></pre>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div>Nonces expire after <strong>5 minutes</strong>. Don't wait too long between requesting the challenge and submitting your response!</div>
+        </div>
+
+        <h2 id="ao-step3">Step 3: Display Your Trust Mark</h2>
+
+        <h3>Option 1: Embeddable Widget (Recommended)</h3>
+        <pre><code class="lang-html"><iframe 
+  src="https://agentid.provenanceai.network/widget/YOUR_AGENT_ID" 
+  width="400" 
+  height="300" 
+  frameborder="0" 
+  style="border-radius: 12px;" 
+  title="AgentID Trust Badge">
+</iframe></code></pre>
+        <p>Auto-refreshes every 60 seconds. Shows name, trust score, verification status, capabilities, and links to full profile.</p>
+
+        <h3>Option 2: SVG Badge (for README / Docs)</h3>
+        <pre><code class="lang-markdown">![AgentID Trust Badge](https://agentid.provenanceai.network/badge/YOUR_AGENT_ID/svg)</code></pre>
+
+        <h3>Option 3: JSON API (for Custom Displays)</h3>
+        <pre><code class="lang-bash">GET https://agentid.provenanceai.network/badge/YOUR_AGENT_ID</code></pre>
+        <pre><code class="lang-json">{
+  "status": "success",
+  "agentId": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "My Agent",
+  "badge": "VERIFIED",
+  "label": "Gold",
+  "tier": "gold",
+  "score": 75,
+  "capabilities": ["trading", "analysis"],
+  "verificationStatus": "verified",
+  "widgetUrl": "https://agentid.provenanceai.network/widget/550e8400..."
+}</code></pre>
+
+        <h2 id="ao-score">Understanding Your Trust Score</h2>
+        <p>Your trust score is a number from 0–100. New agents start at approximately <strong>10/100</strong> — this is normal. Score grows as your agent accumulates activity and age.</p>
+
+        <table>
+          <thead><tr><th>Factor</th><th>Weight</th><th>Description</th><th>How to Improve</th></tr></thead>
+          <tbody>
+            <tr><td>⚡ Fee Activity</td><td>30 pts</td><td>On-chain fee volume on Bags.fm</td><td>More active on-chain usage</td></tr>
+            <tr><td>✅ Success Rate</td><td>25 pts</td><td>Successful actions / total actions</td><td>Ensure reliable operation</td></tr>
+            <tr><td>📅 Age</td><td>20 pts</td><td>Days since registration</td><td>1 pt/day — builds automatically</td></tr>
+            <tr><td>🌐 SAID Trust</td><td>15 pts</td><td>Cross-chain trust via SAID Protocol</td><td>Build cross-chain reputation</td></tr>
+            <tr><td>🤝 Community</td><td>10 pts</td><td>Flag penalty</td><td>Avoid flags: 10=none, 5=one, 0=two+</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="ao-pitfalls">Common Pitfalls to Avoid</h2>
+        <div class="pitfall-list">
+          <div class="pitfall"><span class="pitfall-num">1</span><div><strong>Never share your private key</strong> — anyone with it can impersonate your agent</div></div>
+          <div class="pitfall"><span class="pitfall-num">2</span><div><strong>Don't lose your private key</strong> — there is no recovery mechanism. Store in password manager + encrypted backup</div></div>
+          <div class="pitfall"><span class="pitfall-num">3</span><div><strong>Signatures must be Base58-encoded</strong> — raw bytes or other encodings will cause verification to fail</div></div>
+          <div class="pitfall"><span class="pitfall-num">4</span><div><strong>Messages must be Base58-encoded</strong> — the backend expects <code>bs58.decode(message)</code> to work</div></div>
+          <div class="pitfall"><span class="pitfall-num">5</span><div><strong>Nonces expire after 5 minutes</strong> — request a fresh challenge if you're slow</div></div>
+          <div class="pitfall"><span class="pitfall-num">6</span><div><strong>Each nonce is single-use</strong> — if submission fails, request a new challenge; don't retry with the same nonce</div></div>
+          <div class="pitfall"><span class="pitfall-num">7</span><div><strong>Rate limits apply</strong> — 20 registration / verification attempts per 15 minutes</div></div>
+        </div>
+
+        <h2 id="ao-checklist">Verification Checklist</h2>
+        <div class="checklist">
+          <div class="checklist-group"><div class="checklist-group-title">Before Registration</div>
+            <label><input type="checkbox"/> Generated Ed25519 keypair</label>
+            <label><input type="checkbox"/> Private key stored securely</label>
+            <label><input type="checkbox"/> Gathered agent info (name, description, capabilities)</label>
+          </div>
+          <div class="checklist-group"><div class="checklist-group-title">Registration</div>
+            <label><input type="checkbox"/> Successfully registered via web, demo, or API</label>
+            <label><input type="checkbox"/> Saved the Agent ID (UUID)</label>
+            <label><input type="checkbox"/> Agent visible at agentid.provenanceai.network</label>
+          </div>
+          <div class="checklist-group"><div class="checklist-group-title">Verification</div>
+            <label><input type="checkbox"/> Completed challenge-response flow</label>
+            <label><input type="checkbox"/> Agent status shows "Verified"</label>
+            <label><input type="checkbox"/> Trust badge shows VERIFIED</label>
+          </div>
+          <div class="checklist-group"><div class="checklist-group-title">Display</div>
+            <label><input type="checkbox"/> Widget URL loads correctly</label>
+            <label><input type="checkbox"/> Badge shows name, score, and verification status</label>
+            <label><input type="checkbox"/> SVG badge loads (if using Option 2)</label>
+          </div>
+        </div>
+
+        <div class="doc-nav-bottom">
+          <a href="#overview" class="btn-prev">← Overview</a>
+          <a href="#widget" class="btn-next">Widget Integration →</a>
+        </div>
+      </section>
+
+      <!-- ===================== WIDGET GUIDE ===================== -->
+      <section id="widget" class="doc-section hidden">
+        <div class="section-badge">Integration</div>
+        <h1>Widget Integration Guide</h1>
+        <p class="lead">The AgentID Widget provides a visual trust indicator that can be embedded in any web application, documentation, or marketplace listing, displaying real-time reputation data.</p>
+
+        <div class="toc">
+          <div class="toc-title">On this page</div>
+          <a href="#w-quickstart">Quick Start</a>
+          <a href="#w-customize">Customization</a>
+          <a href="#w-selfhosted">Self-Hosted Widget</a>
+          <a href="#w-svg">SVG Badge</a>
+          <a href="#w-troubleshoot">Troubleshooting</a>
+          <a href="#w-bestpractices">Best Practices</a>
+        </div>
+
+        <h2 id="w-quickstart">Quick Start</h2>
+        <h3>iframe Embed (Recommended)</h3>
+        <pre><code class="lang-html"><iframe 
+  src="https://agentid.provenanceai.network/widget/{AGENT_ID}"
+  width="400"
+  height="300"
+  frameborder="0"
+  style="border-radius: 12px; overflow: hidden;"
+  title="AgentID Trust Badge"
+></iframe></code></pre>
+
+        <div class="feature-list">
+          <div class="feature"><span>🔄</span> Auto-refreshes every 60 seconds</div>
+          <div class="feature"><span>📊</span> Verification status, trust score, action stats</div>
+          <div class="feature"><span>🏷️</span> Capabilities displayed as tags</div>
+          <div class="feature"><span>📱</span> Responsive design</div>
+          <div class="feature"><span>🔗</span> Click-through to full agent profile</div>
+          <div class="feature"><span>⚡</span> Zero dependencies — standalone HTML/CSS</div>
+        </div>
+
+        <h2 id="w-customize">Customization</h2>
+        <h3>Size Variations</h3>
+        <table>
+          <thead><tr><th>Use Case</th><th>Width</th><th>Height</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Compact</td><td>320px</td><td>200px</td><td>Sidebar placement, minimal display</td></tr>
+            <tr><td><strong>Standard</strong></td><td><strong>400px</strong></td><td><strong>300px</strong></td><td><strong>Recommended for most use cases</strong></td></tr>
+            <tr><td>Full</td><td>100%</td><td>400px</td><td>Dashboard or profile pages</td></tr>
+          </tbody>
+        </table>
+
+        <h3>URL Parameters</h3>
+        <table>
+          <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>theme</code></td><td>string</td><td><code>auto</code></td><td>Color theme: <code>dark</code>, <code>light</code>, or <code>auto</code></td></tr>
+            <tr><td><code>compact</code></td><td>boolean</td><td><code>false</code></td><td>Compact mode — smaller fonts, tighter spacing</td></tr>
+          </tbody>
+        </table>
+
+        <pre><code class="lang-html"><!-- Dark compact mode -->
+<iframe 
+  src="https://agentid.provenanceai.network/widget/{AGENT_ID}?theme=dark&compact=true"
+  width="320"
+  height="200"
+  frameborder="0"
+></iframe></code></pre>
+
+        <h3>CSS Styling</h3>
+        <pre><code class="lang-css">.widget-container {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease;
+}
+.widget-container:hover {
+  transform: translateY(-2px);
+}
+.widget-container iframe {
+  display: block;
+  width: 100%;
+  border: none;
+}</code></pre>
+
+        <h2 id="w-selfhosted">Self-Hosted Widget (React)</h2>
+        <pre><code class="lang-javascript">const statusConfig = {
+  verified:   { icon: '✅', label: 'VERIFIED AGENT',  accentColor: '#22c55e' },
+  unverified: { icon: '⚠️', label: 'UNVERIFIED',       accentColor: '#f59e0b' },
+  flagged:    { icon: '🔴', label: 'FLAGGED',           accentColor: '#ef4444' }
+};</code></pre>
+        <pre><code class="lang-jsx">import { useState, useEffect } from 'react';
+
+function AgentIDWidget({ agentId }) {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    fetch(`https://agentid.provenanceai.network/badge/${agentId}`)
+      .then(res => res.json())
+      .then(setData);
+
+    // Auto-refresh every 60 seconds
+    const interval = setInterval(() => {
+      fetch(`https://agentid.provenanceai.network/badge/${agentId}`)
+        .then(res => res.json())
+        .then(setData);
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [agentId]);
+
+  if (!data) return <div>Loading...</div>;
+  const config = statusConfig[data.status];
+
+  return (
+    <div style={{ 
+      border: `2px solid ${config.accentColor}`,
+      borderRadius: '12px', padding: '20px', color: 'white'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <span style={{ fontSize: '32px' }}>{config.icon}</span>
+        <div>
+          <div style={{ color: config.accentColor, fontSize: '12px' }}>
+            {config.label}
+          </div>
+          <div style={{ fontSize: '18px', fontWeight: 600 }}>{data.name}</div>
+        </div>
+        <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+          <div style={{ fontSize: '28px', fontWeight: 700 }}>{data.score}</div>
+          <div style={{ fontSize: '10px', color: '#888' }}>TRUST SCORE</div>
+        </div>
+      </div>
+    </div>
+  );
+}</code></pre>
+
+        <h3>Badge Data Response</h3>
+        <pre><code class="lang-json">{
+  "agentId": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "My Trading Agent",
+  "status": "verified",
+  "score": 75,
+  "bags_score": 75,
+  "saidTrustScore": 85,
+  "saidLabel": "HIGH",
+  "registeredAt": "2024-01-15T10:30:00.000Z",
+  "lastVerified": "2024-01-20T14:22:00.000Z",
+  "totalActions": 150,
+  "successRate": 0.94,
+  "capabilities": ["trading", "analytics"],
+  "widgetUrl": "https://agentid.provenanceai.network/widget/AgentPubkey..."
+}</code></pre>
+
+        <h2 id="w-svg">SVG Badge for README / Docs</h2>
+        <pre><code class="lang-markdown">![AgentID Trust Badge](https://agentid.provenanceai.network/badge/{AGENT_ID}/svg)</code></pre>
+        <pre><code class="lang-markdown"><!-- Linked badge for GitHub README -->
+[![AgentID](https://agentid.provenanceai.network/badge/{AGENT_ID}/svg)](https://agentid.provenanceai.network/agents/{AGENT_ID})</code></pre>
+
+        <h2 id="w-troubleshoot">Troubleshooting</h2>
+        <div class="troubleshoot-list">
+          <details class="troubleshoot-item">
+            <summary>CORS Errors — <code>Access-Control-Allow-Origin</code> header missing</summary>
+            <p>Set the <code>CORS_ORIGIN</code> env variable to your domain. For multiple origins, use comma-separated values. For dev only, <code>*</code> works.</p>
+            <pre><code>CORS_ORIGIN=https://yourapp.com,https://anotherapp.com</code></pre>
+          </details>
+          <details class="troubleshoot-item">
+            <summary>Widget Not Loading — iframe shows blank or error</summary>
+            <p>Verify the agent ID is correct, check for 404 errors in console, confirm the agent is registered:</p>
+            <pre><code>curl https://agentid.provenanceai.network/badge/{AGENT_ID}</code></pre>
+          </details>
+          <details class="troubleshoot-item">
+            <summary>Data Not Updating — badge shows stale data</summary>
+            <p>The widget auto-refreshes every 60 seconds. Badge data is cached for 60 seconds (configurable via <code>BADGE_CACHE_TTL</code>). Force refresh with a cache-buster param: <code>?t=123456</code>.</p>
+          </details>
+          <details class="troubleshoot-item">
+            <summary>Rate Limiting — 429 Too Many Requests</summary>
+            <p>Default: 100 requests per 15 minutes per IP. Implement client-side caching. For high-traffic apps, contact support for increased limits.</p>
+          </details>
+        </div>
+
+        <h2 id="w-bestpractices">Best Practices</h2>
+        <pre><code class="lang-html"><!-- Performance: lazy loading -->
+<iframe loading="lazy" src="..."></iframe>
+
+<!-- Accessibility: always include title -->
+<iframe title="AgentID Trust Badge for My Agent" ...></iframe>
+
+<!-- Security: validate pubkey before embedding --></code></pre>
+        <pre><code class="lang-javascript">function isValidPubkey(pubkey) {
+  return /^[A-HJ-NP-Za-km-z1-9]{32,44}$/.test(pubkey);
+}</code></pre>
+
+        <div class="doc-nav-bottom">
+          <a href="#agent-owner" class="btn-prev">← Agent Owner Guide</a>
+          <a href="#trustmark" class="btn-next">Trustmark Developer Guide →</a>
+        </div>
+      </section>
+
+      <!-- ===================== TRUSTMARK GUIDE ===================== -->
+      <section id="trustmark" class="doc-section hidden">
+        <div class="section-badge">Integration</div>
+        <h1>Trustmark Developer Integration Guide</h1>
+        <p class="lead">Technical implementation details and code examples for developers integrating AgentID trust verification into their applications.</p>
+
+        <div class="toc">
+          <div class="toc-title">On this page</div>
+          <a href="#tm-requirements">Technical Requirements</a>
+          <a href="#tm-quickstart">Quick Start</a>
+          <a href="#tm-keygen">Keypair Generation</a>
+          <a href="#tm-signing">Signing & Verification</a>
+          <a href="#tm-registration">Full Registration Flow</a>
+          <a href="#tm-languages">Other Languages</a>
+        </div>
+
+        <h2 id="tm-requirements">Technical Requirements</h2>
+        <table>
+          <thead><tr><th>Language</th><th>Library</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Node.js 18+</td><td><code>tweetnacl</code>, <code>bs58</code></td><td>Primary/recommended</td></tr>
+            <tr><td>Python</td><td><code>pynacl</code></td><td>PyNaCl</td></tr>
+            <tr><td>Go</td><td><code>crypto/ed25519</code></td><td>Standard library</td></tr>
+            <tr><td>Rust</td><td><code>ed25519-dalek</code></td><td>Crates.io</td></tr>
+            <tr><td>Java</td><td><code>net.i2p.crypto:eddsa</code></td><td>Maven Central</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="tm-quickstart">Quick Start</h2>
+        <pre><code class="lang-bash">npm install tweetnacl bs58</code></pre>
+
+        <h2 id="tm-keygen">Keypair Generation</h2>
+        <pre><code class="lang-javascript">const nacl = require('tweetnacl');
+const bs58 = require('bs58');
+
+// Generate a new Ed25519 keypair
+const keypair = nacl.sign.keyPair();
+
+// Encode keys as base58 strings (standard for Solana ecosystem)
+const pubkey = bs58.encode(keypair.publicKey);       // 32 bytes → ~44 chars
+const secretKey = bs58.encode(keypair.secretKey);    // 64 bytes → ~88 chars
+
+console.log('PUBLIC KEY:', pubkey);
+console.log('SECRET KEY:', secretKey);  // STORE SECURELY — NEVER COMMIT
+
+// Restore keypair from stored secret key
+const storedSecretKey = process.env.AGENT_SECRET_KEY;
+const restoredKeypair = nacl.sign.keyPair.fromSecretKey(
+  bs58.decode(storedSecretKey)
+);</code></pre>
+
+        <h2 id="tm-signing">Signing a Challenge</h2>
+        <pre><code class="lang-javascript">const nacl = require('tweetnacl');
+const bs58 = require('bs58');
+
+// Challenge message format: AGENTID-VERIFY:{agentId}:{pubkey}:{nonce}:{timestamp}
+function signChallenge(challengeMessage, secretKeyBase58) {
+  const secretKeyBytes = bs58.decode(secretKeyBase58);
+  const keypair = nacl.sign.keyPair.fromSecretKey(secretKeyBytes);
+  
+  // The challenge from the API is base58-encoded — decode it
+  const messageBytes = bs58.decode(challengeMessage);
+  
+  // Sign using Ed25519
+  const signatureBytes = nacl.sign.detached(messageBytes, keypair.secretKey);
+  
+  // Return base58-encoded signature
+  return bs58.encode(signatureBytes);
+}
+
+// Usage
+const signature = signChallenge(challenge, process.env.AGENT_SECRET_KEY);</code></pre>
+
+        <h2 id="tm-registration">Full Registration Flow</h2>
+        <pre><code class="lang-javascript">const nacl = require('tweetnacl');
+const bs58 = require('bs58');
+
+async function registerAgent(config) {
+  const { pubkey, secretKey, name, description, capabilities } = config;
+  const API_BASE = 'https://agentid.provenanceai.network';
+  
+  // Step 1: Register the agent first to get an agentId
+  // (Registration requires a pre-signed challenge - see PKI Challenge flow)
+  // After registration, you'll receive an agentId
+  
+  // Step 2: Request a verification challenge using agentId
+  const challengeRes = await fetch(`${API_BASE}/verify/challenge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agentId: 'YOUR_AGENT_ID' })
+  });
+  const { nonce, challenge } = await challengeRes.json();
+  
+  // Step 3: Sign the challenge
+  const secretKeyBytes = bs58.decode(secretKey);
+  const keypair = nacl.sign.keyPair.fromSecretKey(secretKeyBytes);
+  const messageBytes = bs58.decode(challenge);
+  const signatureBytes = nacl.sign.detached(messageBytes, keypair.secretKey);
+  const signature = bs58.encode(signatureBytes);
+  
+  // Step 4: Submit verification response
+  const verifyRes = await fetch(`${API_BASE}/verify/response`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      agentId: 'YOUR_AGENT_ID',
+      nonce,
+      signature
+    })
+  });
+
+  const result = await verifyRes.json();
+  if (!verifyRes.ok) throw new Error(result.error);
+  
+  console.log('Agent verified! ID:', result.agentId);
+  return result;
+}
+
+// Execute verification flow (registration is a separate step)
+registerAgent({
+  pubkey: process.env.AGENT_PUBKEY,
+  secretKey: process.env.AGENT_SECRET_KEY,
+  name: 'My Trading Agent',
+  description: 'Automated DeFi trading agent',
+  capabilities: ['trading', 'analytics']
+});
+
+// Note: The registration endpoint (/register) also requires a signature.
+// The flow is: 1) Generate keypair → 2) Sign registration message → 3) Register → 4) Verify via challenge-response</code></pre>
+
+        <h2 id="tm-languages">Other Languages</h2>
+        <div class="tabs" id="lang-tabs">
+          <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="python">Python</button>
+            <button class="tab-btn" data-tab="go">Go</button>
+            <button class="tab-btn" data-tab="rust">Rust</button>
+          </div>
+          <div class="tab-content active" id="tab-python">
+            <pre><code class="lang-python">import nacl.signing
+import base58
+
+# Generate keypair
+signing_key = nacl.signing.SigningKey.generate()
+verify_key = signing_key.verify_key
+
+pubkey = base58.b58encode(bytes(verify_key)).decode()
+secret = base58.b58encode(bytes(signing_key)).decode()
+
+# Sign a challenge
+def sign_challenge(challenge_b58, secret_key_b58):
+    secret_bytes = base58.b58decode(secret_key_b58)
+    signing_key = nacl.signing.SigningKey(secret_bytes)
+    message_bytes = base58.b58decode(challenge_b58)
+    signed = signing_key.sign(message_bytes)
+    return base58.b58encode(signed.signature).decode()</code></pre>
+          </div>
+          <div class="tab-content" id="tab-go">
+            <pre><code class="lang-go">package main
+
+import (
+    "crypto/ed25519"
+    "crypto/rand"
+    "encoding/base64"
+    "fmt"
+)
+
+func generateKeypair() (ed25519.PublicKey, ed25519.PrivateKey) {
+    pub, priv, _ := ed25519.GenerateKey(rand.Reader)
+    return pub, priv
+}
+
+func signChallenge(challenge []byte, privateKey ed25519.PrivateKey) string {
+    signature := ed25519.Sign(privateKey, challenge)
+    return base64.StdEncoding.EncodeToString(signature)
+}
+
+func main() {
+    pub, priv := generateKeypair()
+    fmt.Println("Public Key:", base64.StdEncoding.EncodeToString(pub))
+    _ = priv // Store securely
+}</code></pre>
+          </div>
+          <div class="tab-content" id="tab-rust">
+            <pre><code class="lang-rust">use ed25519_dalek::{Keypair, Signer};
+use rand::rngs::OsRng;
+use bs58;
+
+fn main() {
+    // Generate keypair
+    let mut csprng = OsRng{};
+    let keypair: Keypair = Keypair::generate(&mut csprng);
+    
+    let pubkey = bs58::encode(keypair.public.as_bytes()).into_string();
+    let secret = bs58::encode(keypair.secret.as_bytes()).into_string();
+    
+    println!("PUBLIC KEY: {}", pubkey);
+    
+    // Sign a challenge
+    let message = b"AGENTID-VERIFY:...";
+    let signature = keypair.sign(message);
+    let sig_b58 = bs58::encode(signature.as_ref()).into_string();
+    println!("SIGNATURE: {}", sig_b58);
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="doc-nav-bottom">
+          <a href="#widget" class="btn-prev">← Widget Integration</a>
+          <a href="#api" class="btn-next">API Reference →</a>
+        </div>
+      </section>
+
+      <!-- ===================== API REFERENCE ===================== -->
+      <section id="api" class="doc-section hidden">
+        <div class="section-badge">Reference</div>
+        <h1>API Reference</h1>
+        <p class="lead">Complete reference for all AgentID API endpoints. Base URL: <code>https://agentid.provenanceai.network</code></p>
+
+        <div class="toc">
+          <div class="toc-title">On this page</div>
+          <a href="#api-auth">Authentication Model</a>
+          <a href="#api-ratelimits">Rate Limiting</a>
+          <a href="#api-errors">Error Handling</a>
+          <a href="#api-reputation">Reputation Scoring</a>
+          <a href="#api-endpoints">Endpoints</a>
+        </div>
+
+        <h2 id="api-auth">Authentication Model</h2>
+        <p>AgentID uses an <strong>Ed25519 signature-based authentication model</strong> for all state-modifying operations — no API keys, no shared secrets. Challenge messages follow the exact format:</p>
+        <pre><code>AGENTID-VERIFY:{agentId}:{pubkey}:{nonce}:{timestamp}</code></pre>
+
+        <div class="auth-flow">
+          <div class="auth-step"><div class="auth-num">1</div><div>Client requests challenge via <code>POST /verify/challenge</code></div></div>
+          <div class="auth-step"><div class="auth-num">2</div><div>Server returns nonce + challenge (expires in 300s)</div></div>
+          <div class="auth-step"><div class="auth-num">3</div><div>Client signs challenge with Ed25519 private key</div></div>
+          <div class="auth-step"><div class="auth-num">4</div><div>Client submits signature — server verifies against public key</div></div>
+        </div>
+
+        <pre><code class="lang-javascript">const message = `AGENTID-VERIFY:${agentId}:${pubkey}:${nonce}:${timestamp}`;
+const messageBytes = Buffer.from(message, 'utf-8');
+const signatureBytes = nacl.sign.detached(messageBytes, privateKeyBytes);
+const signature = bs58.encode(signatureBytes);</code></pre>
+
+        <h2 id="api-ratelimits">Rate Limiting</h2>
+        <table>
+          <thead><tr><th>Tier</th><th>Endpoints</th><th>Limit</th><th>Window</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-blue">Default</span></td><td>Read operations (GET)</td><td>100 requests</td><td>15 minutes</td></tr>
+            <tr><td><span class="badge badge-orange">Auth</span></td><td>Write operations (POST/PUT), auth</td><td>20 requests</td><td>15 minutes</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="api-errors">Error Handling</h2>
+        <table>
+          <thead><tr><th>Code</th><th>Meaning</th><th>Common Causes</th></tr></thead>
+          <tbody>
+            <tr><td><code>200</code></td><td>OK</td><td>Request successful</td></tr>
+            <tr><td><code>201</code></td><td>Created</td><td>Resource created</td></tr>
+            <tr><td><code>400</code></td><td>Bad Request</td><td>Missing/invalid params, validation failure</td></tr>
+            <tr><td><code>401</code></td><td>Unauthorized</td><td>Invalid signature, expired challenge, stale timestamp</td></tr>
+            <tr><td><code>404</code></td><td>Not Found</td><td>Agent or challenge not found</td></tr>
+            <tr><td><code>409</code></td><td>Conflict</td><td>Agent already registered</td></tr>
+            <tr><td><code>429</code></td><td>Too Many Requests</td><td>Rate limit exceeded</td></tr>
+            <tr><td><code>500</code></td><td>Server Error</td><td>Server-side error</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="api-reputation">Reputation Scoring</h2>
+        <pre><code class="lang-javascript">// Fee Activity: min(30, floor(totalFeesSOL * 10))
+// Success Rate: floor((successful / total) * 25)
+// Age:          min(20, daysSinceRegistration)
+// SAID Trust:   floor((saidScore / 100) * 15)
+// Community:    10 if 0 flags, 5 if 1 flag, 0 if 2+ flags
+
+const totalScore = feeActivity + successRate + age + saidTrust + community;</code></pre>
+        <p>Agents with <strong>3 or more unresolved flags</strong> are automatically marked <code>status: 'flagged'</code> regardless of score.</p>
+
+        <h2 id="api-endpoints">Endpoints</h2>
+
+        <div class="endpoint-group">
+          <div class="endpoint-group-title">Registration & Identity</div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/register</span>
+              <span class="endpoint-desc">Register a new agent</span>
+              <span class="rate-badge">Auth tier</span>
+            </div>
+            <div class="endpoint-body">
+              <h4>Request Body</h4>
+              <table>
+                <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Constraints</th></tr></thead>
+                <tbody>
+                  <tr><td><code>pubkey</code></td><td>string</td><td>✅</td><td>Valid Solana address (32–88 chars)</td></tr>
+                  <tr><td><code>name</code></td><td>string</td><td>✅</td><td>1–255 characters</td></tr>
+                  <tr><td><code>signature</code></td><td>string</td><td>✅</td><td>Base58-encoded Ed25519 signature</td></tr>
+                  <tr><td><code>message</code></td><td>string</td><td>✅</td><td>Must contain the nonce</td></tr>
+                  <tr><td><code>nonce</code></td><td>string</td><td>✅</td><td>Challenge nonce</td></tr>
+                  <tr><td><code>tokenMint</code></td><td>string</td><td>—</td><td>Token mint address for fee tracking</td></tr>
+                  <tr><td><code>capabilities</code></td><td>string[]</td><td>—</td><td>Array of capability strings</td></tr>
+                  <tr><td><code>description</code></td><td>string</td><td>—</td><td>Agent description</td></tr>
+                  <tr><td><code>creatorX</code></td><td>string</td><td>—</td><td>X/Twitter handle</td></tr>
+                  <tr><td><code>creatorWallet</code></td><td>string</td><td>—</td><td>Creator's wallet address</td></tr>
+                </tbody>
+              </table>
+              <pre><code class="lang-bash">curl -X POST https://agentid.provenanceai.network/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pubkey": "AgentPubkey111...",
+    "name": "My Trading Agent",
+    "signature": "Base58Sig...",
+    "message": "AGENTID-VERIFY:...",
+    "nonce": "550e8400-e29b-41d4-a716-446655440000",
+    "capabilities": ["trading", "analytics"]
+  }'</code></pre>
+              <div class="response-badges"><span class="res-badge res-201">201 Created</span><span class="res-badge res-400">400 Bad Request</span><span class="res-badge res-401">401 Unauthorized</span><span class="res-badge res-409">409 Conflict</span></div>
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method put">PUT</span>
+              <span class="endpoint-path">/agents/:agentId/update</span>
+              <span class="endpoint-desc">Update agent metadata</span>
+              <span class="rate-badge">Auth tier</span>
+            </div>
+            <div class="endpoint-body">
+              <p>Signature message format: <code>AGENTID-UPDATE:{agentId}:{timestamp}</code></p>
+              <pre><code class="lang-bash">curl -X PUT https://agentid.provenanceai.network/agents/{AGENT_ID}/update \
+  -H "Content-Type: application/json" \
+  -d '{
+    "signature": "Base58Sig...",
+    "timestamp": 1705753200000,
+    "name": "Updated Agent Name",
+    "capabilities": ["trading", "analytics", "reporting"]
+  }'</code></pre>
+              <div class="response-badges"><span class="res-badge res-200">200 OK</span><span class="res-badge res-400">400</span><span class="res-badge res-401">401</span><span class="res-badge res-404">404</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="endpoint-group">
+          <div class="endpoint-group-title">Verification (PKI Challenge-Response)</div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/verify/challenge</span>
+              <span class="endpoint-desc">Issue a PKI challenge</span>
+              <span class="rate-badge">Auth tier</span>
+            </div>
+            <div class="endpoint-body">
+              <pre><code class="lang-bash">curl -X POST https://agentid.provenanceai.network/verify/challenge \
+  -H "Content-Type: application/json" \
+  -d '{"agentId": "550e8400-e29b-41d4-a716-446655440000"}'</code></pre>
+              <pre><code class="lang-json">// Response 200 OK
+{
+  "nonce": "550e8400-e29b-41d4-a716-446655440000",
+  "challenge": "8n3kQm9XvB2pL5rT...",
+  "expiresIn": 300
+}</code></pre>
+              <div class="response-badges"><span class="res-badge res-200">200 OK</span><span class="res-badge res-400">400</span><span class="res-badge res-404">404</span></div>
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method post">POST</span>
+              <span class="endpoint-path">/verify/response</span>
+              <span class="endpoint-desc">Submit signed challenge response</span>
+              <span class="rate-badge">Auth tier</span>
+            </div>
+            <div class="endpoint-body">
+              <pre><code class="lang-bash">curl -X POST https://agentid.provenanceai.network/verify/response \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentId": "550e8400-e29b-41d4-a716-446655440000",
+    "nonce": "550e8400-...",
+    "signature": "Base58Sig..."
+  }'</code></pre>
+              <div class="response-badges"><span class="res-badge res-200">200 OK</span><span class="res-badge res-400">400</span><span class="res-badge res-401">401</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="endpoint-group">
+          <div class="endpoint-group-title">Agent Discovery & Lookup</div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/agents</span>
+              <span class="endpoint-desc">List all agents (paginated, sorted by score)</span>
+              <span class="rate-badge">Default tier</span>
+            </div>
+            <div class="endpoint-body">
+              <p>Query params: <code>?page=1&limit=20&status=verified&capability=trading</code></p>
+              <div class="response-badges"><span class="res-badge res-200">200 OK</span></div>
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/agents/:agentId</span>
+              <span class="endpoint-desc">Get agent by agent ID</span>
+              <span class="rate-badge">Default tier</span>
+            </div>
+            <div class="endpoint-body">
+              <div class="response-badges"><span class="res-badge res-200">200 OK</span><span class="res-badge res-404">404</span></div>
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/agents/owner/:pubkey</span>
+              <span class="endpoint-desc">Get all agents owned by a pubkey</span>
+              <span class="rate-badge">Default tier</span>
+            </div>
+            <div class="endpoint-body">
+              <pre><code class="lang-json">// Response 200 OK
+{
+  "pubkey": "OwnerPubkey111...",
+  "agents": [...],
+  "count": 3
+}</code></pre>
+              <div class="response-badges"><span class="res-badge res-200">200 OK</span><span class="res-badge res-400">400</span></div>
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/badge/:agentId</span>
+              <span class="endpoint-desc">Get badge data as JSON</span>
+              <span class="rate-badge">Default tier</span>
+            </div>
+            <div class="endpoint-body">
+              <div class="response-badges"><span class="res-badge res-200">200 OK</span><span class="res-badge res-404">404</span></div>
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/badge/:agentId/svg</span>
+              <span class="endpoint-desc">Get badge as SVG image (320×80px)</span>
+              <span class="rate-badge">Default tier</span>
+            </div>
+            <div class="endpoint-body">
+              <div class="response-badges"><span class="res-badge res-200">200 OK — image/svg+xml</span></div>
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/widget/:agentId</span>
+              <span class="endpoint-desc">Get embeddable widget HTML page</span>
+              <span class="rate-badge">Default tier</span>
+            </div>
+            <div class="endpoint-body">
+              <div class="response-badges"><span class="res-badge res-200">200 OK — text/html</span></div>
+            </div>
+          </div>
+
+          <div class="endpoint">
+            <div class="endpoint-header">
+              <span class="method get">GET</span>
+              <span class="endpoint-path">/health</span>
+              <span class="endpoint-desc">API health check</span>
+              <span class="rate-badge">Default tier</span>
+            </div>
+            <div class="endpoint-body">
+              <pre><code class="lang-json">{ "status": "ok", "timestamp": "2026-04-16T10:00:00.000Z" }</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-nav-bottom">
+          <a href="#trustmark" class="btn-prev">← Trustmark Guide</a>
+          <a href="#developer" class="btn-next">Developer Guide →</a>
+        </div>
+      </section>
+
+      <!-- ===================== DEVELOPER GUIDE ===================== -->
+      <section id="developer" class="doc-section hidden">
+        <div class="section-badge">Reference</div>
+        <h1>Developer Guide</h1>
+        <p class="lead">Enterprise-grade developer onboarding for the AgentID platform — local setup, architecture, testing, and contributing.</p>
+
+        <div class="toc">
+          <div class="toc-title">On this page</div>
+          <a href="#dev-prereqs">Prerequisites</a>
+          <a href="#dev-quickstart">Quick Start</a>
+          <a href="#dev-envconfig">Environment Configuration</a>
+          <a href="#dev-dbsetup">Database Setup</a>
+          <a href="#dev-running">Running the Project</a>
+          <a href="#dev-arch">Architecture Overview</a>
+          <a href="#dev-testing">Testing</a>
+        </div>
+
+        <h2 id="dev-prereqs">Prerequisites</h2>
+        <table>
+          <thead><tr><th>Component</th><th>Min Version</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>Node.js</td><td>20.x</td><td>Runtime environment</td></tr>
+            <tr><td>PostgreSQL</td><td>16.x</td><td>Primary database</td></tr>
+            <tr><td>Redis</td><td>7.x</td><td>Caching and session storage</td></tr>
+            <tr><td>Git</td><td>2.x+</td><td>Version control</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="dev-quickstart">Quick Start</h2>
+        <pre><code class="lang-bash"># 1. Clone the repository
+git clone https://github.com/RunTimeAdmin/AgentID.git
+cd AgentID
+
+# 2. Start PostgreSQL + Redis with Docker Compose
+docker-compose up -d
+
+# 3. Install backend dependencies
+cd backend && npm install
+
+# 4. Copy and configure environment
+cp .env.example .env
+# Edit .env with your settings
+
+# 5. Run database migrations
+npm run migrate
+
+# 6. Start the backend
+npm start
+# Backend runs on http://localhost:3002
+
+# 7. In a new terminal — install + start frontend
+cd ../frontend && npm install && npm run dev
+# Frontend runs on http://localhost:5174</code></pre>
+
+        <h2 id="dev-envconfig">Environment Configuration</h2>
+        <pre><code class="lang-bash"># Database
+DATABASE_URL=postgresql://agentid:password@localhost:5432/agentid
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Bags.fm API
+BAGS_API_KEY=your_bags_api_key_here
+
+# Server
+PORT=3002
+NODE_ENV=development
+
+# CORS
+CORS_ORIGIN=http://localhost:5174
+
+# Identity
+AGENTID_BASE_URL=http://localhost:3002  # Production: https://agentid.provenanceai.network
+
+# SAID Gateway
+SAID_GATEWAY_URL=https://said-gateway.example.com
+
+# Cache TTL (seconds)
+BADGE_CACHE_TTL=60
+CHALLENGE_EXPIRY_SECONDS=300</code></pre>
+
+        <h2 id="dev-dbsetup">Database Setup</h2>
+        <pre><code class="lang-sql">-- agent_identities: core registration table
+CREATE TABLE agent_identities (
+  agent_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pubkey           VARCHAR(88) NOT NULL,
+  name             VARCHAR(255) NOT NULL,
+  description      TEXT,
+  token_mint       VARCHAR(88),
+  capability_set   JSONB DEFAULT '[]',
+  creator_x        VARCHAR(255),
+  creator_wallet   VARCHAR(88),
+  status           VARCHAR(20) DEFAULT 'active',
+  bags_score       INTEGER DEFAULT 0,
+  total_actions    INTEGER DEFAULT 0,
+  successful_actions INTEGER DEFAULT 0,
+  failed_actions   INTEGER DEFAULT 0,
+  registered_at    TIMESTAMPTZ DEFAULT NOW(),
+  last_verified    TIMESTAMPTZ,
+  is_demo          BOOLEAN DEFAULT false,
+  UNIQUE(pubkey, name)
+);
+CREATE INDEX idx_agent_identities_pubkey ON agent_identities(pubkey);
+
+-- agent_verifications: PKI challenge tracking
+CREATE TABLE agent_verifications (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id        UUID REFERENCES agent_identities(agent_id),
+  pubkey          VARCHAR(88),
+  nonce           VARCHAR(255) UNIQUE NOT NULL,
+  challenge       TEXT NOT NULL,
+  completed       BOOLEAN DEFAULT false,
+  expires_at      TIMESTAMPTZ NOT NULL,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_agent_verifications_agent_id ON agent_verifications(agent_id);
+
+-- agent_flags: community reporting
+CREATE TABLE agent_flags (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id        UUID REFERENCES agent_identities(agent_id),
+  pubkey          VARCHAR(88),
+  reporter_pubkey VARCHAR(88),
+  reason          TEXT NOT NULL,
+  resolved        BOOLEAN DEFAULT false,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_agent_flags_agent_id ON agent_flags(agent_id);</code></pre>
+
+        <h2 id="dev-running">Running the Project</h2>
+        <pre><code class="lang-bash"># Development (with hot reload)
+npm run dev
+
+# Production
+npm start
+
+# Run tests (34 tests, Jest)
+npm test
+
+# Watch mode
+npm run test:watch</code></pre>
+
+        <h2 id="dev-arch">Architecture Overview</h2>
+        <pre><code>Backend:  Node.js 20 + Express
+          ├── routes/          (7 route modules)
+          ├── services/        (5 services: bagsAuth, bagsRep, badgeBuilder, pkiChallenge, saidBinding)
+          ├── middleware/       (auth, rate limiting)
+          ├── models/          (PostgreSQL queries)
+          └── utils/           (transform, validation)
+
+Frontend: React 18 + Vite + Tailwind CSS v4
+          ├── pages/           (Registry, AgentDetail, Register, Discover)
+          ├── components/      (AgentCard, FlagModal, TrustBadge, Pagination)
+          └── widget/          (standalone embeddable iframe bundle)
+
+Crypto:   tweetnacl (Ed25519 sign/verify) + bs58 (encoding)
+Tests:    Jest, 34 passing tests (pkiChallenge, bagsReputation, transform)</code></pre>
+
+        <h2 id="dev-testing">Testing</h2>
+        <pre><code class="lang-bash"># Run all 34 tests
+npm test
+
+# Test files
+backend/tests/
+├── pkiChallenge.test.js      # Ed25519 keypair challenge/verify
+├── bagsReputation.test.js    # 5-factor scoring, label thresholds
+└── transform.test.js         # snakeToCamel, escapeHtml, isValidSolanaAddress</code></pre>
+
+        <div class="doc-nav-bottom">
+          <a href="#api" class="btn-prev">← API Reference</a>
+          <a href="#deployment" class="btn-next">Deployment Guide →</a>
+        </div>
+      </section>
+
+      <!-- ===================== DEPLOYMENT GUIDE ===================== -->
+      <section id="deployment" class="doc-section hidden">
+        <div class="section-badge">Reference</div>
+        <h1>Deployment Guide</h1>
+        <p class="lead">Complete guide for deploying AgentID on Ubuntu 22.04 VPS with PM2, Nginx, PostgreSQL, and Redis.</p>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🖥️</div>
+          <div>
+            <strong>Target Environment:</strong> Ubuntu 22.04 LTS &nbsp;|&nbsp; <strong>Domain:</strong> agentid.provenanceai.network<br/>
+            PostgreSQL 14 &nbsp;|&nbsp; Redis &nbsp;|&nbsp; Node.js 20 &nbsp;|&nbsp; PM2 &nbsp;|&nbsp; Nginx (SSL)
+          </div>
+        </div>
+
+        <div class="toc">
+          <div class="toc-title">On this page</div>
+          <a href="#dep-preflight">Pre-Flight Check</a>
+          <a href="#dep-clone">Clone & Install</a>
+          <a href="#dep-envsetup">Environment Setup</a>
+          <a href="#dep-db">Database Setup</a>
+          <a href="#dep-pm2">PM2 Configuration</a>
+          <a href="#dep-nginx">Nginx Configuration</a>
+          <a href="#dep-verify">Verify Deployment</a>
+        </div>
+
+        <h2 id="dep-preflight">Pre-Flight Check</h2>
+        <pre><code class="lang-bash"># Verify PostgreSQL
+sudo systemctl status postgresql
+
+# Verify Redis
+sudo systemctl status redis-server
+
+# Verify Node.js
+node --version  # Should be v20.x.x
+
+# Verify PM2
+pm2 --version
+
+# Check port 3002 is free
+sudo lsof -i :3002</code></pre>
+
+        <h2 id="dep-clone">Clone & Install</h2>
+        <pre><code class="lang-bash">cd /var/www
+git clone https://github.com/RunTimeAdmin/AgentID.git
+cd AgentID/backend
+npm install --production</code></pre>
+
+        <h2 id="dep-envsetup">Environment Setup</h2>
+        <pre><code class="lang-bash">cp .env.example .env
+nano .env</code></pre>
+        <pre><code class="lang-bash">DATABASE_URL=postgresql://agentid:STRONGPASSWORD@localhost:5432/agentid
+REDIS_URL=redis://localhost:6379
+BAGS_API_KEY=your_production_bags_api_key
+PORT=3002
+NODE_ENV=production
+CORS_ORIGIN=https://agentid.provenanceai.network
+AGENTID_BASE_URL=https://agentid.provenanceai.network</code></pre>
+
+        <h2 id="dep-db">Database Setup</h2>
+        <pre><code class="lang-bash"># Create database and user
+sudo -u postgres psql -c "CREATE USER agentid WITH PASSWORD 'STRONGPASSWORD';"
+sudo -u postgres psql -c "CREATE DATABASE agentid OWNER agentid;"
+
+# Run migrations
+cd /var/www/AgentID/backend
+npm run migrate</code></pre>
+
+        <h2 id="dep-pm2">PM2 Configuration</h2>
+        <pre><code class="lang-bash"># Start AgentID backend
+pm2 start server.js --name agentid --cwd /var/www/AgentID/backend
+
+# Save PM2 config (survives reboots)
+pm2 save
+pm2 startup  # Follow the printed command
+
+# Check status
+pm2 status
+pm2 logs agentid</code></pre>
+
+        <h2 id="dep-nginx">Nginx Configuration</h2>
+        <pre><code class="lang-nginx">server {
+    listen 80;
+    server_name agentid.provenanceai.network;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name agentid.provenanceai.network;
+
+    ssl_certificate /etc/letsencrypt/live/agentid.provenanceai.network/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/agentid.provenanceai.network/privkey.pem;
+
+    # API backend - routes mounted at root (no /api/ prefix)
+    location ~ ^/(register|verify|agents|badge|widget|health|discover|reputation) {
+        proxy_pass http://localhost:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Frontend static files
+    location / {
+        root /var/www/agentid/frontend/dist;
+        try_files $uri $uri/ /index.html;
+    }
+}</code></pre>
+        <pre><code class="lang-bash"># Test and reload nginx
+sudo nginx -t && sudo systemctl reload nginx</code></pre>
+
+        <h2 id="dep-verify">Verify Deployment</h2>
+        <pre><code class="lang-bash"># Health check
+curl https://agentid.provenanceai.network/health
+
+# List agents
+curl https://agentid.provenanceai.network/agents
+
+# PM2 process list
+pm2 list</code></pre>
+
+        <div class="doc-nav-bottom">
+          <a href="#developer" class="btn-prev">← Developer Guide</a>
+          <a href="#overview" class="btn-next">↑ Back to Top</a>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <strong>AgentID</strong> — Trust verification layer for Bags AI agents<br/>
+        Built by <a href="https://x.com/DeFiAuditCCIE" target="_blank">David Cooper</a>, CCIE #14019 | CyberShield Austin
+      </div>
+      <div class="footer-right">
+        <a href="https://github.com/RunTimeAdmin/AgentID" target="_blank">GitHub</a>
+        <a href="https://agentid.provenanceai.network" target="_blank">Live App</a>
+        <a href="https://agentid.provenanceai.network/health" target="_blank">API Status</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="docs.js"></script>
+</body>
+</html>
