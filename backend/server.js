@@ -112,6 +112,9 @@ app.use((req, res, next) => {
     if (publicPaths.some(p => req.path.startsWith(p))) {
       return next();
     }
+    // Bearer auth doesn't need CSRF (browsers don't auto-attach)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) return next();
     if (req.get('X-Requested-With') !== 'AgentID') {
       return res.status(403).json({ error: 'CSRF validation failed' });
     }

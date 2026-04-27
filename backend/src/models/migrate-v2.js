@@ -159,7 +159,8 @@ async function runV2Migration(pool) {
     await client.query(`ALTER TABLE agent_identities ADD COLUMN IF NOT EXISTS updated_by UUID`);
     await client.query(`ALTER TABLE agent_identities ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ`);
     await client.query(`ALTER TABLE agent_identities ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`);
-    console.log('  - Altered table: agent_identities (added org_id, created_by, updated_by, updated_at, deleted_at)');
+    await client.query(`ALTER TABLE agent_identities ADD COLUMN IF NOT EXISTS legacy_signing_disabled BOOLEAN DEFAULT false`);
+    console.log('  - Altered table: agent_identities (added org_id, created_by, updated_by, updated_at, deleted_at, legacy_signing_disabled)');
 
     // Add login attempt tracking columns to users
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_count INTEGER DEFAULT 0`);
@@ -179,12 +180,35 @@ async function runV2Migration(pool) {
       EXCEPTION WHEN duplicate_object THEN NULL;
       END $$
     `);
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE agent_identities ADD CONSTRAINT agent_identities_status_check CHECK (status IN ('active', 'flagged', 'revoked', 'disabled'));
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `);
     console.log('  - Added CHECK constraints on enum columns');
 
     // Add owner_user_id FK after users table exists
     await client.query(`ALTER TABLE organizations DROP CONSTRAINT IF EXISTS fk_org_owner`);
     await client.query(`ALTER TABLE organizations ADD CONSTRAINT fk_org_owner FOREIGN KEY (owner_user_id) REFERENCES users(id)`);
     console.log('  - Added constraint: fk_org_owner on organizations(owner_user_id)');
+
+    // Hard-delete CASCADE FKs for org-dependent tables
+    await client.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_org_id_fkey`);
+    await client.query(`ALTER TABLE users ADD CONSTRAINT users_org_id_fkey FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE`);
+
+    await client.query(`ALTER TABLE api_keys DROP CONSTRAINT IF EXISTS api_keys_org_id_fkey`);
+    await client.query(`ALTER TABLE api_keys ADD CONSTRAINT api_keys_org_id_fkey FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE`);
+
+    await client.query(`ALTER TABLE webhooks DROP CONSTRAINT IF EXISTS webhooks_org_id_fkey`);
+    await client.query(`ALTER TABLE webhooks ADD CONSTRAINT webhooks_org_id_fkey FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE`);
+
+    await client.query(`ALTER TABLE policy_rules DROP CONSTRAINT IF EXISTS policy_rules_org_id_fkey`);
+    await client.query(`ALTER TABLE policy_rules ADD CONSTRAINT policy_rules_org_id_fkey FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE`);
+
+    await client.query(`ALTER TABLE agent_groups DROP CONSTRAINT IF EXISTS agent_groups_org_id_fkey`);
+    await client.query(`ALTER TABLE agent_groups ADD CONSTRAINT agent_groups_org_id_fkey FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE`);
+    console.log('  - Added ON DELETE CASCADE FKs for org-dependent tables');
 
     // Indexes
     await client.query(`CREATE INDEX IF NOT EXISTS idx_agent_identities_org ON agent_identities(org_id)`);
@@ -205,6 +229,21 @@ async function runV2Migration(pool) {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_org_created ON audit_logs(org_id, created_at DESC)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_webhook ON webhook_deliveries(webhook_id, delivered_at DESC)`);
     console.log('  - Created v2 indexes');
+
+    // auth_attempts table for login auditing
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS auth_attempts (
+        id BIGSERIAL PRIMARY KEY,
+        email VARCHAR(255),
+        ip_address VARCHAR(45),
+        user_agent TEXT,
+        success BOOLEAN DEFAULT false,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_auth_attempts_email ON auth_attempts(email)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_auth_attempts_created ON auth_attempts(created_at)`);
+    console.log('  - Created table: auth_attempts');
 
     await client.query('COMMIT');
     console.log('✓ v2 database migration completed successfully');

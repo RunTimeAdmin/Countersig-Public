@@ -160,6 +160,9 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
 
     // 6. Check if this is a demo agent
     const isDemo = req.body.isDemo === true; // explicit boolean, not name-based
+    if (isDemo && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can create demo agents' });
+    }
 
     // 7. Store agent record
     const agent = await createAgent({

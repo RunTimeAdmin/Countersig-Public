@@ -84,7 +84,7 @@ router.post('/api-keys', authorize(ROLES.ADMIN), async (req, res, next) => {
  * GET /api-keys
  * List all active API keys for the organization
  */
-router.get('/api-keys', async (req, res, next) => {
+router.get('/api-keys', authorize(ROLES.ADMIN), async (req, res, next) => {
   try {
     const result = await query(
       `SELECT id, name, key_prefix, scopes, last_used, expires_at, created_at

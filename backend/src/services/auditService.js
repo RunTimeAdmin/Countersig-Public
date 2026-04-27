@@ -5,6 +5,7 @@
  */
 
 const crypto = require('crypto');
+const stableStringify = require('safe-stable-stringify');
 const { query, pool } = require('../models/db');
 
 /**
@@ -58,7 +59,7 @@ function computeHash(data) {
  * @returns {string} - JSON string of all audit fields
  */
 function buildHashPayload(entry) {
-  return JSON.stringify({
+  return stableStringify({
     org_id: entry.orgId || entry.org_id || null,
     actor_id: entry.actorId || entry.actor_id || null,
     actor_type: entry.actorType || entry.actor_type || null,

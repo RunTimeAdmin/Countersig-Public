@@ -8,6 +8,8 @@ const crypto = require('crypto');
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');
 const { getAgent, getAgentsByOwner, listAgents, countAgents, discoverAgents, updateAgent, revokeAgent } = require('../models/queries');
+const { pool } = require('../models/db');
+const { logAction } = require('../services/auditService');
 const { computeBagsScore } = require('../services/bagsReputation');
 const { defaultLimiter, authLimiter } = require('../middleware/rateLimit');
 const { optionalAuth, authenticate } = require('../middleware/authenticate');
@@ -113,7 +115,7 @@ router.get('/public/agents', defaultLimiter, async (req, res, next) => {
  * GET /agents/owner/:pubkey
  * Get all agents owned by a pubkey (must be defined BEFORE /:agentId route)
  */
-router.get('/agents/owner/:pubkey', optionalAuth, defaultLimiter, async (req, res, next) => {
+router.get('/agents/owner/:pubkey', authenticate, defaultLimiter, async (req, res, next) => {
   try {
     const { pubkey } = req.params;
 
@@ -121,8 +123,7 @@ router.get('/agents/owner/:pubkey', optionalAuth, defaultLimiter, async (req, re
       return res.status(400).json({ error: 'Invalid Solana public key format' });
     }
 
-    const orgId = req.user ? req.user.orgId : null;
-    const agents = await getAgentsByOwner(pubkey, orgId);
+    const agents = await getAgentsByOwner(pubkey, req.user.orgId);
 
     return res.status(200).json({
       pubkey,
@@ -291,12 +292,29 @@ router.put('/agents/:agentId/update', authenticate, authLimiter, async (req, res
 
       isSignatureValid = nacl.sign.detached.verify(messageBytes, sigBytes, pubkeyBytes);
 
+      // New format verified — permanently disable legacy fallback for this agent
+      if (isSignatureValid) {
+        pool.query('UPDATE agent_identities SET legacy_signing_disabled = true WHERE agent_id = $1', [agentId]).catch(() => {});
+      }
+
       // Backward compatibility: try legacy format if new format fails
       if (!isSignatureValid) {
+        // Reject if legacy signing has been disabled for this agent
+        if (agent.legacy_signing_disabled) {
+          return res.status(401).json({ error: 'Legacy signature format no longer accepted for this agent' });
+        }
         const legacyBytes = Buffer.from(legacyMessage, 'utf-8');
         isSignatureValid = nacl.sign.detached.verify(legacyBytes, sigBytes, pubkeyBytes);
         if (isSignatureValid) {
-          console.warn('Deprecated signature format used for agent update (no field binding). Agent ID:', agentId);
+          logAction({
+            orgId: agent.org_id,
+            actorId: req.user?.userId,
+            actorType: 'user',
+            action: 'agent.legacy_signature',
+            resourceType: 'agent',
+            resourceId: agentId,
+            metadata: { warning: 'Deprecated legacy signature format used' }
+          }).catch(() => {});
         }
       }
     } catch (sigError) {

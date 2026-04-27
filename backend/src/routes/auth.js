@@ -159,14 +159,25 @@ router.post('/auth/login', authLimiter, async (req, res, next) => {
 
     // Check if account is locked due to too many failed attempts
     if (user && user.locked_until && new Date(user.locked_until) > new Date()) {
+      await comparePassword(password, DUMMY_HASH); // burn the time to prevent timing leak
       return res.status(423).json({
-        error: 'Account temporarily locked due to too many failed attempts. Try again later.'
+        error: 'Account temporarily locked. Try again later.'
       });
     }
 
     const hashToCompare = user ? user.password_hash : DUMMY_HASH;
     const valid = await comparePassword(password, hashToCompare);
     if (!user || !valid) {
+      // Audit log for unknown user attempts
+      if (!user) {
+        try {
+          await pool.query(
+            'INSERT INTO auth_attempts (email, ip_address, user_agent, success) VALUES ($1, $2, $3, false)',
+            [email.toLowerCase().trim(), req.ip, req.get('user-agent')]
+          );
+        } catch (e) { /* fire and forget */ }
+      }
+
       // Track failed login attempt if we found a user
       if (user) {
         try {
@@ -210,6 +221,14 @@ router.post('/auth/login', authLimiter, async (req, res, next) => {
       'UPDATE users SET failed_login_count = 0, locked_until = NULL, last_login = NOW() WHERE id = $1',
       [user.id]
     );
+
+    // Log successful login to auth_attempts
+    try {
+      await pool.query(
+        'INSERT INTO auth_attempts (email, ip_address, user_agent, success) VALUES ($1, $2, $3, true)',
+        [email.toLowerCase().trim(), req.ip, req.get('user-agent')]
+      );
+    } catch (e) { /* fire and forget */ }
 
     const { accessToken, refreshToken, tokenId } = generateTokens(user);
     await storeRefreshToken(tokenId, user.id);

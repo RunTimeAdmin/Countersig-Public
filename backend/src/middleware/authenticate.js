@@ -56,7 +56,8 @@ async function authenticate(req, res, next) {
            JOIN users u ON ak.user_id = u.id
            WHERE ak.key_hash = $1
              AND ak.revoked_at IS NULL
-             AND (ak.expires_at IS NULL OR ak.expires_at > NOW())`,
+             AND (ak.expires_at IS NULL OR ak.expires_at > NOW())
+             AND u.deleted_at IS NULL`,
           [keyHash]
         );
 
@@ -122,7 +123,8 @@ async function optionalAuth(req, res, next) {
            JOIN users u ON ak.user_id = u.id
            WHERE ak.key_hash = $1
              AND ak.revoked_at IS NULL
-             AND (ak.expires_at IS NULL OR ak.expires_at > NOW())`,
+             AND (ak.expires_at IS NULL OR ak.expires_at > NOW())
+             AND u.deleted_at IS NULL`,
           [keyHash]
         );
 

@@ -5,6 +5,8 @@
 
 const axios = require('axios');
 const crypto = require('crypto');
+const https = require('https');
+const net = require('net');
 const { query, pool } = require('../models/db');
 const eventBus = require('./eventBus');
 const { assertPublicHttpsUrl } = require('../utils/urlValidator');
@@ -54,12 +56,21 @@ async function deliverWebhook(webhook, event) {
     .update(bodyString)
     .digest('hex');
 
-  // Re-validate URL at delivery time to prevent SSRF
+  // Re-validate URL at delivery time to prevent SSRF and pin DNS to prevent rebinding
+  let pinnedAddress;
   try {
-    await assertPublicHttpsUrl(webhook.url);
+    const validation = await assertPublicHttpsUrl(webhook.url);
+    pinnedAddress = validation.resolvedAddresses[0];
   } catch (err) {
     return { success: false, statusCode: 0, error: `SSRF blocked: ${err.message}` };
   }
+
+  // Create a custom HTTPS agent that pins DNS resolution to the validated IP
+  const agent = new https.Agent({
+    lookup: (hostname, options, cb) => {
+      cb(null, pinnedAddress, net.isIP(pinnedAddress));
+    }
+  });
 
   try {
     const response = await axios.post(webhook.url, body, {
@@ -68,6 +79,7 @@ async function deliverWebhook(webhook, event) {
         'X-AgentID-Signature': signature,
         'X-AgentID-Event': event.type
       },
+      httpsAgent: agent,
       timeout: 10000,
       maxRedirects: 0,
       maxContentLength: 64 * 1024,
@@ -179,7 +191,7 @@ async function processEventWebhooks(event) {
 
     const matchingWebhooks = result.rows.filter((webhook) => {
       if (!webhook.events || (Array.isArray(webhook.events) && webhook.events.length === 0)) {
-        return true;
+        return false;
       }
       return webhook.events.includes(event.type);
     });
