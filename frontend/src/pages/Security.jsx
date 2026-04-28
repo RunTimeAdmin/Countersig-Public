@@ -137,23 +137,8 @@ export default function Security() {
               No private keys are ever transmitted or stored.
             </p>
             <p className="text-[var(--text-secondary)] text-sm max-w-2xl mx-auto mb-8">
-              AgentID underwent a formal security audit. Critical findings have been resolved. Remaining items are documented below with planned timelines.
+              Enterprise-grade security with Ed25519 cryptographic signatures, challenge-response verification, and pluggable multi-provider authentication.
             </p>
-            <div className="inline-flex items-center gap-3 glass rounded-xl px-6 py-3 border border-[var(--border-subtle)]">
-              <div className="flex items-center gap-2">
-                <AcademicCapIcon className="w-5 h-5 text-[var(--accent-cyan)]" />
-                <span className="text-[var(--text-secondary)] text-sm">Security Audit</span>
-              </div>
-              <div className="h-4 w-px bg-[var(--border-default)]" />
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold text-emerald-400">B+</span>
-                <div className="text-left">
-                  <div className="text-xs text-[var(--text-muted)]">May 2025</div>
-                  <div className="text-xs text-[var(--text-secondary)]">NinjaTech AI</div>
-                  <div className="text-xs text-emerald-400">Rating reflects pre-fix assessment</div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -668,23 +653,18 @@ export default function Security() {
 
       {/* Audit Report & Documentation */}
       <section className="mb-16 animate-fade-in">
-        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-8 text-center">Audit Report & Documentation</h2>
+        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-8 text-center">Security Documentation</h2>
         <div className="glass rounded-2xl p-8 border border-[var(--border-subtle)]">
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="flex-shrink-0">
-              <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex flex-col items-center justify-center border border-emerald-500/30">
-                <span className="text-4xl font-bold text-emerald-400">B+</span>
-                <span className="text-xs text-[var(--text-muted)] mt-1">Rating</span>
+              <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex flex-col items-center justify-center border border-cyan-500/30">
+                <ShieldCheckIcon className="w-12 h-12 text-[var(--accent-cyan)]" />
               </div>
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">Formal Security Audit</h3>
-              <p className="text-[var(--text-secondary)] mb-2">
-                Conducted by <span className="text-[var(--text-primary)]">NinjaTech AI</span> in May 2025. 
-                The audit covered cryptographic implementations, API security, data handling practices, and infrastructure configuration.
-              </p>
-              <p className="text-emerald-400 text-sm mb-4">
-                Rating reflects pre-fix assessment. Multiple findings have since been resolved.
+              <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">Security Reports</h3>
+              <p className="text-[var(--text-secondary)] mb-4">
+                Review our security audit reports, code reviews, and architecture documentation covering cryptographic implementations, API security, data handling practices, and infrastructure configuration.
               </p>
               <div className="flex flex-wrap justify-center md:justify-start gap-3">
                 <a 
