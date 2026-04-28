@@ -688,7 +688,7 @@ export default function Security() {
               </p>
               <div className="flex flex-wrap justify-center md:justify-start gap-3">
                 <a 
-                  href="https://github.com/RunTimeAdmin/AgentID/blob/main/AgentID_Security_Audit.md"
+                  href="https://github.com/RunTimeAdmin/AgentID-2.0/blob/main/AgentID_Security_Audit.md"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-[var(--accent-cyan)] bg-[var(--accent-cyan)]/10 border border-[var(--accent-cyan)]/30 hover:bg-[var(--accent-cyan)]/20 transition-all duration-200"
@@ -698,7 +698,7 @@ export default function Security() {
                   <ExternalLinkIcon className="w-3 h-3" />
                 </a>
                 <a 
-                  href="https://github.com/RunTimeAdmin/AgentID/blob/main/AgentID_Code_Review.md"
+                  href="https://github.com/RunTimeAdmin/AgentID-2.0/blob/main/AgentID_Code_Review.md"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-200"
@@ -708,7 +708,7 @@ export default function Security() {
                   <ExternalLinkIcon className="w-3 h-3" />
                 </a>
                 <a 
-                  href="https://github.com/RunTimeAdmin/AgentID/blob/main/docs/API_REFERENCE.md"
+                  href="https://github.com/RunTimeAdmin/AgentID-2.0/blob/main/docs/API_REFERENCE.md"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-200"
@@ -718,7 +718,7 @@ export default function Security() {
                   <ExternalLinkIcon className="w-3 h-3" />
                 </a>
                 <a 
-                  href="https://github.com/RunTimeAdmin/AgentID/wiki"
+                  href="https://github.com/RunTimeAdmin/AgentID-2.0/wiki"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-200"

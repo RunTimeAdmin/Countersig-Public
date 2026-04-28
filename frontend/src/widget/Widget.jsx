@@ -4,7 +4,7 @@ import axios from 'axios';
 // NOTE: The widget intentionally uses its own axios instance (not the shared lib/api.js)
 // because it's built as a standalone bundle for iframe embedding and cannot share imports
 // with the main app.
-const API_BASE_URL = window.__AGENTID_API_URL__ || import.meta.env.VITE_AGENTID_API_URL || 'https://agentid.provenanceai.network';
+const API_BASE_URL = window.__AGENTID_API_URL__ || import.meta.env.VITE_AGENTID_API_URL || 'https://api.agentidapp.com';
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,

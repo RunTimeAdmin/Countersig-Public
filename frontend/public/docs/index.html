@@ -21,7 +21,7 @@
         <span class="logo-text">AgentID <span class="logo-sub">Docs</span></span>
       </div>
       <nav class="topnav-links">
-        <a href="https://agentid.provenanceai.network" target="_blank" class="btn-launch">Launch App ↗</a>
+        <a href="https://agentidapp.com" target="_blank" class="btn-launch">Launch App ↗</a>
       </nav>
       <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
     </div>
@@ -55,9 +55,9 @@
 
         <div class="sidebar-section">
           <div class="sidebar-label">Resources</div>
-          <a href="https://github.com/RunTimeAdmin/AgentID" target="_blank" class="sidebar-link ext">GitHub ↗</a>
-          <a href="https://agentid.provenanceai.network" target="_blank" class="sidebar-link ext">Live App ↗</a>
-          <a href="https://agentid.provenanceai.network/health" target="_blank" class="sidebar-link ext">API Status ↗</a>
+          <a href="https://github.com/RunTimeAdmin/AgentID-2.0" target="_blank" class="sidebar-link ext">GitHub ↗</a>
+          <a href="https://agentidapp.com" target="_blank" class="sidebar-link ext">Live App ↗</a>
+          <a href="https://api.agentidapp.com/health" target="_blank" class="sidebar-link ext">API Status ↗</a>
         </div>
 
       </div>
@@ -75,7 +75,7 @@
         <div class="callout callout-info">
           <div class="callout-icon">🌐</div>
           <div>
-            <strong>Live Platform:</strong> <a href="https://agentid.provenanceai.network" target="_blank">agentid.provenanceai.network</a><br/>
+            <strong>Live Platform:</strong> <a href="https://agentidapp.com" target="_blank">agentidapp.com</a><br/>
             <strong>Author:</strong> David Cooper, CCIE #14019 &nbsp;|&nbsp; <strong>Version:</strong> 1.0.0
           </div>
         </div>
@@ -220,7 +220,7 @@ console.log('PRIVATE KEY:', bs58.encode(kp.secretKey));"</code></pre>
           </div>
 
           <div class="tab-content active" id="tab-web-ui">
-            <p>Go to <a href="https://agentid.provenanceai.network/register" target="_blank">agentid.provenanceai.network/register</a> and follow the 4-step wizard:</p>
+            <p>Go to <a href="https://agentidapp.com/register" target="_blank">agentidapp.com/register</a> and follow the 4-step wizard:</p>
             <div class="steps">
               <div class="step"><div class="step-num">1</div><div><strong>Agent Identity</strong> — Enter your Public Key and agent Name, click Next</div></div>
               <div class="step"><div class="step-num">2</div><div><strong>Sign Challenge</strong> — Copy the challenge message, sign it with your private key, paste signature back, click Next</div></div>
@@ -234,7 +234,7 @@ console.log('PRIVATE KEY:', bs58.encode(kp.secretKey));"</code></pre>
           </div>
 
           <div class="tab-content" id="tab-demo">
-            <p>The demo page at <a href="https://agentid.provenanceai.network/demo" target="_blank">agentid.provenanceai.network/demo</a> is perfect for learning the flow before using your real keys. It will:</p>
+            <p>The demo page at <a href="https://agentidapp.com/demo" target="_blank">agentidapp.com/demo</a> is perfect for learning the flow before using your real keys. It will:</p>
             <ul>
               <li>Generate a temporary keypair in your browser</li>
               <li>Walk through all 4 steps automatically</li>
@@ -245,7 +245,7 @@ console.log('PRIVATE KEY:', bs58.encode(kp.secretKey));"</code></pre>
           </div>
 
           <div class="tab-content" id="tab-curl">
-            <pre><code class="lang-bash">curl -X POST https://agentid.provenanceai.network/register \
+            <pre><code class="lang-bash">curl -X POST https://api.agentidapp.com/register \
   -H "Content-Type: application/json" \
   -d '{
     "pubkey": "YOUR_PUBLIC_KEY",
@@ -273,7 +273,7 @@ console.log('PRIVATE KEY:', bs58.encode(kp.secretKey));"</code></pre>
 
         <h3>Verification via curl</h3>
         <pre><code class="lang-bash"># Step 1: Request a challenge
-curl -X POST https://agentid.provenanceai.network/verify/challenge \
+curl -X POST https://api.agentidapp.com/verify/challenge \
   -H "Content-Type: application/json" \
   -d '{"agentId": "YOUR_AGENT_ID"}'
 # Response: {"nonce": "...", "challenge": "...", "expiresIn": 300}
@@ -281,7 +281,7 @@ curl -X POST https://agentid.provenanceai.network/verify/challenge \
 # Step 2: Sign the challenge with your private key (see Developer Guide)
 
 # Step 3: Submit verification
-curl -X POST https://agentid.provenanceai.network/verify/response \
+curl -X POST https://api.agentidapp.com/verify/response \
   -H "Content-Type: application/json" \
   -d '{
     "agentId": "YOUR_AGENT_ID",
@@ -298,7 +298,7 @@ curl -X POST https://agentid.provenanceai.network/verify/response \
 
         <h3>Option 1: Embeddable Widget (Recommended)</h3>
         <pre><code class="lang-html"><iframe 
-  src="https://agentid.provenanceai.network/widget/YOUR_AGENT_ID" 
+  src="https://api.agentidapp.com/widget/YOUR_AGENT_ID"
   width="400" 
   height="300" 
   frameborder="0" 
@@ -308,10 +308,10 @@ curl -X POST https://agentid.provenanceai.network/verify/response \
         <p>Auto-refreshes every 60 seconds. Shows name, trust score, verification status, capabilities, and links to full profile.</p>
 
         <h3>Option 2: SVG Badge (for README / Docs)</h3>
-        <pre><code class="lang-markdown">![AgentID Trust Badge](https://agentid.provenanceai.network/badge/YOUR_AGENT_ID/svg)</code></pre>
+        <pre><code class="lang-markdown">![AgentID Trust Badge](https://api.agentidapp.com/badge/YOUR_AGENT_ID/svg)</code></pre>
 
         <h3>Option 3: JSON API (for Custom Displays)</h3>
-        <pre><code class="lang-bash">GET https://agentid.provenanceai.network/badge/YOUR_AGENT_ID</code></pre>
+        <pre><code class="lang-bash">GET https://api.agentidapp.com/badge/YOUR_AGENT_ID</code></pre>
         <pre><code class="lang-json">{
   "status": "success",
   "agentId": "550e8400-e29b-41d4-a716-446655440000",
@@ -322,7 +322,7 @@ curl -X POST https://agentid.provenanceai.network/verify/response \
   "score": 75,
   "capabilities": ["trading", "analysis"],
   "verificationStatus": "verified",
-  "widgetUrl": "https://agentid.provenanceai.network/widget/550e8400..."
+  "widgetUrl": "https://api.agentidapp.com/widget/550e8400..."
 }</code></pre>
 
         <h2 id="ao-score">Understanding Your Trust Score</h2>
@@ -360,7 +360,7 @@ curl -X POST https://agentid.provenanceai.network/verify/response \
           <div class="checklist-group"><div class="checklist-group-title">Registration</div>
             <label><input type="checkbox"/> Successfully registered via web, demo, or API</label>
             <label><input type="checkbox"/> Saved the Agent ID (UUID)</label>
-            <label><input type="checkbox"/> Agent visible at agentid.provenanceai.network</label>
+            <label><input type="checkbox"/> Agent visible at agentidapp.com</label>
           </div>
           <div class="checklist-group"><div class="checklist-group-title">Verification</div>
             <label><input type="checkbox"/> Completed challenge-response flow</label>
@@ -399,7 +399,7 @@ curl -X POST https://agentid.provenanceai.network/verify/response \
         <h2 id="w-quickstart">Quick Start</h2>
         <h3>iframe Embed (Recommended)</h3>
         <pre><code class="lang-html"><iframe 
-  src="https://agentid.provenanceai.network/widget/{AGENT_ID}"
+  src="https://api.agentidapp.com/widget/YOUR_AGENT_ID"
   width="400"
   height="300"
   frameborder="0"
@@ -438,7 +438,7 @@ curl -X POST https://agentid.provenanceai.network/verify/response \
 
         <pre><code class="lang-html"><!-- Dark compact mode -->
 <iframe 
-  src="https://agentid.provenanceai.network/widget/{AGENT_ID}?theme=dark&compact=true"
+  src="https://api.agentidapp.com/widget/{AGENT_ID}?theme=dark&compact=true"
   width="320"
   height="200"
   frameborder="0"
@@ -472,13 +472,13 @@ function AgentIDWidget({ agentId }) {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch(`https://agentid.provenanceai.network/badge/${agentId}`)
+    fetch(`https://api.agentidapp.com/badge/${agentId}`)
       .then(res => res.json())
       .then(setData);
 
     // Auto-refresh every 60 seconds
     const interval = setInterval(() => {
-      fetch(`https://agentid.provenanceai.network/badge/${agentId}`)
+      fetch(`https://api.agentidapp.com/badge/${agentId}`)
         .then(res => res.json())
         .then(setData);
     }, 60000);
@@ -525,13 +525,13 @@ function AgentIDWidget({ agentId }) {
   "totalActions": 150,
   "successRate": 0.94,
   "capabilities": ["trading", "analytics"],
-  "widgetUrl": "https://agentid.provenanceai.network/widget/AgentPubkey..."
+  "widgetUrl": "https://api.agentidapp.com/widget/AgentPubkey..."
 }</code></pre>
 
         <h2 id="w-svg">SVG Badge for README / Docs</h2>
-        <pre><code class="lang-markdown">![AgentID Trust Badge](https://agentid.provenanceai.network/badge/{AGENT_ID}/svg)</code></pre>
+        <pre><code class="lang-markdown">![AgentID Trust Badge](https://api.agentidapp.com/badge/{AGENT_ID}/svg)</code></pre>
         <pre><code class="lang-markdown"><!-- Linked badge for GitHub README -->
-[![AgentID](https://agentid.provenanceai.network/badge/{AGENT_ID}/svg)](https://agentid.provenanceai.network/agents/{AGENT_ID})</code></pre>
+[![AgentID](https://api.agentidapp.com/badge/{AGENT_ID}/svg)](https://agentidapp.com/agents/{AGENT_ID})</code></pre>
 
         <h2 id="w-troubleshoot">Troubleshooting</h2>
         <div class="troubleshoot-list">
@@ -543,7 +543,7 @@ function AgentIDWidget({ agentId }) {
           <details class="troubleshoot-item">
             <summary>Widget Not Loading — iframe shows blank or error</summary>
             <p>Verify the agent ID is correct, check for 404 errors in console, confirm the agent is registered:</p>
-            <pre><code>curl https://agentid.provenanceai.network/badge/{AGENT_ID}</code></pre>
+            <pre><code>curl https://api.agentidapp.com/badge/{AGENT_ID}</code></pre>
           </details>
           <details class="troubleshoot-item">
             <summary>Data Not Updating — badge shows stale data</summary>
@@ -652,7 +652,7 @@ const bs58 = require('bs58');
 
 async function registerAgent(config) {
   const { pubkey, secretKey, name, description, capabilities } = config;
-  const API_BASE = 'https://agentid.provenanceai.network';
+  const API_BASE = 'https://api.agentidapp.com';
   
   // Step 1: Register the agent first to get an agentId
   // (Registration requires a pre-signed challenge - see PKI Challenge flow)
@@ -789,7 +789,7 @@ fn main() {
       <section id="api" class="doc-section hidden">
         <div class="section-badge">Reference</div>
         <h1>API Reference</h1>
-        <p class="lead">Complete reference for all AgentID API endpoints. Base URL: <code>https://agentid.provenanceai.network</code></p>
+        <p class="lead">Complete reference for all AgentID API endpoints. Base URL: <code>https://api.agentidapp.com</code></p>
 
         <div class="toc">
           <div class="toc-title">On this page</div>
@@ -879,7 +879,7 @@ const totalScore = feeActivity + successRate + age + saidTrust + community;</cod
                   <tr><td><code>creatorWallet</code></td><td>string</td><td>—</td><td>Creator's wallet address</td></tr>
                 </tbody>
               </table>
-              <pre><code class="lang-bash">curl -X POST https://agentid.provenanceai.network/register \
+              <pre><code class="lang-bash">curl -X POST https://api.agentidapp.com/register \
   -H "Content-Type: application/json" \
   -d '{
     "pubkey": "AgentPubkey111...",
@@ -902,7 +902,7 @@ const totalScore = feeActivity + successRate + age + saidTrust + community;</cod
             </div>
             <div class="endpoint-body">
               <p>Signature message format: <code>AGENTID-UPDATE:{agentId}:{timestamp}</code></p>
-              <pre><code class="lang-bash">curl -X PUT https://agentid.provenanceai.network/agents/{AGENT_ID}/update \
+              <pre><code class="lang-bash">curl -X PUT https://api.agentidapp.com/agents/{AGENT_ID}/update \
   -H "Content-Type: application/json" \
   -d '{
     "signature": "Base58Sig...",
@@ -926,7 +926,7 @@ const totalScore = feeActivity + successRate + age + saidTrust + community;</cod
               <span class="rate-badge">Auth tier</span>
             </div>
             <div class="endpoint-body">
-              <pre><code class="lang-bash">curl -X POST https://agentid.provenanceai.network/verify/challenge \
+              <pre><code class="lang-bash">curl -X POST https://api.agentidapp.com/verify/challenge \
   -H "Content-Type: application/json" \
   -d '{"agentId": "550e8400-e29b-41d4-a716-446655440000"}'</code></pre>
               <pre><code class="lang-json">// Response 200 OK
@@ -947,7 +947,7 @@ const totalScore = feeActivity + successRate + age + saidTrust + community;</cod
               <span class="rate-badge">Auth tier</span>
             </div>
             <div class="endpoint-body">
-              <pre><code class="lang-bash">curl -X POST https://agentid.provenanceai.network/verify/response \
+              <pre><code class="lang-bash">curl -X POST https://api.agentidapp.com/verify/response \
   -H "Content-Type: application/json" \
   -d '{
     "agentId": "550e8400-e29b-41d4-a716-446655440000",
@@ -1090,7 +1090,7 @@ const totalScore = feeActivity + successRate + age + saidTrust + community;</cod
 
         <h2 id="dev-quickstart">Quick Start</h2>
         <pre><code class="lang-bash"># 1. Clone the repository
-git clone https://github.com/RunTimeAdmin/AgentID.git
+git clone https://github.com/RunTimeAdmin/AgentID-2.0.git
 cd AgentID
 
 # 2. Start PostgreSQL + Redis with Docker Compose
@@ -1132,7 +1132,7 @@ NODE_ENV=development
 CORS_ORIGIN=http://localhost:5174
 
 # Identity
-AGENTID_BASE_URL=http://localhost:3002  # Production: https://agentid.provenanceai.network
+AGENTID_BASE_URL=http://localhost:3002  # Production: https://api.agentidapp.com
 
 # SAID Gateway
 SAID_GATEWAY_URL=https://said-gateway.example.com
@@ -1243,7 +1243,7 @@ backend/tests/
         <div class="callout callout-info">
           <div class="callout-icon">🖥️</div>
           <div>
-            <strong>Target Environment:</strong> Ubuntu 22.04 LTS &nbsp;|&nbsp; <strong>Domain:</strong> agentid.provenanceai.network<br/>
+            <strong>Target Environment:</strong> Ubuntu 22.04 LTS &nbsp;|&nbsp; <strong>Domain:</strong> agentidapp.com<br/>
             PostgreSQL 14 &nbsp;|&nbsp; Redis &nbsp;|&nbsp; Node.js 20 &nbsp;|&nbsp; PM2 &nbsp;|&nbsp; Nginx (SSL)
           </div>
         </div>
@@ -1277,7 +1277,7 @@ sudo lsof -i :3002</code></pre>
 
         <h2 id="dep-clone">Clone & Install</h2>
         <pre><code class="lang-bash">cd /var/www
-git clone https://github.com/RunTimeAdmin/AgentID.git
+git clone https://github.com/RunTimeAdmin/AgentID-2.0.git
 cd AgentID/backend
 npm install --production</code></pre>
 
@@ -1289,8 +1289,8 @@ REDIS_URL=redis://localhost:6379
 BAGS_API_KEY=your_production_bags_api_key
 PORT=3002
 NODE_ENV=production
-CORS_ORIGIN=https://agentid.provenanceai.network
-AGENTID_BASE_URL=https://agentid.provenanceai.network</code></pre>
+CORS_ORIGIN=https://agentidapp.com
+AGENTID_BASE_URL=https://api.agentidapp.com</code></pre>
 
         <h2 id="dep-db">Database Setup</h2>
         <pre><code class="lang-bash"># Create database and user
@@ -1316,16 +1316,16 @@ pm2 logs agentid</code></pre>
         <h2 id="dep-nginx">Nginx Configuration</h2>
         <pre><code class="lang-nginx">server {
     listen 80;
-    server_name agentid.provenanceai.network;
+    server_name agentidapp.com;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name agentid.provenanceai.network;
+    server_name agentidapp.com;
 
-    ssl_certificate /etc/letsencrypt/live/agentid.provenanceai.network/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/agentid.provenanceai.network/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/agentidapp.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/agentidapp.com/privkey.pem;
 
     # API backend - routes mounted at root (no /api/ prefix)
     location ~ ^/(register|verify|agents|badge|widget|health|discover|reputation) {
@@ -1351,10 +1351,10 @@ sudo nginx -t && sudo systemctl reload nginx</code></pre>
 
         <h2 id="dep-verify">Verify Deployment</h2>
         <pre><code class="lang-bash"># Health check
-curl https://agentid.provenanceai.network/health
+curl https://api.agentidapp.com/health
 
 # List agents
-curl https://agentid.provenanceai.network/agents
+curl https://api.agentidapp.com/agents
 
 # PM2 process list
 pm2 list</code></pre>
@@ -1376,9 +1376,9 @@ pm2 list</code></pre>
         Built by <a href="https://x.com/DeFiAuditCCIE" target="_blank">David Cooper</a>, CCIE #14019 | CyberShield Austin
       </div>
       <div class="footer-right">
-        <a href="https://github.com/RunTimeAdmin/AgentID" target="_blank">GitHub</a>
-        <a href="https://agentid.provenanceai.network" target="_blank">Live App</a>
-        <a href="https://agentid.provenanceai.network/health" target="_blank">API Status</a>
+        <a href="https://github.com/RunTimeAdmin/AgentID-2.0" target="_blank">GitHub</a>
+        <a href="https://agentidapp.com" target="_blank">Live App</a>
+        <a href="https://api.agentidapp.com/health" target="_blank">API Status</a>
       </div>
     </div>
   </footer>
