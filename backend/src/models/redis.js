@@ -6,18 +6,50 @@
 const Redis = require('ioredis');
 const config = require('../config');
 
+// Parse Redis connection options from URL or individual env vars
+function getRedisOptions() {
+  const baseOptions = {
+    retryStrategy: (times) => {
+      const delay = Math.min(times * 50, 2000);
+      return delay;
+    },
+    maxRetriesPerRequest: 3,
+    enableOfflineQueue: true
+  };
+
+  // Prefer explicit host/port/password if available
+  if (config.redisHost) {
+    return {
+      host: config.redisHost,
+      port: config.redisPort || 6379,
+      password: config.redisPassword || undefined,
+      ...baseOptions
+    };
+  }
+
+  // Parse REDIS_URL manually to avoid ioredis URL parsing issues
+  const url = config.redisUrl;
+  if (url && url !== 'redis://localhost:6379') {
+    try {
+      const parsed = new URL(url);
+      return {
+        host: parsed.hostname || 'localhost',
+        port: parseInt(parsed.port, 10) || 6379,
+        password: parsed.password ? decodeURIComponent(parsed.password) : undefined,
+        ...baseOptions
+      };
+    } catch (e) {
+      console.warn('Failed to parse REDIS_URL, falling back to defaults:', e.message);
+    }
+  }
+
+  return { host: 'localhost', port: 6379, ...baseOptions };
+}
+
 // Create Redis client instance
-const redis = new Redis(config.redisUrl, {
-  // Retry strategy for connection failures
-  retryStrategy: (times) => {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
-  },
-  // Maximum retries before giving up
-  maxRetriesPerRequest: 3,
-  // Enable offline queue to buffer commands during reconnection
-  enableOfflineQueue: true
-});
+const redisOpts = getRedisOptions();
+console.log(`Redis connecting to ${redisOpts.host}:${redisOpts.port}`);
+const redis = new Redis(redisOpts);
 
 // Handle connection events
 redis.on('connect', () => {
