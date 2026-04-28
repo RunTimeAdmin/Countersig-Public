@@ -3,7 +3,7 @@
  * Handles password hashing, JWT tokens, API keys, and Redis session management
  */
 
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { redis } = require('../models/redis');
