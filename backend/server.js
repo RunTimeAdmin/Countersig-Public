@@ -22,6 +22,10 @@ if (missingRecommended.length > 0) {
   missingRecommended.forEach(key => console.warn(`  - ${key}`));
 }
 
+if (process.env.NODE_ENV === 'production' && !process.env.DID_ED25519_PUBLIC_KEY) {
+  console.warn('WARNING: DID_ED25519_PUBLIC_KEY not set — /.well-known/did.json will return 503');
+}
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -95,11 +99,18 @@ app.use(cors({
 }));
 
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Health check route
 app.get('/health', async (req, res) => {
+  // Detailed health check requires secret header
+  const showDetail = req.headers['x-health-detail'] === process.env.JWT_SECRET?.substring(0, 8);
+
+  if (!showDetail) {
+    return res.json({ status: 'ok' });
+  }
+
   const health = {
     status: 'ok',
     uptime: process.uptime(),
@@ -197,6 +208,14 @@ app.get('/.well-known/jwks.json', (req, res) => {
 // DID Document endpoint — public, no auth required
 // Exposes W3C DID document for did:web:agentidapp.com
 app.get('/.well-known/did.json', (req, res) => {
+  const pubkey = process.env.DID_ED25519_PUBLIC_KEY;
+
+  if (!pubkey && config.nodeEnv === 'production') {
+    return res.status(503).json({
+      error: 'DID document not available — DID_ED25519_PUBLIC_KEY not configured'
+    });
+  }
+
   res.json({
     '@context': [
       'https://www.w3.org/ns/did/v1',
@@ -261,6 +280,8 @@ app.use('/', apiKeyRoutes);         // POST /api-keys, GET /api-keys, DELETE /ap
 app.use('/', orgRoutes);            // GET/PUT /orgs/:orgId, /orgs/:orgId/members, /orgs/:orgId/invite, /orgs/:orgId/stats
 app.use('/', auditRoutes);          // GET /audit/logs
 app.use('/', policyRoutes);         // GET/POST/PUT/DELETE /orgs/:orgId/policies
+// Webhook ingestion may receive larger payloads
+app.use('/webhooks', express.json({ limit: '1mb' }));
 app.use('/', webhookRoutes);        // GET/POST/PUT/DELETE /orgs/:orgId/webhooks
 
 // 404 handler for undefined routes
