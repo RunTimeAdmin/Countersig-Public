@@ -126,6 +126,148 @@ export default function Registry() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Hero Section */}
+      <div className="text-center mb-16 animate-fade-in">
+        <h1 className="text-5xl md:text-6xl font-extrabold mb-6 tracking-tight">
+          <span className="gradient-text">Universal Identity for AI Agents</span>
+        </h1>
+        <p className="text-[var(--text-secondary)] text-xl max-w-3xl mx-auto leading-relaxed mb-4">
+          AgentID 2.0 is the only identity platform built from the ground up with a pluggable, multi-provider authentication architecture. Prove who you are — by wallet, by enterprise SSO, by API key, or by direct agent-to-agent trust.
+        </p>
+        <p className="text-[var(--text-muted)] text-sm max-w-2xl mx-auto">
+          Not crypto-only. Not enterprise-only. Every identity. One platform.
+        </p>
+      </div>
+
+      {/* Authentication Methods Grid */}
+      <div className="mb-16 animate-fade-in">
+        <h2 className="text-2xl font-bold text-center mb-8">
+          <span className="gradient-text">Six Ways to Authenticate</span>
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* Cryptographic (Ed25519) */}
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] hover:border-[var(--accent-cyan)]/40 transition-all duration-300 hover:-translate-y-1 group">
+            <div className="w-12 h-12 rounded-xl bg-[var(--bg-tertiary)] flex items-center justify-center mb-4 group-hover:ring-2 group-hover:ring-[var(--accent-cyan)]/30 transition-all">
+              <svg className="w-6 h-6 text-[var(--accent-cyan)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Cryptographic (Ed25519)</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">Wallet-based identity for blockchain-native agents. Prove ownership via challenge-response signature verification.</p>
+          </div>
+
+          {/* OAuth2 / OIDC */}
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] hover:border-[var(--accent-purple)]/40 transition-all duration-300 hover:-translate-y-1 group">
+            <div className="w-12 h-12 rounded-xl bg-[var(--bg-tertiary)] flex items-center justify-center mb-4 group-hover:ring-2 group-hover:ring-[var(--accent-purple)]/30 transition-all">
+              <svg className="w-6 h-6 text-[var(--accent-purple)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">OAuth2 / OIDC</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">Enterprise SSO for managed AI agents. Config-driven allowed issuers and audiences with OpenID Connect.</p>
+          </div>
+
+          {/* Microsoft Entra ID */}
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] hover:border-[var(--accent-cyan)]/40 transition-all duration-300 hover:-translate-y-1 group">
+            <div className="w-12 h-12 rounded-xl bg-[var(--bg-tertiary)] flex items-center justify-center mb-4 group-hover:ring-2 group-hover:ring-[var(--accent-cyan)]/30 transition-all">
+              <svg className="w-6 h-6 text-[var(--accent-cyan)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Microsoft Entra ID</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">Azure workload identity for enterprise AI. Tenant-aware strategy with Entra ID Workload Identity Federation.</p>
+          </div>
+
+          {/* API Keys */}
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] hover:border-[var(--accent-purple)]/40 transition-all duration-300 hover:-translate-y-1 group">
+            <div className="w-12 h-12 rounded-xl bg-[var(--bg-tertiary)] flex items-center justify-center mb-4 group-hover:ring-2 group-hover:ring-[var(--accent-purple)]/30 transition-all">
+              <svg className="w-6 h-6 text-[var(--accent-purple)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">API Keys</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">Programmatic machine-to-machine access. SHA-256 hashed keys with prefix matching and org-level scoping.</p>
+          </div>
+
+          {/* Agent-to-Agent (A2A) */}
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] hover:border-[var(--accent-cyan)]/40 transition-all duration-300 hover:-translate-y-1 group">
+            <div className="w-12 h-12 rounded-xl bg-[var(--bg-tertiary)] flex items-center justify-center mb-4 group-hover:ring-2 group-hover:ring-[var(--accent-cyan)]/30 transition-all">
+              <svg className="w-6 h-6 text-[var(--accent-cyan)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Agent-to-Agent (A2A)</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">Direct agent-to-agent trust verification. Short-lived JWT tokens (60s) with a JWKS endpoint for key distribution.</p>
+          </div>
+
+          {/* PKI Challenge-Response */}
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] hover:border-[var(--accent-purple)]/40 transition-all duration-300 hover:-translate-y-1 group">
+            <div className="w-12 h-12 rounded-xl bg-[var(--bg-tertiary)] flex items-center justify-center mb-4 group-hover:ring-2 group-hover:ring-[var(--accent-purple)]/30 transition-all">
+              <svg className="w-6 h-6 text-[var(--accent-purple)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.131A8 8 0 008 2.988 8 8 0 008 11c0 2.472.345 4.865.99 7.131M9.832 18.923C10.476 19.558 11.255 20 12 20c.745 0 1.524-.442 2.168-1.077" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">PKI Challenge-Response</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">Ongoing cryptographic proof of identity. Nonce-based challenges with replay prevention for continuous verification.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Why AgentID? */}
+      <div className="mb-16 animate-fade-in">
+        <h2 className="text-2xl font-bold text-center mb-8">
+          <span className="gradient-text">Why AgentID?</span>
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] text-center hover:bg-[var(--bg-tertiary)]/40 transition-all duration-300">
+            <div className="w-10 h-10 mx-auto rounded-lg bg-gradient-to-br from-[var(--accent-cyan)] to-[var(--accent-purple)] flex items-center justify-center mb-4">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h3 className="text-base font-bold text-[var(--text-primary)] mb-2">Not Just Crypto</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">Works with enterprise identity providers, SSO, and Azure AD — not just blockchain wallets.</p>
+          </div>
+
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] text-center hover:bg-[var(--bg-tertiary)]/40 transition-all duration-300">
+            <div className="w-10 h-10 mx-auto rounded-lg bg-gradient-to-br from-[var(--accent-purple)] to-[var(--accent-cyan)] flex items-center justify-center mb-4">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+              </svg>
+            </div>
+            <h3 className="text-base font-bold text-[var(--text-primary)] mb-2">Multi-Chain</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">Native support for Solana, Ethereum, Base, Polygon, and chain-agnostic identities.</p>
+          </div>
+
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] text-center hover:bg-[var(--bg-tertiary)]/40 transition-all duration-300">
+            <div className="w-10 h-10 mx-auto rounded-lg bg-gradient-to-br from-[var(--accent-cyan)] to-[var(--accent-purple)] flex items-center justify-center mb-4">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-base font-bold text-[var(--text-primary)] mb-2">Trust Scoring</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">Multi-dimensional reputation from on-chain attestations, community flagging, and verified activity.</p>
+          </div>
+
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] text-center hover:bg-[var(--bg-tertiary)]/40 transition-all duration-300">
+            <div className="w-10 h-10 mx-auto rounded-lg bg-gradient-to-br from-[var(--accent-purple)] to-[var(--accent-cyan)] flex items-center justify-center mb-4">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-base font-bold text-[var(--text-primary)] mb-2">Standards-Based</h3>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">Built on W3C DID/VC, OAuth2, OIDC, and JWKS — not proprietary lock-in.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="flex items-center gap-4 mb-16">
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--border-subtle)] to-transparent" />
+        <div className="w-2 h-2 rounded-full bg-[var(--accent-cyan)] opacity-60" />
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--border-subtle)] to-transparent" />
+      </div>
+
       {/* Header */}
       <div className="text-center mb-8 animate-fade-in">
         <h1 className="text-4xl md:text-5xl font-bold mb-4">
