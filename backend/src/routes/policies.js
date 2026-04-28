@@ -6,18 +6,19 @@
 const express = require('express');
 const { query } = require('../models/db');
 const { authenticate } = require('../middleware/authenticate');
-const { authorize, ROLES } = require('../middleware/authorize');
+const { authorize, requireScope, ROLES } = require('../middleware/authorize');
 const { orgContext } = require('../middleware/orgContext');
 
 const router = express.Router();
 
 const VALID_ACTIONS = ['revoke', 'flag', 'notify', 'disable'];
+const VALID_OPERATORS = ['<', '>', '<=', '>=', '==', '!=', 'contains'];
 
 /**
  * GET /orgs/:orgId/policies
  * List all policy rules for the organization
  */
-router.get('/orgs/:orgId/policies', authenticate, orgContext, authorize(ROLES.MANAGER, ROLES.ADMIN), async (req, res, next) => {
+router.get('/orgs/:orgId/policies', authenticate, orgContext, authorize(ROLES.MANAGER, ROLES.ADMIN), requireScope('read'), async (req, res, next) => {
   try {
     const result = await query(
       'SELECT * FROM policy_rules WHERE org_id = $1 ORDER BY created_at DESC',
@@ -34,7 +35,7 @@ router.get('/orgs/:orgId/policies', authenticate, orgContext, authorize(ROLES.MA
  * POST /orgs/:orgId/policies
  * Create a new policy rule
  */
-router.post('/orgs/:orgId/policies', authenticate, orgContext, authorize(ROLES.ADMIN), async (req, res, next) => {
+router.post('/orgs/:orgId/policies', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
   try {
     const { name, condition, action, enabled } = req.body;
 
@@ -48,6 +49,10 @@ router.post('/orgs/:orgId/policies', authenticate, orgContext, authorize(ROLES.A
 
     if (!condition.field && !condition.event_type) {
       return res.status(400).json({ error: "Condition must have 'field' or 'event_type'" });
+    }
+
+    if (condition.field && !VALID_OPERATORS.includes(condition.op)) {
+      return res.status(400).json({ error: `Condition operator must be one of: ${VALID_OPERATORS.join(', ')}` });
     }
 
     if (!VALID_ACTIONS.includes(action)) {
@@ -71,7 +76,7 @@ router.post('/orgs/:orgId/policies', authenticate, orgContext, authorize(ROLES.A
  * PUT /orgs/:orgId/policies/:policyId
  * Update a policy rule
  */
-router.put('/orgs/:orgId/policies/:policyId', authenticate, orgContext, authorize(ROLES.ADMIN), async (req, res, next) => {
+router.put('/orgs/:orgId/policies/:policyId', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
   try {
     const { policyId } = req.params;
     const { name, condition, action, enabled } = req.body;
@@ -129,7 +134,7 @@ router.put('/orgs/:orgId/policies/:policyId', authenticate, orgContext, authoriz
  * DELETE /orgs/:orgId/policies/:policyId
  * Delete a policy rule
  */
-router.delete('/orgs/:orgId/policies/:policyId', authenticate, orgContext, authorize(ROLES.ADMIN), async (req, res, next) => {
+router.delete('/orgs/:orgId/policies/:policyId', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('admin'), async (req, res, next) => {
   try {
     const { policyId } = req.params;
 

@@ -41,4 +41,16 @@ export const createApiKey = (data) => authClient.post('/api-keys', data);
 export const deleteApiKey = (id) => authClient.delete(`/api-keys/${id}`);
 export const getOrgAgents = (orgId, params) => authClient.get(`/orgs/${orgId}/agents`, { params });
 
+// Chain support
+export const getChains = async () => {
+  const res = await authClient.get('/agents/chains');
+  return res.data;
+};
+
+// Identity Provider management
+export const getIdentityProviders = (orgId) => authClient.get(`/orgs/${orgId}/identity-providers`).then(r => r.data);
+export const createIdentityProvider = (orgId, config) => authClient.post(`/orgs/${orgId}/identity-providers`, config).then(r => r.data);
+export const updateIdentityProvider = (orgId, idpId, updates) => authClient.put(`/orgs/${orgId}/identity-providers/${idpId}`, updates).then(r => r.data);
+export const deleteIdentityProvider = (orgId, idpId) => authClient.delete(`/orgs/${orgId}/identity-providers/${idpId}`).then(r => r.data);
+
 export default authClient;

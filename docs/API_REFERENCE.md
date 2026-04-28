@@ -126,7 +126,7 @@ All errors follow a consistent JSON structure:
 
 ## Reputation Scoring
 
-The AgentID reputation system computes a **BAGS Score (0-100)** using a weighted 5-factor model. This score determines trust labels and badge status.
+The AgentID reputation system computes a **Reputation Score (0-100)** using a weighted 5-factor model. This score determines trust labels and badge status.
 
 ### 5-Factor Model
 
@@ -186,16 +186,21 @@ Content-Type: application/json
 
 | Field | Type | Required | Constraints |
 |-------|------|----------|-------------|
-| `pubkey` | string | Yes | 32-88 characters, valid Solana address |
+| `credential_type` | string | No | `crypto` (default), `oauth2`, or `entra_id` |
+| `pubkey` | string | Yes* | 32-130 characters, valid public key (crypto only) |
 | `name` | string | Yes | 1-255 characters |
-| `signature` | string | Yes | Base58-encoded Ed25519 signature |
-| `message` | string | Yes | Must contain the nonce |
-| `nonce` | string | Yes | Challenge nonce |
+| `signature` | string | Yes* | Base58-encoded Ed25519 signature (crypto only) |
+| `message` | string | Yes* | Must contain the nonce (crypto only) |
+| `nonce` | string | Yes* | Challenge nonce (crypto only) |
+| `token` | string | Yes* | External OAuth2/OIDC JWT (oauth2/entra_id only) |
+| `chainType` | string | No | `solana-bags`, `solana`, `ethereum`, `base`, `polygon` |
 | `tokenMint` | string | No | Token mint address for fee tracking |
 | `capabilities` | string[] | No | Array of capability strings |
 | `creatorX` | string | No | Creator's X/Twitter handle |
 | `creatorWallet` | string | No | Creator's wallet address |
 | `description` | string | No | Agent description |
+
+> **Note:** For `crypto` (default), `pubkey`, `signature`, `message`, and `nonce` are required. For `oauth2` or `entra_id`, `token` is required instead of `signature`/`pubkey`.
 
 **Response Body (201 Created):**
 ```json
@@ -224,8 +229,8 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
-- `400` - Missing/invalid fields, invalid Solana address
-- `401` - Invalid signature
+- `400` - Missing/invalid fields, invalid public key, unsupported credential type
+- `401` - Invalid signature or external token validation failed
 - `409` - Agent already registered
 
 **Example Request:**
@@ -356,7 +361,7 @@ Content-Type: application/json
 | `expiresIn` | number | Seconds until expiration |
 
 **Error Responses:**
-- `400` - Invalid pubkey format
+- `400` - Invalid agent ID, or agent uses non-crypto credential type (does not require PKI verification)
 - `404` - Agent not found
 
 **Example Request:**
@@ -397,7 +402,7 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
-- `400` - Missing/invalid fields
+- `400` - Missing/invalid fields, or agent uses non-crypto credential type (does not require PKI verification)
 - `401` - Challenge expired or invalid signature
 - `404` - Challenge not found or already completed
 
@@ -1595,11 +1600,12 @@ List agents scoped to the organization with pagination.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `page` | number | 1 | Page number |
-| `limit` | number | 20 | Results per page (max 100) |
+| `limit` | number | 50 | Results per page (max 100) |
+| `offset` | number | 0 | Pagination offset |
 | `status` | string | - | Filter by agent status |
-| `sort` | string | `registeredAt` | Sort field |
-| `order` | string | `desc` | Sort order (`asc` or `desc`) |
+| `capability` | string | - | Filter by capability |
+| `chain` | string | - | Filter by chain type |
+| `includeDemo` | boolean | `false` | Include demo agents |
 
 **Response Body (200 OK):**
 ```json
@@ -1615,9 +1621,8 @@ List agents scoped to the organization with pagination.
     }
   ],
   "total": 42,
-  "page": 1,
-  "limit": 20,
-  "totalPages": 3
+  "limit": 50,
+  "offset": 0
 }
 ```
 
@@ -1628,7 +1633,7 @@ List agents scoped to the organization with pagination.
 
 **Example Request:**
 ```bash
-curl "https://agentid2.provenanceai.network/orgs/org-uuid-1234/agents?page=1&limit=10" \
+curl "https://agentid2.provenanceai.network/orgs/org-uuid-1234/agents?limit=10&offset=0" \
   -H "Cookie: token=..."
 ```
 
@@ -2169,6 +2174,807 @@ Delete a webhook subscription.
 ```bash
 curl -X DELETE https://agentid2.provenanceai.network/orgs/org-uuid-1234/webhooks/webhook-uuid-1111 \
   -H "Cookie: token=..."
+```
+
+---
+
+### Chain & Network (v2)
+
+---
+
+#### GET /chains
+
+List all supported blockchain types with metadata.
+
+**Authentication:** None
+
+**Rate Limit:** Default tier (100 requests / 15 min)
+
+**Response Body (200 OK):**
+```json
+{
+  "chains": [
+    {
+      "chainType": "solana-bags",
+      "name": "Solana (BAGS)",
+      "chainId": "solana-mainnet",
+      "addressFormat": "base58",
+      "signingAlgo": "Ed25519"
+    },
+    {
+      "chainType": "ethereum",
+      "name": "Ethereum",
+      "chainId": "1",
+      "addressFormat": "hex",
+      "signingAlgo": "SECP256K1"
+    }
+  ],
+  "count": 5
+}
+```
+
+**Example Request:**
+```bash
+curl https://agentid2.provenanceai.network/chains
+```
+
+---
+
+### Public Agent Listing (v2)
+
+---
+
+#### GET /public/agents
+
+List all public agents without authentication. Returns only public-safe fields.
+
+**Authentication:** None
+
+**Rate Limit:** Default tier (100 requests / 15 min)
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `chain` | string | - | Filter by chain type |
+| `capability` | string | - | Filter by capability |
+| `search` | string | - | Free-text search across name and description |
+| `limit` | number | 50 | Results per page (max 100) |
+| `offset` | number | 0 | Pagination offset |
+
+**Response Body (200 OK):**
+```json
+{
+  "agents": [
+    {
+      "agent_id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "My Trading Agent",
+      "pubkey": "AgentPubkey111111111111111111111111111111111",
+      "status": "active",
+      "bags_score": 75,
+      "capabilities": ["trading", "analytics"],
+      "registered_at": "2024-01-15T10:30:00.000Z"
+    }
+  ],
+  "total": 1,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+**Example Request:**
+```bash
+curl "https://agentid2.provenanceai.network/public/agents?capability=trading&limit=10"
+```
+
+---
+
+### Agent Ownership (v2)
+
+---
+
+#### GET /agents/owner/:pubkey
+
+Get all agents owned by a specific public key.
+
+**Authentication:** JWT cookie or API key
+**Required Scope:** `read`
+
+**Rate Limit:** Default tier (100 requests / 15 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `pubkey` | string | Owner's public key |
+
+**Response Body (200 OK):**
+```json
+{
+  "pubkey": "AgentPubkey111111111111111111111111111111111",
+  "agents": [
+    {
+      "pubkey": "AgentPubkey111111111111111111111111111111111",
+      "name": "My Trading Agent",
+      "status": "active",
+      "bagsScore": 75,
+      "registeredAt": "2024-01-15T10:30:00.000Z"
+    }
+  ],
+  "count": 1
+}
+```
+
+**Error Responses:**
+- `400` - Invalid Solana public key format
+- `401` - Not authenticated
+
+**Example Request:**
+```bash
+curl https://agentid2.provenanceai.network/agents/owner/AgentPubkey111111111111111111111111111111111 \
+  -H "Cookie: token=..."
+```
+
+---
+
+### Agent Revocation (v2)
+
+---
+
+#### POST /agents/:agentId/revoke
+
+Revoke an agent, permanently disabling it. Requires ownership verification via Ed25519 signature.
+
+**Authentication:** JWT cookie or API key
+**Required Scope:** `write` (admin)
+
+**Rate Limit:** Auth tier (20 requests / 15 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `agentId` | string | Agent UUID |
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `pubkey` | string | Yes | Agent's registered public key |
+| `signature` | string | Yes | Base58-encoded Ed25519 signature |
+| `message` | string | Yes | `AGENTID-REVOKE:{agentId}:{timestamp}` |
+
+**Response Body (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Agent revoked successfully",
+  "agent": {
+    "pubkey": "AgentPubkey111111111111111111111111111111111",
+    "name": "My Trading Agent",
+    "status": "revoked",
+    "revokedAt": "2024-01-20T14:22:00.000Z"
+  },
+  "revokedAt": "2024-01-20T14:22:00.000Z"
+}
+```
+
+**Error Responses:**
+- `400` - Missing/invalid fields, invalid message format
+- `401` - Invalid signature or timestamp outside 5-minute window
+- `403` - Access denied (not owner or wrong organization)
+- `404` - Agent not found
+- `410` - Agent already revoked
+
+**Example Request:**
+```bash
+curl -X POST https://agentid2.provenanceai.network/agents/550e8400-e29b-41d4-a716-446655440000/revoke \
+  -H "Content-Type: application/json" \
+  -H "Cookie: token=..." \
+  -d '{
+    "pubkey": "AgentPubkey111111111111111111111111111111111",
+    "signature": "Base58Signature...",
+    "message": "AGENTID-REVOKE:550e8400-e29b-41d4-a716-446655440000:1705753200000"
+  }'
+```
+
+---
+
+### A2A Token & Credentials (v2)
+
+---
+
+#### POST /agents/:agentId/issue-token
+
+Issue a short-lived A2A (Agent-to-Agent) authentication JWT token. The token includes agent metadata, chain type, and capabilities in its claims and expires in 60 seconds.
+
+**Authentication:** JWT cookie or API key
+**Required Scope:** `write`
+
+**Rate Limit:** Auth tier (20 requests / 15 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `agentId` | string | Agent UUID |
+
+**Response Body (200 OK):**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "expiresIn": 60,
+  "agentId": "550e8400-e29b-41d4-a716-446655440000",
+  "issuedAt": "2024-01-20T14:22:00.000Z"
+}
+```
+
+**Error Responses:**
+- `403` - Agent is revoked or flagged, or does not belong to your organization
+- `404` - Agent not found
+
+**Example Request:**
+```bash
+curl -X POST https://agentid2.provenanceai.network/agents/550e8400-e29b-41d4-a716-446655440000/issue-token \
+  -H "Cookie: token=..."
+```
+
+---
+
+#### POST /verify-token
+
+Verify an A2A token statelessly. No authentication required — receiving agents can verify tokens without the shared secret by using this endpoint.
+
+**Authentication:** None
+
+**Rate Limit:** Default tier (100 requests / 15 min)
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `token` | string | Yes | A2A JWT token to verify |
+
+**Response Body (200 OK):**
+```json
+{
+  "valid": true,
+  "payload": {
+    "sub": "550e8400-e29b-41d4-a716-446655440000",
+    "type": "a2a",
+    "name": "My Trading Agent",
+    "pubkey": "AgentPubkey111111111111111111111111111111111",
+    "chain": "solana-bags",
+    "caps": ["trading", "analytics"],
+    "score": 75
+  }
+}
+```
+
+**Error Responses:**
+- `400` - Missing token
+- `401` - Invalid or expired token
+
+**Example Request:**
+```bash
+curl -X POST https://agentid2.provenanceai.network/verify-token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "eyJhbGciOiJIUzI1NiIs..."
+  }'
+```
+
+---
+
+#### GET /agents/:agentId/credential
+
+Get a W3C Verifiable Credential (JSON-LD) for an agent. No authentication required.
+
+**Authentication:** None
+
+**Rate Limit:** Default tier (100 requests / 15 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `agentId` | string | Agent UUID |
+
+**Response Body (200 OK):**
+- **Content-Type:** `application/vc+ld+json`
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1",
+    {
+      "AgentIDCredential": "https://agentidapp.com/schemas/credential/v1",
+      "agentName": "https://agentidapp.com/schemas/credential/v1#agentName",
+      "chainType": "https://agentidapp.com/schemas/credential/v1#chainType",
+      "reputationScore": "https://agentidapp.com/schemas/credential/v1#reputationScore",
+      "reputationLabel": "https://agentidapp.com/schemas/credential/v1#reputationLabel",
+      "capabilities": "https://agentidapp.com/schemas/credential/v1#capabilities",
+      "verificationStatus": "https://agentidapp.com/schemas/credential/v1#verificationStatus",
+      "registeredAt": "https://agentidapp.com/schemas/credential/v1#registeredAt",
+      "lastVerified": "https://agentidapp.com/schemas/credential/v1#lastVerified"
+    }
+  ],
+  "id": "urn:agentid:credential:550e8400-e29b-41d4-a716-446655440000",
+  "type": ["VerifiableCredential", "AIAgentIdentityCredential"],
+  "issuer": {
+    "id": "did:web:agentidapp.com",
+    "name": "AgentID",
+    "url": "https://agentidapp.com"
+  },
+  "issuanceDate": "2024-01-20T14:22:00.000Z",
+  "expirationDate": "2024-01-21T14:22:00.000Z",
+  "credentialSubject": {
+    "id": "did:key:AgentPubkey111111111111111111111111111111111",
+    "agentId": "550e8400-e29b-41d4-a716-446655440000",
+    "agentName": "My Trading Agent",
+    "chainType": "solana-bags",
+    "publicKey": "AgentPubkey111111111111111111111111111111111",
+    "reputationScore": 75,
+    "reputationLabel": "MEDIUM",
+    "capabilities": ["trading", "analytics"],
+    "verificationStatus": "VERIFIED",
+    "registeredAt": "2024-01-15T10:30:00.000Z",
+    "lastVerified": "2024-01-20T14:22:00.000Z"
+  },
+  "credentialStatus": {
+    "id": "https://api.agentidapp.com/agents/550e8400-e29b-41d4-a716-446655440000",
+    "type": "AgentIDStatusCheck2024",
+    "statusPurpose": "revocation"
+  },
+  "proof": {
+    "type": "DataIntegrityProof",
+    "cryptosuite": "eddsa-rdfc-2022",
+    "created": "2024-01-20T14:22:00.000Z",
+    "verificationMethod": "did:web:agentidapp.com#ed25519-key",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "UNSIGNED_CREDENTIAL_REQUIRES_DID_KEY_CONFIGURATION"
+  }
+}
+```
+
+**Error Responses:**
+- `404` - Agent not found
+- `500` - Failed to generate credential
+
+**Example Request:**
+```bash
+curl https://agentid2.provenanceai.network/agents/550e8400-e29b-41d4-a716-446655440000/credential \
+  -H "Accept: application/vc+ld+json"
+```
+
+---
+
+### Enterprise Authentication (v2)
+
+---
+
+#### POST /auth/verify-external-token
+
+Verify an external OAuth2 or Entra ID token and return normalized identity claims.
+
+**Authentication:** JWT cookie or API key
+
+**Rate Limit:** Auth tier (20 requests / 15 min)
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `provider` | string | Yes | `oauth2`, `entra_id`, `okta`, or `auth0` |
+| `token` | string | Yes | External JWT to validate |
+
+**Response Body (200 OK):**
+```json
+{
+  "valid": true,
+  "identity": {
+    "externalId": "user-sub-123",
+    "provider": "https://login.microsoftonline.com/{tenant}/v2.0",
+    "email": "user@example.com",
+    "name": "Alice Smith",
+    "credentialType": "oauth2",
+    "claims": {
+      "sub": "user-sub-123",
+      "aud": "client-id-123",
+      "iss": "https://login.microsoftonline.com/{tenant}/v2.0",
+      "roles": ["User", "Admin"],
+      "scope": "openid profile"
+    }
+  }
+}
+```
+
+**Error Responses:**
+- `400` - Missing token, or provider authentication is not enabled
+- `401` - Token validation failed
+
+**Example Request:**
+```bash
+curl -X POST https://agentid2.provenanceai.network/auth/verify-external-token \
+  -H "Content-Type: application/json" \
+  -H "Cookie: token=..." \
+  -d '{
+    "provider": "entra_id",
+    "token": "eyJhbGciOiJSUzI1NiIs..."
+  }'
+```
+
+---
+
+### Identity Provider Management (v2)
+
+---
+
+#### GET /orgs/:orgId/identity-providers
+
+List all configured identity providers for an organization.
+
+**Authentication:** JWT cookie or API key
+**Required Role:** `manager` or `admin`
+**Required Scope:** `read`
+
+**Rate Limit:** Default tier (100 requests / 15 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orgId` | string | Organization UUID |
+
+**Response Body (200 OK):**
+```json
+{
+  "identityProviders": [
+    {
+      "id": "idp-uuid-1111",
+      "orgId": "org-uuid-1234",
+      "providerType": "oauth2",
+      "issuerUrl": "https://auth.example.com",
+      "clientId": "client-id-123",
+      "allowedAudiences": ["audience-1", "audience-2"],
+      "claimMappings": {
+        "email": "email",
+        "name": "name"
+      },
+      "enabled": true,
+      "createdAt": "2026-04-27T10:30:00.000Z",
+      "updatedAt": "2026-04-27T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+- `403` - Insufficient role
+
+**Example Request:**
+```bash
+curl https://agentid2.provenanceai.network/orgs/org-uuid-1234/identity-providers \
+  -H "Cookie: token=..."
+```
+
+---
+
+#### POST /orgs/:orgId/identity-providers
+
+Create a new identity provider configuration.
+
+**Authentication:** JWT cookie or API key
+**Required Role:** `admin`
+**Required Scope:** `write`
+
+**Rate Limit:** Auth tier (20 requests / 15 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orgId` | string | Organization UUID |
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `providerType` | string | Yes | `oauth2`, `entra_id`, `okta`, or `auth0` |
+| `issuerUrl` | string | Yes | Issuer URL (must be a valid URL) |
+| `clientId` | string | No | OAuth2 client ID |
+| `allowedAudiences` | string[] | No | Allowed token audiences |
+| `claimMappings` | object | No | Claim mapping configuration |
+| `enabled` | boolean | No | Whether the IdP is active (default: `true`) |
+
+**Response Body (201 Created):**
+```json
+{
+  "identityProvider": {
+    "id": "idp-uuid-1111",
+    "orgId": "org-uuid-1234",
+    "providerType": "oauth2",
+    "issuerUrl": "https://auth.example.com",
+    "clientId": "client-id-123",
+    "allowedAudiences": ["audience-1"],
+    "claimMappings": {},
+    "enabled": true,
+    "createdAt": "2026-04-27T10:30:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+- `400` - Missing/invalid fields, invalid issuer URL, unsupported provider type
+- `401` - Not authenticated
+- `403` - Insufficient role
+- `409` - Identity provider with this issuer URL already configured
+
+**Example Request:**
+```bash
+curl -X POST https://agentid2.provenanceai.network/orgs/org-uuid-1234/identity-providers \
+  -H "Content-Type: application/json" \
+  -H "Cookie: token=..." \
+  -d '{
+    "providerType": "oauth2",
+    "issuerUrl": "https://auth.example.com",
+    "clientId": "client-id-123",
+    "allowedAudiences": ["my-app"],
+    "enabled": true
+  }'
+```
+
+---
+
+#### PUT /orgs/:orgId/identity-providers/:idpId
+
+Update an existing identity provider configuration.
+
+**Authentication:** JWT cookie or API key
+**Required Role:** `admin`
+**Required Scope:** `write`
+
+**Rate Limit:** Auth tier (20 requests / 15 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orgId` | string | Organization UUID |
+| `idpId` | string | Identity provider UUID |
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `providerType` | string | No | Updated provider type |
+| `issuerUrl` | string | No | Updated issuer URL |
+| `clientId` | string | No | Updated client ID |
+| `allowedAudiences` | string[] | No | Updated allowed audiences |
+| `claimMappings` | object | No | Updated claim mappings |
+| `enabled` | boolean | No | Enable or disable the IdP |
+
+**Response Body (200 OK):**
+```json
+{
+  "identityProvider": {
+    "id": "idp-uuid-1111",
+    "providerType": "oauth2",
+    "issuerUrl": "https://auth.example.com",
+    "clientId": "client-id-123",
+    "enabled": true,
+    "updatedAt": "2026-04-27T12:00:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+- `400` - Invalid fields or issuer URL
+- `401` - Not authenticated
+- `403` - Insufficient role
+- `404` - Identity provider not found
+
+**Example Request:**
+```bash
+curl -X PUT https://agentid2.provenanceai.network/orgs/org-uuid-1234/identity-providers/idp-uuid-1111 \
+  -H "Content-Type: application/json" \
+  -H "Cookie: token=..." \
+  -d '{
+    "enabled": false
+  }'
+```
+
+---
+
+#### DELETE /orgs/:orgId/identity-providers/:idpId
+
+Delete an identity provider configuration.
+
+**Authentication:** JWT cookie or API key
+**Required Role:** `admin`
+**Required Scope:** `write`
+
+**Rate Limit:** Auth tier (20 requests / 15 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orgId` | string | Organization UUID |
+| `idpId` | string | Identity provider UUID |
+
+**Response Body (200 OK):**
+```json
+{
+  "deleted": true,
+  "identityProvider": {
+    "id": "idp-uuid-1111",
+    "providerType": "oauth2",
+    "issuerUrl": "https://auth.example.com"
+  }
+}
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+- `403` - Insufficient role
+- `404` - Identity provider not found
+
+**Example Request:**
+```bash
+curl -X DELETE https://agentid2.provenanceai.network/orgs/org-uuid-1234/identity-providers/idp-uuid-1111 \
+  -H "Cookie: token=..."
+```
+
+---
+
+### Well-Known & Infrastructure
+
+---
+
+#### GET /.well-known/jwks.json
+
+JWKS endpoint exposing public key metadata for A2A token verification. The actual HMAC secret is symmetric and must be obtained via a secure channel; this endpoint documents the algorithm and key ID.
+
+**Authentication:** None
+
+**Rate Limit:** Default tier (100 requests / 15 min)
+
+**Response Body (200 OK):**
+```json
+{
+  "keys": [
+    {
+      "kty": "oct",
+      "kid": "agentid-a2a-v1",
+      "use": "sig",
+      "alg": "HS256"
+    }
+  ],
+  "issuer": "agentidapp.com",
+  "documentation": "https://agentidapp.com/docs/a2a-auth",
+  "verify_endpoint": "/agents/verify-token"
+}
+```
+
+**Example Request:**
+```bash
+curl https://agentid2.provenanceai.network/.well-known/jwks.json
+```
+
+---
+
+#### GET /.well-known/did.json
+
+W3C DID document for `did:web:agentidapp.com`. Exposes verification methods for Ed25519 and SECP256K1 keys, along with service endpoints for AgentID APIs.
+
+**Authentication:** None
+
+**Rate Limit:** Default tier (100 requests / 15 min)
+
+**Response Body (200 OK):**
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1",
+    "https://w3id.org/security/suites/secp256k1-2019/v1"
+  ],
+  "id": "did:web:agentidapp.com",
+  "controller": "did:web:agentidapp.com",
+  "verificationMethod": [
+    {
+      "id": "did:web:agentidapp.com#ed25519-key",
+      "type": "Ed25519VerificationKey2020",
+      "controller": "did:web:agentidapp.com",
+      "publicKeyMultibase": "z_PLACEHOLDER_CONFIGURE_IN_ENV"
+    },
+    {
+      "id": "did:web:agentidapp.com#secp256k1-key",
+      "type": "EcdsaSecp256k1VerificationKey2019",
+      "controller": "did:web:agentidapp.com",
+      "publicKeyMultibase": "z_PLACEHOLDER_CONFIGURE_IN_ENV"
+    }
+  ],
+  "authentication": [
+    "did:web:agentidapp.com#ed25519-key",
+    "did:web:agentidapp.com#secp256k1-key"
+  ],
+  "assertionMethod": [
+    "did:web:agentidapp.com#ed25519-key",
+    "did:web:agentidapp.com#secp256k1-key"
+  ],
+  "service": [
+    {
+      "id": "did:web:agentidapp.com#agentid-api",
+      "type": "AgentIDService",
+      "serviceEndpoint": "https://api.agentidapp.com"
+    },
+    {
+      "id": "did:web:agentidapp.com#a2a-verify",
+      "type": "A2AVerificationService",
+      "serviceEndpoint": "https://api.agentidapp.com/agents/verify-token"
+    },
+    {
+      "id": "did:web:agentidapp.com#credential-issuance",
+      "type": "VerifiableCredentialService",
+      "serviceEndpoint": "https://api.agentidapp.com/agents/{agentId}/credential"
+    }
+  ]
+}
+```
+
+**Example Request:**
+```bash
+curl https://agentid2.provenanceai.network/.well-known/did.json
+```
+
+---
+
+#### GET /health
+
+Health check endpoint returning system status and dependency connectivity.
+
+**Authentication:** None
+
+**Rate Limit:** Default tier (100 requests / 15 min)
+
+**Response Body (200 OK):**
+```json
+{
+  "status": "ok",
+  "uptime": 12345.67,
+  "timestamp": "2024-01-20T14:22:00.000Z",
+  "version": "2.0.0",
+  "postgres": "connected",
+  "redis": "connected",
+  "chains": ["solana-bags", "solana", "ethereum", "base", "polygon"]
+}
+```
+
+If services are degraded:
+
+```json
+{
+  "status": "degraded",
+  "uptime": 12345.67,
+  "timestamp": "2024-01-20T14:22:00.000Z",
+  "version": "2.0.0",
+  "postgres": "disconnected",
+  "redis": "connected",
+  "chains": []
+}
+```
+
+**HTTP Status Codes:**
+- `200` - All services healthy
+- `503` - One or more dependencies unavailable
+
+**Example Request:**
+```bash
+curl https://agentid2.provenanceai.network/health
 ```
 
 ---

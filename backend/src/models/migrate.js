@@ -7,6 +7,8 @@
 require('dotenv').config();
 const { pool } = require('./db');
 const { runV2Migration } = require('./migrate-v2');
+const { migrateV3 } = require('./migrate-v3');
+const { migrateV4 } = require('./migrate-v4');
 
 const CREATE_TABLES_SQL = `
 -- Agent identities table
@@ -90,6 +92,10 @@ async function migrate() {
     
     await runV2Migration(pool);
     
+    await migrateV3(pool);
+
+    await migrateV4(pool);
+
     console.log('✓ Database migration completed successfully');
     console.log('  - Created table: agent_identities');
     console.log('  - Created table: agent_verifications');

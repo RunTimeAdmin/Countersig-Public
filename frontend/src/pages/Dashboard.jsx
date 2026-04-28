@@ -2,7 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthProvider';
 import { getOrgStats, getOrgAgents } from '../lib/authApi';
+import { getChains } from '../lib/api';
 import TrustBadge from '../components/TrustBadge';
+
+function getChainColor(chainType) {
+  const colors = { 'solana-bags': '#9945FF', 'solana': '#14F195', 'ethereum': '#627EEA', 'base': '#0052FF', 'polygon': '#8247E5' };
+  return colors[chainType] || '#888';
+}
 
 const STAT_CARDS = [
   { key: 'total_agents', label: 'Total Agents', icon: '🤖', color: 'cyan' },
@@ -49,6 +55,7 @@ function AgentRow({ agent }) {
             status={agent.status}
             name={agent.name}
             score={agent.bagsScore}
+            agent={agent}
             className="w-full"
           />
         </Link>
@@ -65,6 +72,22 @@ function AgentRow({ agent }) {
           {agent.status}
         </span>
       </td>
+      <td className="py-3 px-4">
+        {agent.chain_type ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider"
+            style={{
+              backgroundColor: `${getChainColor(agent.chain_type)}20`,
+              color: getChainColor(agent.chain_type)
+            }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getChainColor(agent.chain_type) }} />
+            {agent.chain_type}
+          </span>
+        ) : (
+          <span className="text-xs text-[var(--text-muted)]">—</span>
+        )}
+      </td>
       <td className="py-3 px-4 text-sm text-[var(--text-secondary)] text-right">
         {agent.bagsScore ?? '-'}
       </td>
@@ -77,6 +100,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [agents, setAgents] = useState([]);
+  const [chains, setChains] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -87,12 +111,14 @@ export default function Dashboard() {
         return;
       }
       try {
-        const [statsRes, agentsRes] = await Promise.all([
+        const [statsRes, agentsRes, chainsRes] = await Promise.all([
           getOrgStats(user.orgId).catch(() => ({ data: {} })),
           getOrgAgents(user.orgId, { limit: 10 }).catch(() => ({ data: { agents: [] } })),
+          getChains().catch(() => []),
         ]);
         setStats(statsRes.data);
         setAgents(agentsRes.data.agents || []);
+        setChains(chainsRes || []);
       } catch (err) {
         setError('Failed to load dashboard data');
       } finally {
@@ -152,6 +178,21 @@ export default function Dashboard() {
           />
         ))}
       </div>
+
+      {/* Supported Chains */}
+      {chains.length > 0 && (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-5 mb-8">
+          <h3 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-3">Supported Chains</h3>
+          <div className="flex flex-wrap gap-2">
+            {chains.map(c => (
+              <span key={c.chainType} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)]">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getChainColor(c.chainType) }} />
+                {c.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3 mb-8">
@@ -219,6 +260,7 @@ export default function Dashboard() {
                   <th className="py-3 px-4 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">Agent</th>
                   <th className="py-3 px-4 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">Capabilities</th>
                   <th className="py-3 px-4 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">Status</th>
+                  <th className="py-3 px-4 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">Chain</th>
                   <th className="py-3 px-4 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider text-right">Score</th>
                 </tr>
               </thead>

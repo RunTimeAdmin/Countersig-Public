@@ -1,8 +1,10 @@
 /**
  * Webhook Service
  * Delivers events to registered webhooks with HMAC signing and retry logic
+ * Uses BullMQ for reliable delivery with exponential backoff
  */
 
+const { Queue, Worker } = require('bullmq');
 const axios = require('axios');
 const crypto = require('crypto');
 const https = require('https');
@@ -10,6 +12,68 @@ const net = require('net');
 const { query, pool } = require('../models/db');
 const eventBus = require('./eventBus');
 const { assertPublicHttpsUrl } = require('../utils/urlValidator');
+const config = require('../config');
+
+// BullMQ Redis connection configuration
+const redisConnection = {
+  host: config.redisHost || 'localhost',
+  port: config.redisPort || 6379,
+  password: config.redisPassword || undefined,
+};
+
+// Create the webhook delivery queue
+const webhookQueue = new Queue('webhook-delivery', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
+    removeOnComplete: 100,
+    removeOnFail: 500,
+  }
+});
+
+// Create a worker that processes deliveries
+const webhookWorker = new Worker('webhook-delivery', async (job) => {
+  const { url, payload, headers } = job.data;
+
+  // Re-validate URL at delivery time to prevent SSRF and pin DNS to prevent rebinding
+  let pinnedAddress;
+  try {
+    const validation = await assertPublicHttpsUrl(url);
+    pinnedAddress = validation.resolvedAddresses[0];
+  } catch (err) {
+    throw new Error(`SSRF blocked: ${err.message}`);
+  }
+
+  // Create a custom HTTPS agent that pins DNS resolution to the validated IP
+  const agent = new https.Agent({
+    lookup: (hostname, options, cb) => {
+      cb(null, pinnedAddress, net.isIP(pinnedAddress));
+    }
+  });
+
+  const response = await axios.post(url, payload, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers
+    },
+    httpsAgent: agent,
+    timeout: 10000,
+    maxRedirects: 0,
+    maxContentLength: 64 * 1024,
+    maxBodyLength: 1024 * 1024,
+    validateStatus: () => true
+  });
+
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`Webhook delivery failed: ${response.status}`);
+  }
+  return { status: response.status };
+}, { connection: redisConnection, concurrency: 5 });
+
+webhookWorker.on('failed', (job, err) => {
+  console.error(`[WebhookService] Webhook job ${job?.id} failed:`, err.message);
+});
 
 /**
  * Record a webhook delivery attempt to the database
@@ -37,12 +101,22 @@ async function recordDelivery(webhookId, eventId, eventType, attempt, success, s
 }
 
 /**
- * Deliver a single webhook payload
+ * Deliver a single webhook payload via the BullMQ queue
+ * @param {string} url - Webhook URL
+ * @param {Object} payload - Event payload
+ * @param {Object} headers - Additional headers
+ */
+async function deliverWebhook(url, payload, headers = {}) {
+  await webhookQueue.add('deliver', { url, payload, headers });
+}
+
+/**
+ * Deliver webhook with exponential backoff retry (legacy wrapper for queue-based delivery)
  * @param {Object} webhook - Webhook row from database
  * @param {Object} event - Event object
  * @returns {Object}
  */
-async function deliverWebhook(webhook, event) {
+async function deliverWithRetry(webhook, event) {
   const body = {
     event: event.type,
     data: event.data,
@@ -56,120 +130,12 @@ async function deliverWebhook(webhook, event) {
     .update(bodyString)
     .digest('hex');
 
-  // Re-validate URL at delivery time to prevent SSRF and pin DNS to prevent rebinding
-  let pinnedAddress;
-  try {
-    const validation = await assertPublicHttpsUrl(webhook.url);
-    pinnedAddress = validation.resolvedAddresses[0];
-  } catch (err) {
-    return { success: false, statusCode: 0, error: `SSRF blocked: ${err.message}` };
-  }
-
-  // Create a custom HTTPS agent that pins DNS resolution to the validated IP
-  const agent = new https.Agent({
-    lookup: (hostname, options, cb) => {
-      cb(null, pinnedAddress, net.isIP(pinnedAddress));
-    }
+  await deliverWebhook(webhook.url, body, {
+    'X-AgentID-Signature': signature,
+    'X-AgentID-Event': event.type
   });
 
-  try {
-    const response = await axios.post(webhook.url, body, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-AgentID-Signature': signature,
-        'X-AgentID-Event': event.type
-      },
-      httpsAgent: agent,
-      timeout: 10000,
-      maxRedirects: 0,
-      maxContentLength: 64 * 1024,
-      maxBodyLength: 1024 * 1024,
-      validateStatus: () => true
-    });
-
-    return {
-      success: true,
-      statusCode: response.status,
-      error: null
-    };
-  } catch (err) {
-    return {
-      success: false,
-      statusCode: err.response ? err.response.status : null,
-      error: err.message
-    };
-  }
-}
-
-/**
- * Deliver webhook with exponential backoff retry
- * @param {Object} webhook - Webhook row from database
- * @param {Object} event - Event object
- * @param {number} maxRetries - Maximum retry attempts
- * @returns {Object}
- */
-async function deliverWithRetry(webhook, event, maxRetries = 3) {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const result = await deliverWebhook(webhook, event);
-
-    // Record delivery attempt
-    await recordDelivery(
-      webhook.id,
-      event.id,
-      event.type,
-      attempt + 1,
-      result.success,
-      result.statusCode,
-      null,
-      result.error
-    );
-
-    if (result.success) {
-      if (attempt > 0) {
-        console.log(`[WebhookService] Webhook ${webhook.id} succeeded on attempt ${attempt + 1}`);
-      }
-      // Reset consecutive failures on success
-      await pool.query(
-        'UPDATE webhooks SET consecutive_failures = 0 WHERE id = $1',
-        [webhook.id]
-      ).catch(err => console.error('[WebhookService] Failed to reset failure count:', err.message));
-      return result;
-    }
-
-    console.warn(
-      `[WebhookService] Webhook ${webhook.id} attempt ${attempt + 1} failed:`,
-      result.error
-    );
-
-    if (attempt < maxRetries) {
-      const delay = Math.pow(4, attempt) * 1000;
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-
-  // After final retry failure, track consecutive failures
-  try {
-    await pool.query(
-      `UPDATE webhooks SET
-        consecutive_failures = COALESCE(consecutive_failures, 0) + 1
-      WHERE id = $1`,
-      [webhook.id]
-    );
-    // Auto-disable after 100 consecutive failures
-    await pool.query(
-      `UPDATE webhooks SET enabled = false
-      WHERE id = $1 AND COALESCE(consecutive_failures, 0) >= 100`,
-      [webhook.id]
-    );
-  } catch (err) {
-    console.error('[WebhookService] Failed to update failure count:', err.message);
-  }
-
-  return {
-    success: false,
-    statusCode: null,
-    error: `Failed after ${maxRetries + 1} attempts`
-  };
+  return { success: true, statusCode: null, error: null };
 }
 
 /**
@@ -196,11 +162,12 @@ async function processEventWebhooks(event) {
       return webhook.events.includes(event.type);
     });
 
-    Promise.allSettled(
-      matchingWebhooks.map((webhook) => deliverWithRetry(webhook, event))
-    ).catch((err) => {
-      console.error('[WebhookService] Error in webhook delivery batch:', err.message);
-    });
+    // Enqueue each matching webhook for delivery
+    for (const webhook of matchingWebhooks) {
+      deliverWithRetry(webhook, event).catch((err) => {
+        console.error('[WebhookService] Error enqueueing webhook:', err.message);
+      });
+    }
 
     return matchingWebhooks.length;
   } catch (err) {
@@ -222,10 +189,19 @@ function initWebhookListeners() {
   console.log('[WebhookService] Webhook listeners initialized');
 }
 
+/**
+ * Gracefully shut down the BullMQ queue and worker
+ */
+async function closeWebhookQueue() {
+  await webhookWorker.close();
+  await webhookQueue.close();
+}
+
 module.exports = {
   deliverWebhook,
   deliverWithRetry,
   processEventWebhooks,
   initWebhookListeners,
-  recordDelivery
+  recordDelivery,
+  closeWebhookQueue
 };

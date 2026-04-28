@@ -70,7 +70,7 @@
       <section id="overview" class="doc-section">
         <div class="section-badge">Getting Started</div>
         <h1>AgentID Documentation</h1>
-        <p class="lead">AgentID is the <strong>trust verification layer for AI agents</strong> operating in the Bags ecosystem. Every AI agent gets a cryptographic identity, a 5-factor reputation score, and an embeddable trust badge.</p>
+        <p class="lead">AgentID is the <strong>trust verification layer for AI agents</strong> operating across multiple blockchains. Every AI agent gets a cryptographic identity, a 5-factor reputation score, and an embeddable trust badge.</p>
 
         <div class="callout callout-info">
           <div class="callout-icon">🌐</div>
@@ -81,10 +81,10 @@
         </div>
 
         <h2>What is AgentID?</h2>
-        <p>AgentID bridges three systems that exist independently but have never been connected in the Bags ecosystem: the Bags Ed25519 agent authentication API, the SAID Identity Gateway, and a custom Bags-specific reputation scoring engine.</p>
+        <p>AgentID bridges three systems that exist independently but for comprehensive agent identity: Ed25519 and SECP256K1 agent authentication, the SAID Identity Gateway, and a configurable reputation scoring engine.</p>
 
         <div class="arch-diagram">
-          <div class="arch-box blue">Bags Agent Auth</div>
+          <div class="arch-box blue">Agent Auth</div>
           <div class="arch-arrow">→</div>
           <div class="arch-box purple">AgentID Registry<br/><small>Node.js / Express / PG</small></div>
           <div class="arch-arrow">→</div>
@@ -97,17 +97,17 @@
           <div class="card">
             <div class="card-icon">🔐</div>
             <h3>Cryptographic Identity</h3>
-            <p>Ed25519 PKI challenge-response verification. Same protocol Bags uses natively. No new trust assumptions.</p>
+            <p>Ed25519 PKI challenge-response verification. Industry-standard challenge-response protocol. No new trust assumptions.</p>
           </div>
           <div class="card">
             <div class="card-icon">📊</div>
             <h3>5-Factor Reputation Score</h3>
-            <p>Fee activity, success rate, age, SAID trust, and community attestations combine into a single 0–100 BAGS Score.</p>
+            <p>Fee activity, success rate, age, SAID trust, and community attestations combine into a single 0–100 Reputation Score.</p>
           </div>
           <div class="card">
             <div class="card-icon">🏅</div>
             <h3>Embeddable Trust Badge</h3>
-            <p>One iframe embed or JSON API call. Any Bags app can display an agent's verification status instantly.</p>
+            <p>One iframe embed or JSON API call. Any application can display an agent's verification status instantly.</p>
           </div>
           <div class="card">
             <div class="card-icon">🔍</div>
@@ -164,7 +164,7 @@
       <section id="agent-owner" class="doc-section hidden">
         <div class="section-badge">Getting Started</div>
         <h1>Agent Owner Guide</h1>
-        <p class="lead">Everything you need to register your AI agent, get verified, and display a trust badge to users in the Bags ecosystem.</p>
+        <p class="lead">Everything you need to register your AI agent, get verified, and display a trust badge to users across supported chains.</p>
 
         <div class="toc">
           <div class="toc-title">On this page</div>
@@ -1372,7 +1372,7 @@ pm2 list</code></pre>
   <footer class="footer">
     <div class="footer-inner">
       <div class="footer-left">
-        <strong>AgentID</strong> — Trust verification layer for Bags AI agents<br/>
+        <strong>AgentID</strong> — Trust verification layer for AI agents<br/>
         Built by <a href="https://x.com/DeFiAuditCCIE" target="_blank">David Cooper</a>, CCIE #14019 | CyberShield Austin
       </div>
       <div class="footer-right">

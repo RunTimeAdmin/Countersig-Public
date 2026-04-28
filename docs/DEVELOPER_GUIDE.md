@@ -1,6 +1,6 @@
 # AgentID Developer Guide
 
-Enterprise-grade developer onboarding documentation for the AgentID platform — the Bags-native trust verification layer for AI agents on Solana.
+Enterprise-grade developer onboarding documentation for the AgentID platform — the trust verification layer for AI agents.
 
 **Author:** David Cooper (CCIE #14019)  
 **Version:** 1.0.0  
@@ -19,6 +19,16 @@ Enterprise-grade developer onboarding documentation for the AgentID platform —
 7. [Testing](#7-testing)
 8. [Key Concepts](#8-key-concepts)
 9. [AgentID 2.0 Features](#9-agentid-20-features)
+   - [Authentication Flow](#authentication-flow)
+   - [Multi-Tenancy Model](#multi-tenancy-model)
+   - [Audit System](#audit-system)
+   - [Event System](#event-system)
+   - [Multi-Chain Support](#multi-chain-support)
+   - [Enterprise Authentication](#enterprise-authentication)
+   - [A2A (Agent-to-Agent) Tokens](#a2a-agent-to-agent-tokens)
+   - [W3C DID & Verifiable Credentials](#w3c-did--verifiable-credentials)
+   - [SDK Packages](#sdk-packages)
+   - [BullMQ Webhook Queue](#bullmq-webhook-queue)
 10. [Deployment](#10-deployment)
 11. [Contributing](#11-contributing)
 
@@ -149,6 +159,14 @@ Copy `.env.example` to `.env` and configure the following variables:
 | `BADGE_CACHE_TTL` | Badge cache duration (seconds) | `60` | Increase for production |
 | `CHALLENGE_EXPIRY_SECONDS` | PKI challenge lifetime | `300` | 5 minutes default |
 | `AGENTID_BASE_URL` | Public API base URL | `http://localhost:3002` | Update for production |
+| `A2A_TOKEN_SECRET` | Secret for signing A2A tokens | Falls back to `JWT_SECRET` | Recommended to set a separate secret for production |
+| `DID_ED25519_PUBLIC_KEY` | Ed25519 public key for DID document (multibase-encoded) | (empty) | Required for Solana agent VC signing |
+| `DID_SECP256K1_PUBLIC_KEY` | SECP256K1 public key for DID document (multibase-encoded) | (empty) | Required for EVM agent VC signing |
+| `OAUTH2_ENABLED` | Enable OAuth2/OIDC authentication | `false` | Set to `true` to enable |
+| `OAUTH2_ALLOWED_ISSUERS` | Comma-separated list of trusted OAuth2 issuers | (empty) | e.g., `https://accounts.google.com,https://myorg.okta.com` |
+| `OAUTH2_ALLOWED_AUDIENCES` | Comma-separated list of valid OAuth2 audiences | (empty) | e.g., `api://agentid,https://agentidapp.com` |
+| `ENTRA_ID_ENABLED` | Enable Microsoft Entra ID authentication | `false` | Set to `true` to enable |
+| `ENTRA_TENANT_ID` | Entra ID tenant ID for validation | (empty) | Required when `ENTRA_ID_ENABLED=true` |
 
 ### Environment Setup Checklist
 
@@ -173,6 +191,17 @@ cp .env.example .env
 cd backend
 npm run migrate
 ```
+
+This runs all migration versions in sequence:
+
+| Version | Description | Key Changes |
+|---------|-------------|-------------|
+| **v1** | Base schema | `agent_identities`, `agent_verifications`, `agent_flags` tables |
+| **v2** | Organizations, RBAC, audit, API keys | `organizations`, `org_members`, `audit_logs`, `api_keys`, `webhooks`, `policies` tables; `org_id` column added to existing tables |
+| **v3** | Chain type support | `chain_type` and `chain_meta` columns on `agent_identities`; `supported_chains` reference table; per-chain pubkey uniqueness |
+| **v4** | Enterprise auth | `credential_type`, `external_id`, `idp_provider` columns on `agent_identities`; `org_identity_providers` table for org-level IdP configuration |
+
+All migrations are **idempotent** — they use `IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS`, so re-running them is safe.
 
 This creates the following schema:
 
@@ -546,7 +575,7 @@ AGENTID-VERIFY:{pubkey}:{nonce}:{timestamp}
 
 **Implementation:** See [`pkiChallenge.js`](backend/src/services/pkiChallenge.js)
 
-### Bags Auth Flow Integration
+### Challenge-Response Auth Integration
 
 AgentID wraps the Bags.fm agent authentication system:
 
@@ -805,6 +834,568 @@ const signature = crypto
 ```
 
 Delivery is retried up to 3 times with exponential backoff for non-2xx responses.
+
+---
+
+### Multi-Chain Support
+
+AgentID 2.0 introduces a chain abstraction layer that supports multiple blockchain networks through a pluggable adapter pattern.
+
+#### Chain Adapters
+
+The platform ships with 5 chain adapters:
+
+| Adapter | Chain Type Key | Signing Algorithm | Address Format |
+|---------|---------------|-------------------|----------------|
+| Solana (BAGS) | `solana-bags` | Ed25519 | base58 |
+| Solana (Generic) | `solana` | Ed25519 | base58 |
+| Ethereum | `ethereum` | SECP256K1 | hex |
+| Base | `base` | SECP256K1 | hex |
+| Polygon | `polygon` | SECP256K1 | hex |
+
+#### ChainAdapter Interface
+
+Every adapter implements the `ChainAdapter` interface defined in [`chainAdapters/index.js`](backend/src/services/chainAdapters/index.js):
+
+```javascript
+/**
+ * ChainAdapter Interface
+ *
+ * Every chain adapter must implement:
+ *   verifyOwnership(pubkey, signature, challenge) -> Promise<boolean>
+ *   getReputationData(agentId, agentObj?) -> Promise<{ score, label, breakdown }>
+ *   validateAddress(address) -> Promise<boolean>
+ *   getChainMeta() -> { name, chainId, addressFormat, signingAlgo }
+ *   initChallenge(pubkey) -> Promise<{ message, nonce }>  (optional)
+ */
+```
+
+**Implementation:** Adapters live in [`backend/src/services/chainAdapters/`](backend/src/services/chainAdapters/). EVM chains (Ethereum, Base, Polygon) share a single module ([`evm.js`](backend/src/services/chainAdapters/evm.js)) with per-chain configuration.
+
+#### Supported Chains Endpoint
+
+```bash
+# Get all supported chains
+curl https://agentidapp.com/chains
+
+# Response:
+# {
+#   "chains": [
+#     { "chainType": "solana-bags", "name": "Solana (BAGS)", "chainId": "solana-mainnet", "addressFormat": "base58", "signingAlgo": "Ed25519" },
+#     { "chainType": "solana", "name": "Solana", "chainId": "solana-mainnet", "addressFormat": "base58", "signingAlgo": "Ed25519" },
+#     { "chainType": "ethereum", "name": "Ethereum", "chainId": "1", "addressFormat": "hex", "signingAlgo": "SECP256K1" },
+#     { "chainType": "base", "name": "Base", "chainId": "8453", "addressFormat": "hex", "signingAlgo": "SECP256K1" },
+#     { "chainType": "polygon", "name": "Polygon", "chainId": "137", "addressFormat": "hex", "signingAlgo": "SECP256K1" }
+#   ],
+#   "count": 5
+# }
+```
+
+#### Chain Selection During Registration
+
+Specify the `chainType` field when registering an agent:
+
+```bash
+curl -X POST https://agentidapp.com/register \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{
+    "pubkey": "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18",
+    "name": "My EVM Agent",
+    "signature": "0x...",
+    "message": "...",
+    "nonce": "...",
+    "chainType": "ethereum",
+    "capabilities": ["trading", "analytics"]
+  }'
+```
+
+If `chainType` is omitted, it defaults to `solana-bags` for backward compatibility.
+
+#### Frontend Chain-Aware Components
+
+- **TrustBadge**: Displays a chain icon (Solana diamond, Ethereum diamond, etc.) alongside the trust score
+- **Registry & Discover pages**: Include chain filter dropdowns to narrow results by chain type
+
+---
+
+### Enterprise Authentication
+
+AgentID 2.0 introduces a pluggable authentication architecture that supports enterprise identity providers alongside the existing cryptographic (Ed25519/SECP256K1) chain adapters.
+
+#### Pluggable Auth Architecture
+
+All authentication strategies extend the `AuthStrategy` base class ([`backend/src/auth/strategies/base.js`](backend/src/auth/strategies/base.js)):
+
+```javascript
+class AuthStrategy {
+  get name() { /* Strategy identifier, e.g. 'crypto', 'oauth2', 'entra_id' */ }
+
+  async validateCredentials(payload) {
+    /* Validate agent credentials — returns { valid, identity } */
+  }
+
+  async getRegistrationChallenge(params) {
+    /* Return challenge data, or null if not needed */
+  }
+
+  async verifyRegistration(params) {
+    /* Verify registration payload — returns { verified, identity } */
+  }
+}
+```
+
+**CryptographicAuthStrategy** ([`cryptographic.js`](backend/src/auth/strategies/cryptographic.js))
+
+Wraps the existing Ed25519 and SECP256K1 chain adapters with PKI challenge-response verification. This is the default strategy and is always enabled. It delegates signature verification to the appropriate `ChainAdapter` based on `chainType`.
+
+**OAuth2AuthStrategy** ([`oauth2.js`](backend/src/auth/strategies/oauth2.js))
+
+Validates JWTs from external OAuth2/OIDC identity providers using the `jose` library:
+
+- Auto-discovers the provider's JWKS endpoint at `/.well-known/jwks.json`
+- Validates `issuer` against `OAUTH2_ALLOWED_ISSUERS`
+- Validates `audience` against `OAUTH2_ALLOWED_AUDIENCES`
+- Extracts `sub` (subject), `email`, and `name` claims
+- No PKI challenge is required for this strategy
+
+**EntraIdAuthStrategy** ([`entraId.js`](backend/src/auth/strategies/entraId.js))
+
+Extends `OAuth2AuthStrategy` with Microsoft Entra ID (Azure AD) specifics:
+
+- Validates that the token's `tid` (tenant ID) claim matches `ENTRA_TENANT_ID`
+- Supports Workload Identity Federation for service principal authentication
+- Enforces issuer format: `https://login.microsoftonline.com/{tenantId}/v2.0`
+
+#### AuthManager
+
+[`AuthManager`](backend/src/auth/authManager.js) is a singleton strategy registry that routes authentication to the correct strategy:
+
+```javascript
+const authManager = require('./src/auth/authManager');
+
+// List available strategies
+authManager.getAvailableStrategies();  // ['crypto', 'oauth2', 'entra_id']
+
+// Validate credentials
+const { valid, identity } = await authManager.validateAgentCredentials('oauth2', {
+  token: 'eyJhbGciOiJSUzI1NiIs...'
+});
+
+// Register via strategy
+const { verified, identity } = await authManager.registerAgent('entra_id', {
+  token: '...'
+});
+```
+
+Strategies are enabled/disabled via environment variables (see [Configuration](#3-environment-configuration)).
+
+#### Enterprise Registration Flow
+
+Agents using enterprise auth specify `credential_type` in the registration request:
+
+```bash
+# Register an agent via OAuth2
+curl -X POST https://agentidapp.com/register \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{
+    "credential_type": "oauth2",
+    "token": "eyJhbGciOiJSUzI1NiIs...",
+    "name": "Enterprise Agent",
+    "description": "AI agent authenticated via corporate IdP",
+    "capabilities": ["data-analysis"]
+  }'
+
+# Register an agent via Entra ID
+curl -X POST https://agentidapp.com/register \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{
+    "credential_type": "entra_id",
+    "token": "eyJhbGciOiJSUzI1NiIs...",
+    "name": "Azure AD Agent",
+    "description": "Agent authenticated via Microsoft Entra ID",
+    "capabilities": ["workflow-automation"]
+  }'
+```
+
+The enterprise path **skips the PKI challenge** — the external JWT token itself serves as proof of identity. The `external_id` (OAuth2 `sub` or Entra `oid`) becomes the agent's unique identifier.
+
+#### Identity Provider Management
+
+Organization admins can manage IdP configurations at the org level:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/orgs/:orgId/identity-providers` | List all IdPs for the org (requires Manager+ role) |
+| `POST` | `/orgs/:orgId/identity-providers` | Add a new IdP (requires Admin role) |
+| `PUT` | `/orgs/:orgId/identity-providers/:idpId` | Update an IdP (requires Admin role) |
+| `DELETE` | `/orgs/:orgId/identity-providers/:idpId` | Remove an IdP (requires Admin role) |
+
+Example — add an Okta IdP:
+
+```bash
+curl -X POST https://agentidapp.com/orgs/org-uuid/identity-providers \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{
+    "providerType": "oauth2",
+    "issuerUrl": "https://myorg.okta.com/oauth2/default",
+    "clientId": "0oabc123def",
+    "allowedAudiences": ["api://agentid"],
+    "claimMappings": { "email": "email", "name": "name" }
+  }'
+```
+
+#### Enterprise Auth Database Schema
+
+The v4 migration adds enterprise auth columns to `agent_identities` and creates the `org_identity_providers` table:
+
+```
+agent_identities (new columns):
+┌──────────────────┬────────────────┬─────────────────────────────────────────────┐
+│ Column           │ Type           │ Description                                  │
+├──────────────────┼────────────────┼─────────────────────────────────────────────┤
+│ credential_type  │ VARCHAR(20)    │ 'crypto' | 'oauth2' | 'entra_id' (default:  │
+│                  │                │ 'crypto')                                    │
+│ external_id      │ VARCHAR(255)   │ OAuth2 'sub' or Entra 'oid' claim            │
+│ idp_provider     │ VARCHAR(255)   │ Identity provider issuer URL                 │
+└──────────────────┴────────────────┴─────────────────────────────────────────────┘
+
+org_identity_providers:
+┌──────────────────┬────────────────┬─────────────────────────────────────────────┐
+│ Column           │ Type           │ Description                                  │
+├──────────────────┼────────────────┼─────────────────────────────────────────────┤
+│ id               │ UUID (PK)      │ Auto-generated                               │
+│ org_id           │ UUID (FK)      │ References organizations(id), ON DELETE      │
+│                  │                │ CASCADE                                      │
+│ provider_type    │ VARCHAR(50)    │ 'oauth2', 'entra_id', etc.                   │
+│ issuer_url       │ VARCHAR(500)   │ IdP issuer URL (UNIQUE per org)              │
+│ client_id        │ VARCHAR(255)   │ OAuth2 client ID                             │
+│ allowed_audiences│ JSONB          │ Array of valid audience strings              │
+│ claim_mappings   │ JSONB          │ Custom claim-to-field mappings               │
+│ enabled          │ BOOLEAN        │ Whether this IdP is active (default: true)   │
+│ created_at       │ TIMESTAMPTZ    │ Creation timestamp                           │
+│ updated_at       │ TIMESTAMPTZ    │ Last update timestamp                        │
+└──────────────────┴────────────────┴─────────────────────────────────────────────┘
+```
+
+---
+
+### A2A (Agent-to-Agent) Tokens
+
+AgentID provides a short-lived JWT-based token system for authenticated agent-to-agent communication.
+
+#### How It Works
+
+```
+┌─────────────┐                    ┌─────────────┐                    ┌─────────────┐
+│  Agent A    │──1. Request────────▶│  AgentID    │                    │  Agent B    │
+│ (Issuer)    │   POST /issue-token │  Platform   │                    │ (Verifier)  │
+│             │◀──2. JWT Token──────│             │                    │             │
+│             │                    │             │                    │             │
+│             │──3. Present Token─────────────────────────────────────▶│             │
+│             │                    │             │                    │             │
+│             │                    │◀──4. Verify────────────────────────│             │
+│             │                    │   POST /verify-token               │             │
+│             │                    │──5. { valid, payload }─────────────▶│             │
+└─────────────┘                    └─────────────┘                    └─────────────┘
+```
+
+#### Issue a Token
+
+```bash
+curl -X POST https://agentidapp.com/agents/agent-uuid/issue-token \
+  -b cookies.txt
+
+# Response:
+# {
+#   "token": "eyJhbGciOiJIUzI1NiIs...",
+#   "expiresIn": 60
+# }
+```
+
+The issued JWT contains the agent's claims:
+
+- `sub` — Agent ID
+- `name` — Agent display name
+- `pubkey` — Agent's public key
+- `chain` — Chain type (e.g., `ethereum`, `solana-bags`)
+- `caps` — Capability set
+- `score` — Reputation score
+- `credentialType`, `externalId`, `provider` — (enterprise agents only)
+
+Tokens are short-lived (60 seconds) and signed with `A2A_TOKEN_SECRET`.
+
+#### Verify a Token
+
+Any agent can verify a token without sharing the secret, using the public verification endpoint:
+
+```bash
+curl -X POST https://agentidapp.com/agents/verify-token \
+  -H "Content-Type: application/json" \
+  -d '{ "token": "eyJhbGciOiJIUzI1NiIs..." }'
+
+# Response:
+# {
+#   "valid": true,
+#   "payload": { "sub": "agent-uuid", "name": "My Agent", ... }
+# }
+```
+
+#### JWKS Endpoint
+
+The platform exposes key metadata for A2A token verification at:
+
+```
+GET /.well-known/jwks.json
+```
+
+This endpoint documents the signing algorithm (`HS256`) and key identifier (`agentid-a2a-v1`). Since HMAC is symmetric, the actual secret is not exposed — verifiers must use the `/agents/verify-token` endpoint or obtain the shared secret via a secure channel.
+
+#### Configuration
+
+Set `A2A_TOKEN_SECRET` in your `.env` file. If not set, it falls back to `JWT_SECRET`, but a separate secret is recommended for production.
+
+---
+
+### W3C DID & Verifiable Credentials
+
+AgentID exposes W3C-compliant DID documents and Verifiable Credentials for interoperability with decentralized identity ecosystems.
+
+#### DID Document
+
+The platform publishes a `did:web` DID document at:
+
+```
+GET /.well-known/did.json
+```
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1",
+    "https://w3id.org/security/suites/secp256k1-2019/v1"
+  ],
+  "id": "did:web:agentidapp.com",
+  "controller": "did:web:agentidapp.com",
+  "verificationMethod": [
+    {
+      "id": "did:web:agentidapp.com#ed25519-key",
+      "type": "Ed25519VerificationKey2020",
+      "controller": "did:web:agentidapp.com",
+      "publicKeyMultibase": "<DID_ED25519_PUBLIC_KEY>"
+    },
+    {
+      "id": "did:web:agentidapp.com#secp256k1-key",
+      "type": "EcdsaSecp256k1VerificationKey2019",
+      "controller": "did:web:agentidapp.com",
+      "publicKeyMultibase": "<DID_SECP256K1_PUBLIC_KEY>"
+    }
+  ],
+  "authentication": [
+    "did:web:agentidapp.com#ed25519-key",
+    "did:web:agentidapp.com#secp256k1-key"
+  ],
+  "assertionMethod": [
+    "did:web:agentidapp.com#ed25519-key",
+    "did:web:agentidapp.com#secp256k1-key"
+  ]
+}
+```
+
+Set `DID_ED25519_PUBLIC_KEY` and `DID_SECP256K1_PUBLIC_KEY` in your `.env` to populate the verification methods with real public keys (multibase-encoded).
+
+#### Verifiable Credentials
+
+```
+GET /agents/:agentId/credential
+```
+
+Returns a W3C Verifiable Credential for the specified agent:
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1",
+    {
+      "AgentIDCredential": "https://agentidapp.com/schemas/credential/v1",
+      "agentName": "https://agentidapp.com/schemas/credential/v1#agentName",
+      "chainType": "https://agentidapp.com/schemas/credential/v1#chainType",
+      "reputationScore": "https://agentidapp.com/schemas/credential/v1#reputationScore",
+      "reputationLabel": "https://agentidapp.com/schemas/credential/v1#reputationLabel",
+      "capabilities": "https://agentidapp.com/schemas/credential/v1#capabilities",
+      "verificationStatus": "https://agentidapp.com/schemas/credential/v1#verificationStatus",
+      "registeredAt": "https://agentidapp.com/schemas/credential/v1#registeredAt",
+      "lastVerified": "https://agentidapp.com/schemas/credential/v1#lastVerified"
+    }
+  ],
+  "id": "urn:agentid:credential:<agentId>",
+  "type": ["VerifiableCredential", "AIAgentIdentityCredential"],
+  "issuer": {
+    "id": "did:web:agentidapp.com",
+    "name": "AgentID",
+    "url": "https://agentidapp.com"
+  },
+  "issuanceDate": "2026-04-27T12:00:00.000Z",
+  "expirationDate": "2026-04-28T12:00:00.000Z",
+  "credentialSubject": {
+    "id": "did:key:<pubkey>",
+    "agentName": "My Agent",
+    "chainType": "solana-bags",
+    "reputationScore": 85,
+    "reputationLabel": "HIGH",
+    "capabilities": ["trading", "analytics"],
+    "verificationStatus": "verified"
+  }
+}
+```
+
+**Credential subject DID method** depends on the agent's chain:
+- Solana agents: `did:key:<pubkey>`
+- EVM agents: `did:pkh:eip155:<chainId>:<pubkey>`
+
+**Verification method** is selected based on chain type:
+- Solana agents: `did:web:agentidapp.com#ed25519-key`
+- EVM agents: `did:web:agentidapp.com#secp256k1-key`
+
+Credentials are valid for 24 hours from issuance.
+
+---
+
+### SDK Packages
+
+AgentID ships three standalone packages for developers building on the platform.
+
+#### @agentid/sdk
+
+Full-featured TypeScript API client for Node.js applications.
+
+```bash
+npm install @agentid/sdk
+```
+
+```typescript
+import { AgentIDClient } from '@agentid/sdk';
+
+const client = new AgentIDClient({
+  baseUrl: 'https://agentidapp.com',
+  apiKey: 'aid_abc123...'
+});
+
+// Register an agent
+const agent = await client.register({
+  pubkey: '...',
+  name: 'My Agent',
+  chainType: 'ethereum',
+  capabilities: ['trading']
+});
+
+// Get agent details
+const details = await client.getAgent(agent.agentId);
+```
+
+**Build:** `cd packages/sdk && npm run build`
+
+#### @agentid/react
+
+React component library with theme-aware UI components:
+
+- **TrustBadge** — Displays agent trust score with chain icon and reputation label
+- **AgentCard** — Full agent profile card with capabilities and chain info
+- **CapabilityList** — Renders capability tags with status indicators
+- **ReputationGauge** — Visual score gauge with trust tier coloring
+
+```bash
+npm install @agentid/react
+```
+
+```jsx
+import { TrustBadge, AgentCard } from '@agentid/react';
+
+function AgentProfile({ agentId }) {
+  return (
+    <div>
+      <TrustBadge agentId={agentId} theme="dark" />
+      <AgentCard agentId={agentId} showChain />
+    </div>
+  );
+}
+```
+
+**Build:** `cd packages/react && npm run build`
+
+#### @agentid/verify
+
+Lightweight A2A token verification library for agent-to-agent communication:
+
+```bash
+npm install @agentid/verify
+```
+
+```javascript
+const { verifyA2AToken } = require('@agentid/verify');
+
+// Verify with shared secret (fast, local)
+const result = verifyA2AToken(token, { secret: 'your-a2a-secret' });
+
+// Verify via AgentID API (no secret needed)
+const result = await verifyA2AToken(token, {
+  baseUrl: 'https://agentidapp.com',
+  verifyEndpoint: '/agents/verify-token'
+});
+```
+
+**No build step required** — this package ships plain JavaScript.
+
+---
+
+### BullMQ Webhook Queue
+
+Webhook delivery has been upgraded from fire-and-forget HTTP calls to a BullMQ-backed job queue for reliability.
+
+#### How It Works
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  Event Bus  │────▶│   Webhook   │────▶│   BullMQ    │────▶│   HTTP      │
+│  (emitter)  │     │  Service    │     │   Queue     │     │  Delivery   │
+│             │     │  (producer) │     │  (Redis)    │     │  (worker)   │
+└─────────────┘     └─────────────┘     └─────────────┘     └──────┬──────┘
+                                                                   │
+                                                           ┌───────┴──────┐
+                                                           │  On Failure: │
+                                                           │  Exponential │
+                                                           │  Backoff     │
+                                                           │  Retry x3   │
+                                                           └──────────────┘
+```
+
+#### Key Features
+
+- **Reliable delivery**: Jobs persist in Redis until completed or exhausted
+- **Exponential backoff**: Failed deliveries are retried with increasing delays (5s base, 3 attempts)
+- **SSRF protection**: URLs are re-validated at delivery time; DNS resolution is pinned to the validated IP
+- **HMAC signing**: All payloads include `X-AgentID-Signature` header for verification
+- **Delivery logging**: Each attempt is recorded in the `webhook_deliveries` table
+
+#### Configuration
+
+BullMQ uses the same Redis instance as the rest of the stack. No additional Redis instances are needed. The `bullmq` dependency is included in `backend/package.json`.
+
+#### Graceful Shutdown
+
+The webhook worker and queue are gracefully shut down when the server stops:
+
+```javascript
+const { closeWebhookQueue } = require('./src/services/webhookService');
+
+// Called during server shutdown
+await closeWebhookQueue();
+```
 
 ---
 

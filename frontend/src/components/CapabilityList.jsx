@@ -1,26 +1,32 @@
 import PropTypes from 'prop-types';
 
-const capabilityColors = {
-  'bags.swap': 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-  'bags.fee': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-  'bags.launch': 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-  'bags.trade': 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  'bags.analytics': 'bg-pink-500/10 text-pink-400 border-pink-500/30',
-  'infra': 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-  'default': 'bg-slate-500/10 text-slate-400 border-slate-500/30',
-};
-
 function getCapabilityStyle(capability) {
-  const prefix = capability.split('.')[0];
-  const category = capability.split('.')[1];
+  const cap = capability.toLowerCase();
   
-  if (prefix === 'bags' && category) {
-    return capabilityColors[`bags.${category}`] || capabilityColors.default;
-  }
-  if (prefix === 'infra') {
-    return capabilityColors.infra;
-  }
-  return capabilityColors.default;
+  // Solana BAGS chain capabilities
+  if (cap.startsWith('bags.swap')) return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
+  if (cap.startsWith('bags.fee')) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+  if (cap.startsWith('bags.launch')) return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+  if (cap.startsWith('bags.trade')) return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+  if (cap.startsWith('bags.')) return 'bg-violet-500/10 text-violet-400 border-violet-500/20';
+  
+  // DeFi
+  if (cap.startsWith('defi.')) return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
+  
+  // NFT
+  if (cap.startsWith('nft.')) return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+  
+  // Oracle
+  if (cap.startsWith('oracle.')) return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+  
+  // Infrastructure
+  if (cap.startsWith('infra.')) return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+  
+  // Social
+  if (cap.startsWith('social.')) return 'bg-pink-500/10 text-pink-400 border-pink-500/20';
+  
+  // Default
+  return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
 }
 
 function getCapabilityIcon(capability) {

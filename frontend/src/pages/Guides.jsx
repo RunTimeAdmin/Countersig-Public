@@ -71,6 +71,127 @@ export default function Guides() {
           </a>
         </div>
       </div>
+
+      <section className="mt-12 space-y-4">
+        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Multi-Chain Registration</h2>
+        <p className="text-[var(--text-secondary)]">
+          AgentID 2.0 supports agent registration across multiple blockchains. Each chain uses its native signing algorithm for identity verification.
+        </p>
+
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">Supported Chains</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--border-subtle)]">
+                  <th className="text-left py-2 text-[var(--text-muted)] font-medium">Chain</th>
+                  <th className="text-left py-2 text-[var(--text-muted)] font-medium">Algorithm</th>
+                  <th className="text-left py-2 text-[var(--text-muted)] font-medium">Address Format</th>
+                </tr>
+              </thead>
+              <tbody className="text-[var(--text-secondary)]">
+                <tr className="border-b border-[var(--border-subtle)]"><td className="py-2">Solana (BAGS)</td><td>Ed25519</td><td>Base58 public key</td></tr>
+                <tr className="border-b border-[var(--border-subtle)]"><td className="py-2">Solana (Generic)</td><td>Ed25519</td><td>Base58 public key</td></tr>
+                <tr className="border-b border-[var(--border-subtle)]"><td className="py-2">Ethereum</td><td>SECP256K1</td><td>0x hex address (42 chars)</td></tr>
+                <tr className="border-b border-[var(--border-subtle)]"><td className="py-2">Base</td><td>SECP256K1</td><td>0x hex address (42 chars)</td></tr>
+                <tr className="border-b border-[var(--border-subtle)]"><td className="py-2">Polygon</td><td>SECP256K1</td><td>0x hex address (42 chars)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">EVM Agent Registration</h3>
+          <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+            <ol className="list-decimal list-inside space-y-2 text-sm text-[var(--text-secondary)]">
+              <li>Select an EVM chain (Ethereum, Base, or Polygon) during registration</li>
+              <li>Enter your wallet address (0x format, 42 characters)</li>
+              <li>Request a challenge from the AgentID server</li>
+              <li>Sign the challenge using MetaMask (<code className="bg-[var(--bg-primary)] px-1.5 py-0.5 rounded text-xs">personal_sign</code>) or ethers.js</li>
+              <li>Submit the signature to complete verification</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-12 space-y-4">
+        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Agent-to-Agent (A2A) Tokens</h2>
+        <p className="text-[var(--text-secondary)]">
+          A2A tokens enable secure communication between agents. These are short-lived JWTs that prove an agent&apos;s identity to other agents or services.
+        </p>
+
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">Issuing a Token</h3>
+          <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`POST /agents/:agentId/issue-token
+Authorization: Bearer <your-jwt>
+
+Response:
+{
+  "token": "eyJhbG...",
+  "expiresIn": "15m"
+}`}</code></pre>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">Verifying a Token</h3>
+          <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`POST /agents/verify-token
+Content-Type: application/json
+
+{ "token": "eyJhbG..." }
+
+Response:
+{
+  "valid": true,
+  "agentId": "agent-123",
+  "chainType": "ethereum"
+}`}</code></pre>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">Using the Verify Package</h3>
+          <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`import { AgentIDVerifier } from '@agentid/verify';
+
+const verifier = new AgentIDVerifier({
+  baseURL: 'https://agentidapp.com'
+});
+
+const result = await verifier.verify(token);
+console.log(result.valid, result.agentId);`}</code></pre>
+        </div>
+      </section>
+
+      <section className="mt-12 space-y-4">
+        <h2 className="text-2xl font-bold text-[var(--text-primary)]">W3C Verifiable Credentials</h2>
+        <p className="text-[var(--text-secondary)]">
+          AgentID can export agent identity data as W3C Verifiable Credentials, enabling interoperability with standard identity systems.
+        </p>
+
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">Exporting a Credential</h3>
+          <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`GET /agents/:agentId/credential
+
+Response:
+{
+  "@context": ["https://www.w3.org/2018/credentials/v1"],
+  "type": ["VerifiableCredential", "AgentIdentityCredential"],
+  "issuer": "did:web:agentidapp.com",
+  "credentialSubject": {
+    "id": "did:web:agentidapp.com:agents:agent-123",
+    "name": "My Agent",
+    "chainType": "ethereum",
+    "capabilities": ["defi.swap.v1"],
+    "reputationScore": 85
+  }
+}`}</code></pre>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">DID Document</h3>
+          <p className="text-sm text-[var(--text-secondary)]">
+            The platform&apos;s DID document is available at <code className="bg-[var(--bg-primary)] px-1.5 py-0.5 rounded text-xs">/.well-known/did.json</code> and contains the public keys used for credential verification.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }

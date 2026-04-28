@@ -207,6 +207,104 @@ async function getOrgStats(orgId) {
   };
 }
 
+// ── Identity Provider Queries ──
+
+/**
+ * Get all identity providers for an organization
+ * @param {string} orgId - Organization UUID
+ * @returns {Promise<Array>}
+ */
+async function getOrgIdPs(orgId) {
+  const result = await query(
+    `SELECT * FROM org_identity_providers
+     WHERE org_id = $1
+     ORDER BY created_at DESC`,
+    [orgId]
+  );
+  return result.rows;
+}
+
+/**
+ * Get a single identity provider by ID and org
+ * @param {string} idpId - Identity provider UUID
+ * @param {string} orgId - Organization UUID
+ * @returns {Promise<Object|null>}
+ */
+async function getOrgIdP(idpId, orgId) {
+  const result = await query(
+    `SELECT * FROM org_identity_providers
+     WHERE id = $1 AND org_id = $2`,
+    [idpId, orgId]
+  );
+  return result.rows[0] || null;
+}
+
+/**
+ * Create a new identity provider for an organization
+ * @param {Object} params - { orgId, providerType, issuerUrl, clientId, allowedAudiences, claimMappings, enabled }
+ * @returns {Promise<Object>}
+ */
+async function createOrgIdP({ orgId, providerType, issuerUrl, clientId, allowedAudiences = [], claimMappings = {}, enabled = true }) {
+  const result = await query(
+    `INSERT INTO org_identity_providers
+     (org_id, provider_type, issuer_url, client_id, allowed_audiences, claim_mappings, enabled)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING *`,
+    [orgId, providerType, issuerUrl, clientId || null, JSON.stringify(allowedAudiences), JSON.stringify(claimMappings), enabled]
+  );
+  return result.rows[0];
+}
+
+/**
+ * Update an identity provider configuration
+ * @param {string} idpId - Identity provider UUID
+ * @param {string} orgId - Organization UUID
+ * @param {Object} updates - Fields to update
+ * @returns {Promise<Object|null>}
+ */
+async function updateOrgIdP(idpId, orgId, updates) {
+  const fields = [];
+  const values = [];
+  let idx = 1;
+
+  if (updates.providerType !== undefined) { fields.push(`provider_type = $${idx++}`); values.push(updates.providerType); }
+  if (updates.issuerUrl !== undefined) { fields.push(`issuer_url = $${idx++}`); values.push(updates.issuerUrl); }
+  if (updates.clientId !== undefined) { fields.push(`client_id = $${idx++}`); values.push(updates.clientId); }
+  if (updates.allowedAudiences !== undefined) { fields.push(`allowed_audiences = $${idx++}`); values.push(JSON.stringify(updates.allowedAudiences)); }
+  if (updates.claimMappings !== undefined) { fields.push(`claim_mappings = $${idx++}`); values.push(JSON.stringify(updates.claimMappings)); }
+  if (updates.enabled !== undefined) { fields.push(`enabled = $${idx++}`); values.push(updates.enabled); }
+
+  if (fields.length === 0) return null;
+
+  fields.push(`updated_at = NOW()`);
+  values.push(idpId, orgId);
+
+  const result = await query(
+    `UPDATE org_identity_providers
+     SET ${fields.join(', ')}
+     WHERE id = $${idx++} AND org_id = $${idx}
+     RETURNING *`,
+    values
+  );
+  return result.rows[0] || null;
+}
+
+/**
+ * Delete an identity provider
+ * @param {string} idpId - Identity provider UUID
+ * @param {string} orgId - Organization UUID
+ * @returns {Promise<Object|null>}
+ */
+async function deleteOrgIdP(idpId, orgId) {
+  const result = await query(
+    `DELETE FROM org_identity_providers
+     WHERE id = $1 AND org_id = $2
+     RETURNING *`,
+    [idpId, orgId]
+  );
+  return result.rows[0] || null;
+}
+
 module.exports = {
   getOrganization,
   updateOrganization,
@@ -216,5 +314,10 @@ module.exports = {
   updateMemberRole,
   removeMember,
   createInvite,
-  getOrgStats
+  getOrgStats,
+  getOrgIdPs,
+  getOrgIdP,
+  createOrgIdP,
+  updateOrgIdP,
+  deleteOrgIdP
 };

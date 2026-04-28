@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getAgent, getBadge, getReputation, flagAgent, getAttestations, getFlags } from '../lib/api';
+import { getAgent, getBadge, getReputation, flagAgent, getAttestations, getFlags, getCredential, issueA2AToken } from '../lib/api';
 import TrustBadge from '../components/TrustBadge';
 import ReputationBreakdown from '../components/ReputationBreakdown';
 import CapabilityList from '../components/CapabilityList';
@@ -166,6 +166,16 @@ function HistoryItem({ item, type }) {
   );
 }
 
+function getChainColor(chainType) {
+  const colors = { 'solana-bags': '#9945FF', 'solana': '#14F195', 'ethereum': '#627EEA', 'base': '#0052FF', 'polygon': '#8247E5' };
+  return colors[chainType] || '#888';
+}
+
+function getChainLabel(chainType) {
+  const labels = { 'solana-bags': 'BAGS', 'solana': 'SOL', 'ethereum': 'ETH', 'base': 'BASE', 'polygon': 'MATIC' };
+  return labels[chainType] || chainType;
+}
+
 export default function AgentDetail() {
   const { agentId } = useParams();
   const navigate = useNavigate();
@@ -178,6 +188,7 @@ export default function AgentDetail() {
   const [flags, setFlags] = useState([]);
   const [isFlagModalOpen, setIsFlagModalOpen] = useState(false);
   const [flagSubmitting, setFlagSubmitting] = useState(false);
+  const [a2aToken, setA2AToken] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -313,6 +324,7 @@ export default function AgentDetail() {
               score={badge?.bagsScore ?? badge?.bags_score}
               tier={badge?.tier}
               tierColor={badge?.tierColor}
+              agent={agent}
               className="w-full lg:w-80"
             />
           </div>
@@ -335,6 +347,15 @@ export default function AgentDetail() {
                   {badge.tier === 'verified' ? '★ VERIFIED' : 'TRUSTED'} TIER
                 </span>
               )}
+              {agent?.chain_type && (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider"
+                  style={{
+                    backgroundColor: `${getChainColor(agent.chain_type)}20`,
+                    color: getChainColor(agent.chain_type)
+                  }}>
+                  {getChainLabel(agent.chain_type)}
+                </span>
+              )}
             </div>
 
             <h1 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-3">
@@ -349,8 +370,8 @@ export default function AgentDetail() {
             </div>
           </div>
 
-          {/* Action Button */}
-          <div className="flex-shrink-0">
+          {/* Action Buttons */}
+          <div className="flex-shrink-0 flex flex-col gap-2">
             <button
               onClick={() => setIsFlagModalOpen(true)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 transition-all duration-200"
@@ -359,6 +380,29 @@ export default function AgentDetail() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Flag this agent
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const data = await getCredential(agent.agent_id);
+                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                  window.open(URL.createObjectURL(blob), '_blank');
+                } catch (err) { console.error('Failed to get credential:', err); }
+              }}
+              className="px-4 py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-default)] transition-all text-sm"
+            >
+              View Credential
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const data = await issueA2AToken(agent.agent_id);
+                  setA2AToken(data.token);
+                } catch (err) { console.error('Failed to issue token:', err); }
+              }}
+              className="px-4 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 transition-all text-sm"
+            >
+              Issue A2A Token
             </button>
           </div>
         </div>
@@ -370,7 +414,7 @@ export default function AgentDetail() {
         <div className="lg:col-span-2 space-y-6">
           {/* Reputation Section */}
           {reputation && (
-            <ReputationBreakdown breakdown={reputation.breakdown} />
+            <ReputationBreakdown breakdown={reputation.breakdown} chainType={agent?.chain_type} />
           )}
 
           {/* Details Section */}
@@ -448,7 +492,7 @@ export default function AgentDetail() {
                 <div className="text-2xl font-bold text-[var(--accent-cyan)]">
                   {(attestations.bagsScore || agent.bagsScore || 0).toLocaleString()}
                 </div>
-                <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">BAGS Score</div>
+                <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Reputation Score</div>
               </div>
             </div>
             <SuccessRateIndicator
@@ -456,6 +500,17 @@ export default function AgentDetail() {
               failed={attestations.failedActions || agent.failedActions || 0}
             />
           </div>
+
+          {/* A2A Token Display */}
+          {a2aToken && (
+            <div className="mt-4 p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">A2A Token</span>
+                <button onClick={() => { navigator.clipboard.writeText(a2aToken); }} className="text-xs text-cyan-400 hover:text-cyan-300">Copy</button>
+              </div>
+              <code className="text-xs text-[var(--text-secondary)] break-all block">{a2aToken}</code>
+            </div>
+          )}
         </div>
 
         {/* Right Column - Capabilities & History */}

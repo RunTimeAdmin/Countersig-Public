@@ -35,6 +35,12 @@ router.post('/challenge', authenticate, authLimiter, async (req, res, next) => {
       });
     }
 
+    if (agent.credential_type && agent.credential_type !== 'crypto') {
+      return res.status(400).json({
+        error: `${agent.credential_type} agents do not require PKI verification`
+      });
+    }
+
     // 2.5 Verify org ownership
     if (agent.org_id !== req.user.orgId) {
       return res.status(403).json({
@@ -86,6 +92,12 @@ router.post('/response', authenticate, authLimiter, async (req, res, next) => {
       return res.status(404).json({
         error: 'Agent not found',
         agentId
+      });
+    }
+
+    if (agent.credential_type && agent.credential_type !== 'crypto') {
+      return res.status(400).json({
+        error: `${agent.credential_type} agents do not require PKI verification`
       });
     }
 

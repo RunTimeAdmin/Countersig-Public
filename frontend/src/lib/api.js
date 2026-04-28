@@ -20,6 +20,7 @@ export const getAgents = async (filters = {}) => {
   const params = new URLSearchParams();
   if (filters.status) params.append('status', filters.status);
   if (filters.capability) params.append('capability', filters.capability);
+  if (filters.chain) params.append('chain', filters.chain);
   if (filters.limit) params.append('limit', filters.limit);
   if (filters.offset) params.append('offset', filters.offset);
   
@@ -81,6 +82,7 @@ export const flagAgent = async (agentId, flagData) => {
 export const discoverAgents = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.capability) queryParams.append('capability', params.capability);
+  if (params.chain) queryParams.append('chain', params.chain);
   if (params.minScore) queryParams.append('minScore', params.minScore);
   if (params.limit) queryParams.append('limit', params.limit);
   
@@ -125,5 +127,35 @@ export const getAgentsByOwner = async (pubkey) => {
   const response = await api.get(`/agents/owner/${pubkey}`);
   return response.data;
 };
+
+// Chain support
+export const getChains = async () => {
+  const response = await api.get('/agents/chains');
+  return response.data;
+};
+
+// W3C Verifiable Credential
+export const getCredential = async (agentId) => {
+  const response = await api.get(`/agents/${agentId}/credential`);
+  return response.data;
+};
+
+// A2A Token issuance
+export const issueA2AToken = async (agentId) => {
+  const response = await api.post(`/agents/${agentId}/issue-token`);
+  return response.data;
+};
+
+// A2A Token verification
+export const verifyA2AToken = async (token) => {
+  const response = await api.post('/agents/verify-token', { token });
+  return response.data;
+};
+
+// External token verification
+export async function verifyExternalToken(token, provider) {
+  const res = await api.post('/auth/verify-external-token', { token, provider });
+  return res.data;
+}
 
 export default api;

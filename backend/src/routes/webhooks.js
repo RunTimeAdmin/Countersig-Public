@@ -7,7 +7,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { query } = require('../models/db');
 const { authenticate } = require('../middleware/authenticate');
-const { authorize, ROLES } = require('../middleware/authorize');
+const { authorize, requireScope, ROLES } = require('../middleware/authorize');
 const { orgContext } = require('../middleware/orgContext');
 const { assertPublicHttpsUrl } = require('../utils/urlValidator');
 
@@ -24,7 +24,7 @@ function maskSecret(secret) {
  * GET /orgs/:orgId/webhooks
  * List all webhooks for the organization
  */
-router.get('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.MANAGER, ROLES.ADMIN), async (req, res, next) => {
+router.get('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.MANAGER, ROLES.ADMIN), requireScope('read'), async (req, res, next) => {
   try {
     const result = await query(
       'SELECT * FROM webhooks WHERE org_id = $1 ORDER BY created_at DESC',
@@ -46,7 +46,7 @@ router.get('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.MA
  * POST /orgs/:orgId/webhooks
  * Create a new webhook
  */
-router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.ADMIN), async (req, res, next) => {
+router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
   try {
     const { url, events, secret } = req.body;
 
@@ -87,7 +87,7 @@ router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.A
  * PUT /orgs/:orgId/webhooks/:webhookId
  * Update a webhook
  */
-router.put('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authorize(ROLES.ADMIN), async (req, res, next) => {
+router.put('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
   try {
     const { webhookId } = req.params;
     const { url, events, enabled } = req.body;
@@ -147,7 +147,7 @@ router.put('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authori
  * DELETE /orgs/:orgId/webhooks/:webhookId
  * Delete a webhook
  */
-router.delete('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authorize(ROLES.ADMIN), async (req, res, next) => {
+router.delete('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('admin'), async (req, res, next) => {
   try {
     const { webhookId } = req.params;
 

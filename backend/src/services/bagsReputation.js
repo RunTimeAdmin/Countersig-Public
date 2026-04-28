@@ -1,22 +1,31 @@
 /**
  * BAGS Reputation Service
- * Computes a Bags-specific reputation score (0-100) using 5 factors
+ * Computes a configurable reputation score (0-100) using 5 factors
  */
 
 const axios = require('axios');
 const config = require('../config/index.js');
 const queries = require('../models/queries.js');
 const { getSAIDTrustScore } = require('./saidBinding.js');
+const { getCache, setCache } = require('../models/redis');
 
 /**
  * Compute BAGS reputation score for an agent
  * @param {string} agentId - Agent UUID
+ * @param {Object} prefetched - Optional prefetched data { agent, actions }
  * @returns {Promise<Object>} - Score breakdown and total
  */
-async function computeBagsScore(agentId) {
+async function computeBagsScore(agentId, prefetched = {}) {
   try {
+    // Check cache first
+    const cacheKey = `reputation:${agentId}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     // Get agent data for token_mint and pubkey
-    const agent = await queries.getAgent(agentId);
+    const agent = prefetched.agent || await queries.getAgent(agentId);
     if (!agent) {
       throw new Error(`Agent not found: ${agentId}`);
     }
@@ -40,7 +49,7 @@ async function computeBagsScore(agentId) {
     // 2. Success Rate (25 points max)
     let successRateScore = 0;
     try {
-      const actions = await queries.getAgentActions(agentId);
+      const actions = prefetched.actions || await queries.getAgentActions(agentId);
       if (actions) {
         const total = actions.total || 0;
         const successful = actions.successful || 0;
@@ -104,7 +113,7 @@ async function computeBagsScore(agentId) {
       label = 'NEW AGENT';
     }
 
-    return {
+    const result = {
       score: totalScore,
       label: label,
       breakdown: {
@@ -116,6 +125,11 @@ async function computeBagsScore(agentId) {
       },
       saidScore: saidScore
     };
+
+    // Cache the result with 300-second TTL
+    await setCache(cacheKey, result, 300);
+
+    return result;
   } catch (error) {
     throw new Error(`Failed to compute BAGS score: ${error.message}`);
   }

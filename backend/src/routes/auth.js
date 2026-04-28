@@ -17,6 +17,9 @@ const {
   expiryToSeconds
 } = require('../services/authService');
 const { authLimiter } = require('../middleware/rateLimit');
+const { authenticate } = require('../middleware/authenticate');
+const authManager = require('../auth/authManager');
+const authConfig = require('../auth/authConfig');
 
 const router = express.Router();
 
@@ -69,8 +72,8 @@ router.post('/auth/register', authLimiter, async (req, res, next) => {
     if (!email || !EMAIL_REGEX.test(email)) {
       return res.status(400).json({ error: 'Valid email is required' });
     }
-    if (!password || password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    if (!password || password.length < 12) {
+      return res.status(400).json({ error: 'Password must be at least 12 characters' });
     }
     if (!orgName || typeof orgName !== 'string' || orgName.trim().length === 0) {
       return res.status(400).json({ error: 'Organization name is required' });
@@ -326,6 +329,49 @@ router.post('/auth/logout', async (req, res, next) => {
     return res.status(200).json({ success: true });
   } catch (error) {
     next(error);
+  }
+});
+
+/**
+ * POST /auth/verify-external-token
+ * Validate an external OAuth2/OIDC JWT and return decoded claims.
+ * Requires authentication (org context needed to check allowed providers).
+ */
+router.post('/auth/verify-external-token', authenticate, async (req, res) => {
+  try {
+    const { token, provider } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+
+    // Determine which strategy to use
+    const credentialType = provider === 'entra_id' ? 'entra_id' : 'oauth2';
+
+    // Check if the strategy is enabled
+    if (!authConfig.isStrategyEnabled(credentialType)) {
+      return res.status(400).json({ error: `${credentialType} authentication is not enabled` });
+    }
+
+    const strategyConfig = authConfig.getStrategyConfig(credentialType);
+
+    const result = await authManager.validateAgentCredentials(credentialType, {
+      token,
+      allowedIssuers: strategyConfig?.allowedIssuers || [],
+      expectedAudience: strategyConfig?.allowedAudiences || undefined,
+    });
+
+    if (!result.valid) {
+      return res.status(401).json({ error: 'Token validation failed' });
+    }
+
+    return res.json({
+      valid: true,
+      identity: result.identity,
+    });
+  } catch (err) {
+    console.error('External token verification error:', err);
+    return res.status(500).json({ error: 'Token verification failed' });
   }
 });
 

@@ -18,16 +18,30 @@ const config = {
 
   // Redis configuration
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+  redisHost: process.env.REDIS_HOST || undefined,
+  redisPort: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT, 10) : undefined,
+  redisPassword: process.env.REDIS_PASSWORD || undefined,
 
-  // CORS configuration
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  // CORS configuration (comma-separated for multi-origin support)
+  corsOrigin: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
+    : ['*'],
 
   // Cache and expiry configuration
   badgeCacheTtl: parseInt(process.env.BADGE_CACHE_TTL, 10) || 60,
   challengeExpirySeconds: parseInt(process.env.CHALLENGE_EXPIRY_SECONDS, 10) || 300,
 
   // Verified tier threshold configuration
-  verifiedThreshold: parseInt(process.env.VERIFIED_THRESHOLD || '70', 10)
+  verifiedThreshold: parseInt(process.env.VERIFIED_THRESHOLD || '70', 10),
+
+  // Enterprise Auth (OAuth2/OIDC)
+  oauth2Enabled: process.env.OAUTH2_ENABLED === 'true',
+  oauth2AllowedIssuers: (process.env.OAUTH2_ALLOWED_ISSUERS || '').split(',').map(s => s.trim()).filter(Boolean),
+  oauth2AllowedAudiences: (process.env.OAUTH2_ALLOWED_AUDIENCES || '').split(',').map(s => s.trim()).filter(Boolean),
+
+  // Microsoft Entra ID
+  entraIdEnabled: process.env.ENTRA_ID_ENABLED === 'true',
+  entraTenantId: process.env.ENTRA_TENANT_ID || ''
 };
 
 module.exports = config;

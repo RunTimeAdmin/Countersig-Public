@@ -4,6 +4,7 @@
  */
 
 const { query } = require('./db');
+const { invalidateAgentCaches } = require('../services/badgeBuilder');
 
 // ============================================================================
 // Agent Identity Queries
@@ -14,17 +15,18 @@ const { query } = require('./db');
  * @param {Object} params - Agent data
  * @returns {Promise<Object>} - Created agent row
  */
-async function createAgent({ pubkey, name, description, tokenMint, capabilitySet, creatorX, creatorWallet, isDemo = false, orgId = null, createdBy = null }) {
+async function createAgent({ pubkey, name, description, tokenMint, capabilitySet, creatorX, creatorWallet, isDemo = false, orgId = null, createdBy = null, chainType = 'solana-bags', chainMeta = {}, credentialType = 'crypto', externalId = null, idpProvider = null }) {
   const sql = `
     INSERT INTO agent_identities 
-      (pubkey, name, description, token_mint, capability_set, creator_x, creator_wallet, registered_at, is_demo, org_id, created_by)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9, $10)
+      (pubkey, name, description, token_mint, capability_set, creator_x, creator_wallet, registered_at, is_demo, org_id, created_by, chain_type, chain_meta, credential_type, external_id, idp_provider)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9, $10, $11, $12, $13, $14, $15)
     RETURNING *
   `;
   const result = await query(sql, [
     pubkey, name, description, tokenMint,
     JSON.stringify(capabilitySet || []), creatorX, creatorWallet, isDemo,
-    orgId, createdBy
+    orgId, createdBy, chainType, JSON.stringify(chainMeta),
+    credentialType, externalId, idpProvider
   ]);
   return result.rows[0];
 }
@@ -36,6 +38,23 @@ async function createAgent({ pubkey, name, description, tokenMint, capabilitySet
  */
 async function getAgent(agentId) {
   const result = await query('SELECT * FROM agent_identities WHERE agent_id = $1', [agentId]);
+  return result.rows[0] || null;
+}
+
+/**
+ * Get an agent by external ID and IdP provider
+ * @param {string} externalId - External identity
+ * @param {string} idpProvider - Identity provider
+ * @returns {Promise<Object|null>} - Agent row or null
+ */
+async function getAgentByExternalId(externalId, idpProvider) {
+  const result = await query(
+    `SELECT * FROM agent_identities 
+     WHERE external_id = $1 AND idp_provider = $2 
+     AND revoked_at IS NULL AND deleted_at IS NULL
+     LIMIT 1`,
+    [externalId, idpProvider]
+  );
   return result.rows[0] || null;
 }
 
@@ -96,7 +115,7 @@ async function updateAgent(agentId, fields, updatedBy = null) {
   const allowedFields = [
     'name', 'description', 'token_mint', 'said_registered',
     'said_trust_score', 'capability_set', 'creator_x', 'creator_wallet',
-    'status', 'flag_reason', 'bags_score'
+    'status', 'flag_reason', 'bags_score', 'chain_type', 'chain_meta'
   ];
 
   const updates = [];
@@ -124,6 +143,7 @@ async function updateAgent(agentId, fields, updatedBy = null) {
   values.push(agentId);
   const sql = `UPDATE agent_identities SET ${updates.join(', ')} WHERE agent_id = $${paramIndex} RETURNING *`;
   const result = await query(sql, values);
+  await invalidateAgentCaches(agentId);
   return result.rows[0] || null;
 }
 
@@ -192,6 +212,7 @@ async function updateAgentStatus(agentId, status, flagReason = null) {
     RETURNING *
   `;
   const result = await query(sql, [status, flagReason, agentId]);
+  await invalidateAgentCaches(agentId);
   return result.rows[0] || null;
 }
 
@@ -440,6 +461,7 @@ async function revokeAgent(agentId) {
     RETURNING *
   `;
   const result = await query(sql, [agentId]);
+  await invalidateAgentCaches(agentId);
   return result.rows[0] || null;
 }
 
@@ -493,6 +515,7 @@ module.exports = {
   createAgent,
   getAgent,
   getAgentByPubkey,
+  getAgentByExternalId,
   getAgentsByOwner,
   countAgentsByOwner,
   updateAgent,

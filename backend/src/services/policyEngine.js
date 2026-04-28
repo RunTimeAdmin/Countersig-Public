@@ -5,6 +5,7 @@
 
 const { query } = require('../models/db');
 const eventBus = require('./eventBus');
+const { invalidateAgentCaches } = require('./badgeBuilder');
 
 const VALID_ACTIONS = ['revoke', 'flag', 'notify', 'disable'];
 const VALID_OPERATORS = ['<', '>', '<=', '>=', '==', '!=', 'contains'];
@@ -79,6 +80,7 @@ async function executeAction(rule, event) {
             "UPDATE agent_identities SET status = 'revoked', revoked_at = NOW() WHERE agent_id = $1",
             [agentId]
           );
+          await invalidateAgentCaches(agentId);
           console.log(`[PolicyEngine] Revoked agent ${agentId} via rule ${rule.id}`);
         }
         break;
@@ -95,6 +97,7 @@ async function executeAction(rule, event) {
              VALUES ($1, $2, $3, $4)`,
             [agentId, pubkey, 'system', `Policy rule triggered: ${rule.name}`]
           );
+          await invalidateAgentCaches(agentId);
           console.log(`[PolicyEngine] Flagged agent ${agentId} via rule ${rule.id}`);
         }
         break;
@@ -118,6 +121,7 @@ async function executeAction(rule, event) {
             "UPDATE agent_identities SET status = 'disabled' WHERE agent_id = $1",
             [agentId]
           );
+          await invalidateAgentCaches(agentId);
           console.log(`[PolicyEngine] Disabled agent ${agentId} via rule ${rule.id}`);
         }
         break;

@@ -33,11 +33,11 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
-AgentID is the Bags-native trust layer for AI agents. It provides a trust verification layer that:
+AgentID is the trust verification layer for AI agents. It provides a trust verification layer that:
 - Wraps Bags’ Ed25519 agent authentication flow to establish wallet ownership
 - Binds agent identities to the Solana Agent Registry (SAID Protocol)
-- Adds Bags-specific reputation scoring
-- Surfaces a human-readable trust badge inside Bags chat and embeddable widgets
+- Adds configurable reputation scoring
+- Surfaces a human-readable trust badge in chat interfaces and embeddable widgets
 
 AgentID’s value is rooted in PKI challenge-response spoofing prevention using Ed25519, ensuring that only agents who truly control the private key can operate. This differentiates it from:
 - SAID Protocol (general-purpose Solana agent registry without Bags integration)
@@ -45,12 +45,12 @@ AgentID’s value is rooted in PKI challenge-response spoofing prevention using 
 - Bags Agent Auth alone (Ed25519 challenge-response without registry, reputation, or trust badge)
 
 Target audience:
-- Every one of the 48 AI Agent projects participating in the hackathon
-- Every Bags user interacting with agents
-- Developers building on Bags who want their agents to display a trust badge
+- Every AI Agent project building autonomous agents
+- Every user interacting with AI agents
+- Developers who want their agents to display a trust badge
 
 Core value proposition:
-- First Bags-native binding layer connecting SAID with the Bags ecosystem
+- Bridges SAID Identity Protocol with comprehensive agent reputation scoring
 - PKI challenge-response prevents spoofing and enables runtime verification
 - Human-readable trust indicators and embeddable badges for transparency and adoption
 
@@ -100,8 +100,8 @@ WIDGET --> ROUTES
 - [frontend/package.json:1-33](file://frontend/package.json#L1-L33)
 
 ## Core Components
-- Bags Auth Wrapper: Validates wallet ownership via Bags Ed25519 challenge-response
-- SAID Binding: Registers or verifies agents in the SAID Identity Gateway with Bags-specific metadata
+- Bags Auth Wrapper: Validates wallet ownership via Ed25519 challenge-response
+- SAID Binding: Registers or verifies agents in the SAID Identity Gateway with chain-specific metadata
 - PKI Challenge-Response: Ongoing verification using Ed25519 challenge messages scoped to AgentID actions
 - Bags Reputation Scoring: Computes a 0–100 score using five factors (fee activity, success rate, registration age, SAID trust, community verification)
 - Trust Badge: Human-readable badge JSON, SVG, and embeddable widget with status, score, and metadata
@@ -251,7 +251,7 @@ API-->>App : 200 {verified, ...}
 - [backend/src/routes/verify.js:20-112](file://backend/src/routes/verify.js#L20-L112)
 
 ### SAID Protocol Binding
-AgentID registers or retrieves agent trust data from SAID and augments it with Bags-specific metadata.
+AgentID registers or retrieves agent trust data from SAID and augments it with chain-specific metadata.
 
 ```mermaid
 sequenceDiagram
@@ -418,13 +418,13 @@ Common issues and resolutions:
 - [backend/src/services/saidBinding.js:50-53](file://backend/src/services/saidBinding.js#L50-L53)
 
 ## Conclusion
-AgentID delivers a Bags-native trust layer that:
-- Wraps Bags Ed25519 auth to verify wallet ownership
+AgentID delivers a trust verification layer that:
+- Wraps Ed25519 auth to verify wallet ownership
 - Binds agents to SAID for trust and A2A discovery
-- Adds Bags-specific reputation scoring
+- Adds configurable reputation scoring
 - Provides human-readable trust badges and embeddable widgets
 - Prevents spoofing via PKI challenge-response
 
-Its positioning as the first Bags-native binding layer, combined with PKI-based spoofing prevention and a strong developer-first UX, makes it a compelling solution for the 48 AI Agent projects and the broader Bags ecosystem.
+Its positioning as the first chain-agnostic binding layer, combined with PKI-based spoofing prevention and a strong developer-first UX, makes it a compelling solution for AI agent projects and the broader ecosystem.
 
 [No sources needed since this section summarizes without analyzing specific files]

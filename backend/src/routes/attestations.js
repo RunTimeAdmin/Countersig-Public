@@ -15,6 +15,7 @@ const {
 const { refreshAndStoreScore } = require('../services/bagsReputation');
 const { defaultLimiter, authLimiter } = require('../middleware/rateLimit');
 const { authenticate } = require('../middleware/authenticate');
+const { requireScope } = require('../middleware/authorize');
 const { transformAgent, isValidSolanaAddress } = require('../utils/transform');
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');
@@ -25,7 +26,7 @@ const router = express.Router();
  * POST /agents/:agentId/attest
  * Record a successful/failed action
  */
-router.post('/agents/:agentId/attest', authenticate, authLimiter, async (req, res, next) => {
+router.post('/agents/:agentId/attest', authenticate, requireScope('write'), authLimiter, async (req, res, next) => {
   try {
     const { agentId } = req.params;
     const { success, action } = req.body;
@@ -84,7 +85,7 @@ router.post('/agents/:agentId/attest', authenticate, authLimiter, async (req, re
  * POST /agents/:agentId/flag
  * Flag suspicious behavior with cryptographic proof-of-ownership
  */
-router.post('/agents/:agentId/flag', authenticate, authLimiter, async (req, res, next) => {
+router.post('/agents/:agentId/flag', authenticate, requireScope('write'), authLimiter, async (req, res, next) => {
   try {
     const { agentId } = req.params;
     const { reporterPubkey, signature, timestamp, reason, evidence } = req.body;

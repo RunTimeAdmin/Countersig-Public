@@ -5,6 +5,7 @@
 
 const express = require('express');
 const authenticate = require('../middleware/authenticate');
+const { requireScope } = require('../middleware/authorize');
 const {
   getAuditLogs,
   exportAuditLogs,
@@ -17,7 +18,7 @@ const router = express.Router();
  * GET /orgs/:orgId/audit
  * List audit logs with pagination and filtering
  */
-router.get('/orgs/:orgId/audit', authenticate, async (req, res, next) => {
+router.get('/orgs/:orgId/audit', authenticate, requireScope('read'), async (req, res, next) => {
   try {
     const { orgId } = req.params;
 
@@ -62,7 +63,7 @@ router.get('/orgs/:orgId/audit', authenticate, async (req, res, next) => {
  * GET /orgs/:orgId/audit/export
  * Export audit logs as JSON or CSV
  */
-router.get('/orgs/:orgId/audit/export', authenticate, async (req, res, next) => {
+router.get('/orgs/:orgId/audit/export', authenticate, requireScope('read'), async (req, res, next) => {
   try {
     const { orgId } = req.params;
 
@@ -93,7 +94,7 @@ router.get('/orgs/:orgId/audit/export', authenticate, async (req, res, next) => 
  * GET /orgs/:orgId/audit/verify
  * Verify the integrity of the audit hash chain (admin only)
  */
-router.get('/orgs/:orgId/audit/verify', authenticate, async (req, res, next) => {
+router.get('/orgs/:orgId/audit/verify', authenticate, requireScope('read'), async (req, res, next) => {
   try {
     const { orgId } = req.params;
 

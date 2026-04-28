@@ -147,6 +147,14 @@ const tierConfig = {
   },
 };
 
+const CHAIN_CONFIG = {
+  'solana-bags': { label: 'BAGS', color: '#9945FF' },
+  'solana': { label: 'SOL', color: '#14F195' },
+  'ethereum': { label: 'ETH', color: '#627EEA' },
+  'base': { label: 'BASE', color: '#0052FF' },
+  'polygon': { label: 'MATIC', color: '#8247E5' }
+};
+
 export default function TrustBadge({ 
   status = 'unverified', 
   name, 
@@ -155,6 +163,7 @@ export default function TrustBadge({
   totalActions,
   tier,
   tierColor,
+  agent,
   className = '' 
 }) {
   const config = statusConfig[status] || statusConfig.unverified;
@@ -215,8 +224,20 @@ export default function TrustBadge({
               {tierLabel}
             </div>
             {name && (
-              <div className="text-[var(--text-primary)] font-semibold truncate text-lg">
-                {name}
+              <div className="text-[var(--text-primary)] font-semibold truncate text-lg flex items-center gap-2">
+                <span>{name}</span>
+                {agent?.chain_type && CHAIN_CONFIG[agent.chain_type] && (
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                    style={{
+                      backgroundColor: `${CHAIN_CONFIG[agent.chain_type].color}20`,
+                      color: CHAIN_CONFIG[agent.chain_type].color,
+                      border: `1px solid ${CHAIN_CONFIG[agent.chain_type].color}40`
+                    }}
+                  >
+                    {CHAIN_CONFIG[agent.chain_type].label}
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -275,5 +296,6 @@ TrustBadge.propTypes = {
   totalActions: PropTypes.number,
   tier: PropTypes.oneOf(['verified', 'standard']),
   tierColor: PropTypes.string,
+  agent: PropTypes.object,
   className: PropTypes.string,
 };

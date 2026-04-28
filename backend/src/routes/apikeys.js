@@ -6,7 +6,7 @@
 const express = require('express');
 const { query } = require('../models/db');
 const { authenticate } = require('../middleware/authenticate');
-const { authorize, ROLES } = require('../middleware/authorize');
+const { authorize, requireScope, ROLES } = require('../middleware/authorize');
 const { generateApiKey } = require('../services/authService');
 
 const VALID_SCOPES = new Set([
@@ -27,7 +27,7 @@ router.use(authenticate);
  * POST /api-keys
  * Create a new API key
  */
-router.post('/api-keys', authorize(ROLES.ADMIN), async (req, res, next) => {
+router.post('/api-keys', authorize(ROLES.ADMIN), requireScope('admin'), async (req, res, next) => {
   try {
     const { name, scopes, expiresAt } = req.body;
 
@@ -84,7 +84,7 @@ router.post('/api-keys', authorize(ROLES.ADMIN), async (req, res, next) => {
  * GET /api-keys
  * List all active API keys for the organization
  */
-router.get('/api-keys', authorize(ROLES.ADMIN), async (req, res, next) => {
+router.get('/api-keys', authorize(ROLES.ADMIN), requireScope('read'), async (req, res, next) => {
   try {
     const result = await query(
       `SELECT id, name, key_prefix, scopes, last_used, expires_at, created_at
@@ -114,7 +114,7 @@ router.get('/api-keys', authorize(ROLES.ADMIN), async (req, res, next) => {
  * DELETE /api-keys/:id
  * Revoke an API key
  */
-router.delete('/api-keys/:id', authorize(ROLES.ADMIN), async (req, res, next) => {
+router.delete('/api-keys/:id', authorize(ROLES.ADMIN), requireScope('admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
 

@@ -15,6 +15,9 @@ if (!JWT_SECRET) {
 if (JWT_SECRET.length < 32) {
   throw new Error('FATAL: JWT_SECRET must be at least 32 characters');
 }
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || JWT_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || JWT_SECRET;
+const A2A_TOKEN_SECRET = process.env.A2A_TOKEN_SECRET || JWT_SECRET;
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '15m';
 const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
 
@@ -61,14 +64,14 @@ function generateTokens(user) {
   const tokenId = crypto.randomUUID();
   const accessToken = jwt.sign(
     { userId: user.id, email: user.email, orgId: user.org_id, role: user.role, type: 'access' },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRY, issuer: 'agentid.io', audience: 'agentid-api' }
+    ACCESS_TOKEN_SECRET,
+    { expiresIn: JWT_EXPIRY, issuer: 'agentidapp.com', audience: 'agentid-access' }
   );
 
   const refreshToken = jwt.sign(
     { userId: user.id, type: 'refresh', jti: tokenId },
-    JWT_SECRET,
-    { expiresIn: JWT_REFRESH_EXPIRY }
+    REFRESH_TOKEN_SECRET,
+    { expiresIn: JWT_REFRESH_EXPIRY, issuer: 'agentidapp.com', audience: 'agentid-refresh' }
   );
 
   return { accessToken, refreshToken, tokenId };
@@ -80,9 +83,9 @@ function generateTokens(user) {
  * @returns {Object} Decoded payload
  */
 function verifyAccessToken(token) {
-  const decoded = jwt.verify(token, JWT_SECRET, {
-    issuer: 'agentid.io',
-    audience: 'agentid-api'
+  const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET, {
+    issuer: 'agentidapp.com',
+    audience: 'agentid-access'
   });
   if (decoded.type !== 'access') {
     throw new Error('Invalid token type: expected access token');
@@ -96,7 +99,10 @@ function verifyAccessToken(token) {
  * @returns {Object} Decoded payload
  */
 function verifyRefreshToken(token) {
-  return jwt.verify(token, JWT_SECRET);
+  return jwt.verify(token, REFRESH_TOKEN_SECRET, {
+    issuer: 'agentidapp.com',
+    audience: 'agentid-refresh'
+  });
 }
 
 /**
@@ -201,6 +207,31 @@ async function isRefreshTokenValid(tokenId, userId) {
   }
 }
 
+/**
+ * Generate a short-lived A2A (agent-to-agent) authentication token
+ * @param {Object} payload - Token payload (sub, name, pubkey, chain, caps, score)
+ * @returns {string} Signed JWT
+ */
+function generateA2AToken(payload) {
+  return jwt.sign(payload, A2A_TOKEN_SECRET, {
+    expiresIn: '60s',
+    issuer: 'agentidapp.com',
+    audience: 'agentid-a2a'
+  });
+}
+
+/**
+ * Verify an A2A authentication token
+ * @param {string} token - A2A JWT string
+ * @returns {Object} Decoded payload
+ */
+function verifyA2AToken(token) {
+  return jwt.verify(token, A2A_TOKEN_SECRET, {
+    issuer: 'agentidapp.com',
+    audience: 'agentid-a2a'
+  });
+}
+
 module.exports = {
   hashPassword,
   comparePassword,
@@ -213,5 +244,7 @@ module.exports = {
   revokeRefreshToken,
   revokeAllSessions,
   isRefreshTokenValid,
-  expiryToSeconds
+  expiryToSeconds,
+  generateA2AToken,
+  verifyA2AToken
 };

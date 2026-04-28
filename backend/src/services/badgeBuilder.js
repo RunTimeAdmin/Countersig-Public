@@ -5,7 +5,7 @@
 
 const queries = require('../models/queries');
 const { computeBagsScore } = require('./bagsReputation');
-const { getCache, setCache } = require('../models/redis');
+const { getCache, setCache, deleteCache } = require('../models/redis');
 const config = require('../config');
 const { escapeHtml, escapeXml } = require('../utils/transform');
 
@@ -20,21 +20,24 @@ async function getBadgeJSON(agentId) {
     const cacheKey = `badge:${agentId}`;
     const cached = await getCache(cacheKey);
     if (cached) {
-      return JSON.parse(cached);
+      return cached;
     }
 
-    // Get agent from DB
-    const agent = await queries.getAgent(agentId);
+    // Fetch agent and actions once upfront
+    const [agent, actions] = await Promise.all([
+      queries.getAgent(agentId),
+      queries.getAgentActions(agentId)
+    ]);
     if (!agent) {
       throw new Error(`Agent not found: ${agentId}`);
     }
 
-    // Compute reputation score
-    const reputation = await computeBagsScore(agentId);
+    // Compute reputation score with prefetched data
+    const reputation = await computeBagsScore(agentId, { agent, actions });
 
     // Get action stats
-    const actions = await queries.getAgentActions(agentId) || { total: 0, successful: 0, failed: 0 };
-    const successRate = actions.total > 0 ? actions.successful / actions.total : 0;
+    const actionStats = actions || { total: 0, successful: 0, failed: 0 };
+    const successRate = actionStats.total > 0 ? actionStats.successful / actionStats.total : 0;
 
     // Determine status and badge
     // Status is based on PKI verification (challenge-response completion)
@@ -84,7 +87,7 @@ async function getBadgeJSON(agentId) {
       registeredAt: agent.registered_at,
       lastVerified: agent.last_verified,
       revokedAt: agent.revoked_at,
-      totalActions: actions.total,
+      totalActions: actionStats.total,
       successRate: successRate,
       capabilities: agent.capability_set || [],
       tokenMint: agent.token_mint,
@@ -95,7 +98,7 @@ async function getBadgeJSON(agentId) {
     const baseTtl = config.badgeCacheTtl || 60;
     const jitter = Math.floor(Math.random() * 30); // 0-30s jitter
     const ttl = baseTtl + jitter;
-    await setCache(cacheKey, JSON.stringify(result), ttl);
+    await setCache(cacheKey, result, ttl);
 
     return result;
   } catch (error) {
@@ -572,8 +575,25 @@ async function getWidgetHTML(agentId) {
   }
 }
 
+/**
+ * Invalidate all agent caches (badge and reputation)
+ * @param {string} agentId - Agent UUID
+ * @returns {Promise<boolean>}
+ */
+async function invalidateAgentCaches(agentId) {
+  try {
+    await deleteCache(`badge:${agentId}`);
+    await deleteCache(`reputation:${agentId}`);
+    return true;
+  } catch (err) {
+    console.error('Agent cache invalidation error:', err.message);
+    return false;
+  }
+}
+
 module.exports = {
   getBadgeJSON,
   getBadgeSVG,
-  getWidgetHTML
+  getWidgetHTML,
+  invalidateAgentCaches
 };

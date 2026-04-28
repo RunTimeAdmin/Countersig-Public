@@ -11,10 +11,13 @@ const { getAgent, getAgentsByOwner, listAgents, countAgents, discoverAgents, upd
 const { pool } = require('../models/db');
 const { logAction } = require('../services/auditService');
 const { computeBagsScore } = require('../services/bagsReputation');
+const { getSupportedChains } = require('../services/chainAdapters');
 const { defaultLimiter, authLimiter } = require('../middleware/rateLimit');
 const { optionalAuth, authenticate } = require('../middleware/authenticate');
+const { requireScope } = require('../middleware/authorize');
 const { orgContext } = require('../middleware/orgContext');
 const { transformAgent, transformAgents, isValidSolanaAddress } = require('../utils/transform');
+const { generateA2AToken, verifyA2AToken } = require('../services/authService');
 
 const router = express.Router();
 
@@ -22,10 +25,23 @@ const router = express.Router();
 const TIMESTAMP_WINDOW_MS = 5 * 60 * 1000;
 
 /**
+ * GET /chains
+ * List all supported chain types and their metadata
+ */
+router.get('/chains', defaultLimiter, async (req, res, next) => {
+  try {
+    const chains = getSupportedChains();
+    return res.status(200).json({ chains, count: chains.length });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /agents
  * List agents with optional filters (requires authentication, scoped to org)
  */
-router.get('/agents', authenticate, defaultLimiter, async (req, res, next) => {
+router.get('/agents', authenticate, requireScope('read'), defaultLimiter, async (req, res, next) => {
   try {
     const { status, capability, limit, offset, includeDemo } = req.query;
 
@@ -115,7 +131,7 @@ router.get('/public/agents', defaultLimiter, async (req, res, next) => {
  * GET /agents/owner/:pubkey
  * Get all agents owned by a pubkey (must be defined BEFORE /:agentId route)
  */
-router.get('/agents/owner/:pubkey', authenticate, defaultLimiter, async (req, res, next) => {
+router.get('/agents/owner/:pubkey', authenticate, requireScope('read'), defaultLimiter, async (req, res, next) => {
   try {
     const { pubkey } = req.params;
 
@@ -129,6 +145,201 @@ router.get('/agents/owner/:pubkey', authenticate, defaultLimiter, async (req, re
       pubkey,
       agents: transformAgents(agents),
       count: agents.length
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /agents/verify-token
+ * Public endpoint — verify an A2A token server-side
+ * No auth required — allows agents without the shared secret to verify tokens
+ */
+router.post('/verify-token', defaultLimiter, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'Token required' });
+
+    const decoded = verifyA2AToken(token);
+    res.json({ valid: true, payload: decoded });
+  } catch (err) {
+    res.status(401).json({ valid: false, error: 'Invalid or expired token' });
+  }
+});
+
+/**
+ * GET /agents/:agentId/credential
+ * Returns a W3C Verifiable Credential for the agent
+ */
+router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
+  try {
+    const { agentId } = req.params;
+    const agent = await getAgent(agentId);
+    
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+    
+    // Determine the DID method based on chain type
+    const chainType = agent.chain_type || 'solana-bags';
+    let subjectDid;
+    if (chainType.startsWith('solana')) {
+      // Solana agents use did:key with Ed25519 public key
+      subjectDid = `did:key:${agent.pubkey}`;
+    } else {
+      // EVM agents use did:pkh (PKH = public key hash)
+      const chainId = chainType === 'ethereum' ? '1' : chainType === 'base' ? '8453' : chainType === 'polygon' ? '137' : '1';
+      subjectDid = `did:pkh:eip155:${chainId}:${agent.pubkey}`;
+    }
+
+    // Determine verification status
+    const isVerified = agent.status === 'verified' && !agent.revoked_at;
+    const verificationMethod = chainType.startsWith('solana') 
+      ? 'did:web:agentidapp.com#ed25519-key'
+      : 'did:web:agentidapp.com#secp256k1-key';
+
+    // Build reputation data
+    let reputationScore = agent.bags_score || 0;
+    let reputationLabel = reputationScore >= 80 ? 'HIGH' : reputationScore >= 50 ? 'MEDIUM' : reputationScore >= 20 ? 'LOW' : 'NEW AGENT';
+
+    const now = new Date().toISOString();
+    
+    const credential = {
+      '@context': [
+        'https://www.w3.org/2018/credentials/v1',
+        'https://w3id.org/security/suites/ed25519-2020/v1',
+        {
+          'AgentIDCredential': 'https://agentidapp.com/schemas/credential/v1',
+          'agentName': 'https://agentidapp.com/schemas/credential/v1#agentName',
+          'chainType': 'https://agentidapp.com/schemas/credential/v1#chainType',
+          'reputationScore': 'https://agentidapp.com/schemas/credential/v1#reputationScore',
+          'reputationLabel': 'https://agentidapp.com/schemas/credential/v1#reputationLabel',
+          'capabilities': 'https://agentidapp.com/schemas/credential/v1#capabilities',
+          'verificationStatus': 'https://agentidapp.com/schemas/credential/v1#verificationStatus',
+          'registeredAt': 'https://agentidapp.com/schemas/credential/v1#registeredAt',
+          'lastVerified': 'https://agentidapp.com/schemas/credential/v1#lastVerified'
+        }
+      ],
+      id: `urn:agentid:credential:${agentId}`,
+      type: ['VerifiableCredential', 'AIAgentIdentityCredential'],
+      issuer: {
+        id: 'did:web:agentidapp.com',
+        name: 'AgentID',
+        url: 'https://agentidapp.com'
+      },
+      issuanceDate: now,
+      expirationDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24h validity
+      credentialSubject: {
+        id: subjectDid,
+        agentId: agent.agent_id,
+        agentName: agent.name,
+        chainType: chainType,
+        publicKey: agent.pubkey,
+        reputationScore: reputationScore,
+        reputationLabel: reputationLabel,
+        capabilities: agent.capability_set || [],
+        verificationStatus: isVerified ? 'VERIFIED' : agent.revoked_at ? 'REVOKED' : 'UNVERIFIED',
+        registeredAt: agent.registered_at,
+        lastVerified: agent.last_verified || null
+      },
+      credentialStatus: {
+        id: `https://api.agentidapp.com/agents/${agentId}`,
+        type: 'AgentIDStatusCheck2024',
+        statusPurpose: 'revocation'
+      },
+      proof: {
+        type: 'DataIntegrityProof',
+        cryptosuite: chainType.startsWith('solana') ? 'eddsa-rdfc-2022' : 'ecdsa-rdfc-2019',
+        created: now,
+        verificationMethod: verificationMethod,
+        proofPurpose: 'assertionMethod',
+        // Note: In production, this would contain an actual cryptographic signature
+        // For now, we include a placeholder indicating server-side signing is needed
+        proofValue: 'UNSIGNED_CREDENTIAL_REQUIRES_DID_KEY_CONFIGURATION'
+      }
+    };
+
+    // Set appropriate content type for W3C VC
+    res.setHeader('Content-Type', 'application/vc+ld+json');
+    res.json(credential);
+  } catch (err) {
+    console.error('[VC] Credential generation error:', err.message);
+    res.status(500).json({ error: 'Failed to generate credential' });
+  }
+});
+
+/**
+ * POST /agents/:agentId/issue-token
+ * Issue a short-lived A2A authentication token for cross-agent communication
+ * Requires authentication and write scope
+ */
+router.post('/agents/:agentId/issue-token', authenticate, requireScope('write'), authLimiter, async (req, res, next) => {
+  try {
+    const { agentId } = req.params;
+
+    // 1. Verify agent exists
+    const agent = await getAgent(agentId);
+    if (!agent) {
+      return res.status(404).json({
+        error: 'Agent not found',
+        agentId
+      });
+    }
+
+    // 2. Verify the agent belongs to the requesting user's org (or is public)
+    if (agent.org_id && agent.org_id !== req.user.orgId) {
+      return res.status(403).json({
+        error: 'Access denied: agent does not belong to your organization'
+      });
+    }
+
+    // 3. Verify the agent's status is active/verified (not revoked or flagged)
+    if (agent.status === 'revoked' || agent.status === 'flagged') {
+      return res.status(403).json({
+        error: `Cannot issue token for agent with status: ${agent.status}`,
+        agentId,
+        status: agent.status
+      });
+    }
+
+    // 4. Generate short-lived A2A token (60 seconds)
+    const tokenPayload = {
+      sub: agentId,
+      type: 'a2a',
+      name: agent.name,
+      pubkey: agent.pubkey,
+      chain: agent.chain_type,
+      caps: agent.capability_set || [],
+      score: agent.bags_score
+    };
+
+    // Add OAuth-specific claims if applicable
+    if (agent.credential_type && agent.credential_type !== 'crypto') {
+      tokenPayload.credentialType = agent.credential_type;
+      tokenPayload.externalId = agent.external_id;
+      tokenPayload.provider = agent.idp_provider;
+    }
+
+    const token = generateA2AToken(tokenPayload);
+
+    // 5. Log the token issuance
+    logAction({
+      orgId: agent.org_id,
+      actorId: req.user?.userId,
+      actorType: 'user',
+      action: 'agent.issue_a2a_token',
+      resourceType: 'agent',
+      resourceId: agentId,
+      metadata: { agentName: agent.name }
+    }).catch(() => {});
+
+    // 6. Return token
+    return res.status(200).json({
+      token,
+      expiresIn: 60,
+      agentId,
+      issuedAt: new Date().toISOString()
     });
   } catch (error) {
     next(error);
@@ -171,7 +382,7 @@ router.get('/agents/:agentId', defaultLimiter, async (req, res, next) => {
  * GET /discover
  * A2A discovery - find agents by capability (requires authentication)
  */
-router.get('/discover', authenticate, defaultLimiter, async (req, res, next) => {
+router.get('/discover', authenticate, requireScope('read'), defaultLimiter, async (req, res, next) => {
   try {
     const { capability } = req.query;
 
@@ -198,7 +409,7 @@ router.get('/discover', authenticate, defaultLimiter, async (req, res, next) => 
  * GET /orgs/:orgId/agents
  * List agents filtered by organization
  */
-router.get('/orgs/:orgId/agents', authenticate, orgContext, defaultLimiter, async (req, res, next) => {
+router.get('/orgs/:orgId/agents', authenticate, orgContext, requireScope('read'), defaultLimiter, async (req, res, next) => {
   try {
     const { orgId } = req.params;
     const { status, capability, limit, offset, includeDemo } = req.query;
@@ -235,7 +446,7 @@ router.get('/orgs/:orgId/agents', authenticate, orgContext, defaultLimiter, asyn
  * PUT /agents/:agentId/update
  * Update agent metadata with signature verification
  */
-router.put('/agents/:agentId/update', authenticate, authLimiter, async (req, res, next) => {
+router.put('/agents/:agentId/update', authenticate, requireScope('write'), authLimiter, async (req, res, next) => {
   try {
     const { agentId } = req.params;
     const { signature, timestamp, name, tokenMint, capabilities, creatorX, description } = req.body;
@@ -373,6 +584,23 @@ router.put('/agents/:agentId/update', authenticate, authLimiter, async (req, res
           error: 'capabilities must be an array'
         });
       }
+      if (capabilities.length > 50) {
+        return res.status(400).json({
+          error: 'capabilities must not exceed 50 items'
+        });
+      }
+      for (const cap of capabilities) {
+        if (typeof cap !== 'string') {
+          return res.status(400).json({
+            error: 'all capabilities must be strings'
+          });
+        }
+        if (cap.length > 64) {
+          return res.status(400).json({
+            error: 'each capability must not exceed 64 characters'
+          });
+        }
+      }
       updateFields.capabilitySet = capabilities;
     }
 
@@ -414,7 +642,7 @@ router.put('/agents/:agentId/update', authenticate, authLimiter, async (req, res
  * POST /agents/:agentId/revoke
  * Revoke an agent with signature verification
  */
-router.post('/agents/:agentId/revoke', authenticate, authLimiter, async (req, res, next) => {
+router.post('/agents/:agentId/revoke', authenticate, requireScope('write'), authLimiter, async (req, res, next) => {
   try {
     const { agentId } = req.params;
     const { pubkey, signature, message } = req.body;
@@ -546,5 +774,6 @@ router.post('/agents/:agentId/revoke', authenticate, authLimiter, async (req, re
     next(error);
   }
 });
+
 
 module.exports = router;

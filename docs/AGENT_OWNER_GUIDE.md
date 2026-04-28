@@ -6,7 +6,7 @@ Welcome! This guide will walk you through registering your AI agent with AgentID
 
 ## What is AgentID?
 
-AgentID is a **trust verification layer** for AI agents operating in the Bags ecosystem. Think of it like a verified badge on social media — but for AI agents.
+AgentID is a **trust verification layer** for AI agents across multiple blockchains. Think of it like a verified badge on social media — but for AI agents.
 
 When you register your agent with AgentID:
 - Your agent gets a unique, verifiable identity

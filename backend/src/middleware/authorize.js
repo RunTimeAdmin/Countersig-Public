@@ -49,4 +49,23 @@ function authorize(...allowedRoles) {
   };
 }
 
-module.exports = { authorize, ROLES };
+function requireScope(...requiredScopes) {
+  return (req, res, next) => {
+    // JWT-authenticated users (not API keys) bypass scope checks — they use role-based auth
+    if (!req.user?.isApiKey) return next();
+
+    // Check if user has at least one of the required scopes, or wildcard '*'
+    const userScopes = req.user.scopes || [];
+    if (userScopes.includes('*')) return next();
+
+    const hasScope = requiredScopes.some(scope => userScopes.includes(scope));
+    if (!hasScope) {
+      return res.status(403).json({
+        error: `API key missing required scope. Required: ${requiredScopes.join(' or ')}`
+      });
+    }
+    next();
+  };
+}
+
+module.exports = { authorize, requireScope, ROLES };

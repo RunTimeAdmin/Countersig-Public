@@ -29,7 +29,8 @@ function getPool() {
       // Additional pool configuration for production stability
       ...(config.nodeEnv === 'production' && {
         ssl: {
-          rejectUnauthorized: false
+          rejectUnauthorized: process.env.DB_CA_CERT ? true : false,
+          ca: process.env.DB_CA_CERT ? Buffer.from(process.env.DB_CA_CERT, 'base64') : undefined
         }
       })
     });

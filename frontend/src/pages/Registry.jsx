@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getAgents } from '../lib/api';
+import { getAgents, getChains } from '../lib/api';
 import { getOrgAgents } from '../lib/authApi';
 import { useAuth } from '../components/AuthProvider';
 import TrustBadge from '../components/TrustBadge';
@@ -61,6 +61,8 @@ export default function Registry() {
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [scope, setScope] = useState('public');
+  const [chains, setChains] = useState([]);
+  const [chainFilter, setChainFilter] = useState('');
 
   const fetchAgents = useCallback(async () => {
     setLoading(true);
@@ -71,6 +73,7 @@ export default function Registry() {
         const res = await getOrgAgents(user.orgId, {
           status: status || undefined,
           capability: capability || undefined,
+          chain: chainFilter || undefined,
           limit: ITEMS_PER_PAGE,
           offset,
         });
@@ -79,6 +82,7 @@ export default function Registry() {
         response = await getAgents({
           status: status || undefined,
           capability: capability || undefined,
+          chain: chainFilter || undefined,
           limit: ITEMS_PER_PAGE,
           offset,
         });
@@ -92,16 +96,20 @@ export default function Registry() {
     } finally {
       setLoading(false);
     }
-  }, [status, capability, offset, scope, isAuthenticated, user?.orgId]);
+  }, [status, capability, chainFilter, offset, scope, isAuthenticated, user?.orgId]);
 
   useEffect(() => {
     fetchAgents();
   }, [fetchAgents]);
 
+  useEffect(() => {
+    getChains().then(setChains).catch(() => {});
+  }, []);
+
   // Reset offset when filters or scope change
   useEffect(() => {
     setOffset(0);
-  }, [status, capability, scope]);
+  }, [status, capability, chainFilter, scope]);
 
   const handlePrevPage = () => {
     setOffset(Math.max(0, offset - ITEMS_PER_PAGE));
@@ -124,7 +132,7 @@ export default function Registry() {
           <span className="gradient-text">Agent Registry</span>
         </h1>
         <p className="text-[var(--text-secondary)] text-lg max-w-2xl mx-auto">
-          Browse verified AI agents in the Bags ecosystem. Trust scores are computed from on-chain activity and community attestations.
+          Browse verified AI agents across supported chains. Trust scores are computed from on-chain activity and community attestations.
         </p>
       </div>
 
@@ -221,6 +229,28 @@ export default function Registry() {
             </div>
           </div>
 
+          {/* Chain Dropdown */}
+          <div className="flex-1 sm:flex-none">
+            <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2">
+              Chain
+            </label>
+            <div className="relative">
+              <select
+                value={chainFilter}
+                onChange={(e) => setChainFilter(e.target.value)}
+                className="w-full sm:w-48 px-4 py-2.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)] transition-colors appearance-none cursor-pointer"
+              >
+                <option value="">All Chains</option>
+                {chains.map(c => (
+                  <option key={c.chainType} value={c.chainType}>{c.name}</option>
+                ))}
+              </select>
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
           {/* Results count */}
           <div className="flex items-end">
             <div className="text-sm text-[var(--text-muted)]">
@@ -284,6 +314,7 @@ export default function Registry() {
                   score={agent.bagsScore}
                   registeredAt={agent.registeredAt}
                   totalActions={agent.totalActions}
+                  agent={agent}
                   className="h-full"
                 />
               </Link>

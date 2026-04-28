@@ -1,9 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { registerAgent, issueChallenge } from '../lib/api';
+import { registerAgent, issueChallenge, getChains, verifyExternalToken } from '../lib/api';
 import TrustBadge from '../components/TrustBadge';
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
+
+function getChainColor(chainType) {
+  const colors = {
+    'solana-bags': '#9945FF',
+    'solana': '#14F195',
+    'ethereum': '#627EEA',
+    'base': '#0052FF',
+    'polygon': '#8247E5'
+  };
+  return colors[chainType] || '#888';
+}
+
+function isEVMChain(chainType) {
+  return ['ethereum', 'base', 'polygon'].includes(chainType);
+}
+
+function isSolanaChain(chainType) {
+  return chainType?.startsWith('solana');
+}
 
 // Step indicator component
 function StepIndicator({ currentStep }) {
@@ -11,8 +30,8 @@ function StepIndicator({ currentStep }) {
     <div className="flex items-center justify-center gap-2 mb-8">
       {Array.from({ length: TOTAL_STEPS }).map((_, index) => {
         const stepNum = index + 1;
-        const isActive = stepNum === currentStep;
-        const isCompleted = stepNum < currentStep;
+        const isActive = index === currentStep;
+        const isCompleted = index < currentStep;
 
         return (
           <div key={stepNum} className="flex items-center">
@@ -48,21 +67,18 @@ function StepIndicator({ currentStep }) {
 }
 
 // Step label
-function StepLabel({ currentStep }) {
-  const labels = [
-    'Agent Identity',
-    'Sign Challenge',
-    'Metadata',
-    'Confirmation',
-  ];
+function StepLabel({ currentStep, isEnterpriseAuth }) {
+  const labels = isEnterpriseAuth
+    ? ['Identity Type', 'Agent Details', '', '', 'Confirmation']
+    : ['Select Chain', 'Agent Identity', 'Sign Challenge', 'Metadata', 'Confirmation'];
 
   return (
     <div className="text-center mb-8">
       <div className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">
-        Step {currentStep} of {TOTAL_STEPS}
+        Step {currentStep + 1} of {isEnterpriseAuth ? 3 : TOTAL_STEPS}
       </div>
       <div className="text-xl font-semibold text-[var(--text-primary)]">
-        {labels[currentStep - 1]}
+        {labels[currentStep]}
       </div>
     </div>
   );
@@ -129,7 +145,7 @@ function TextAreaField({ label, name, value, onChange, placeholder, rows = 4, he
 }
 
 // Multi-select capabilities input
-function CapabilitiesInput({ value, onChange }) {
+function CapabilitiesInput({ value, onChange, chainType = 'solana-bags' }) {
   const [inputValue, setInputValue] = useState('');
   const capabilities = value ? value.split(',').map(c => c.trim()).filter(Boolean) : [];
 
@@ -153,13 +169,25 @@ function CapabilitiesInput({ value, onChange }) {
     }
   };
 
-  const suggestedCapabilities = [
-    'bags.swap.v1',
-    'bags.fee-claim.v1',
-    'bags.launch.v1',
-    'bags.trade.v1',
-    'infra.solana.health.v1',
-  ];
+  const suggestedCapabilities = isSolanaChain(chainType)
+    ? [
+        'bags.swap.v1',
+        'bags.fee-claim.v1',
+        'bags.launch.v1',
+        'bags.trade.v1',
+        'infra.solana.health.v1',
+        'defi.swap.v1',
+        'defi.lend.v1',
+      ]
+    : [
+        'defi.swap.v1',
+        'defi.lend.v1',
+        'defi.stake.v1',
+        'nft.mint.v1',
+        'nft.trade.v1',
+        'oracle.price.v1',
+        'infra.monitor.v1',
+      ];
 
   const addSuggested = (cap) => {
     if (!capabilities.includes(cap)) {
@@ -179,7 +207,7 @@ function CapabilitiesInput({ value, onChange }) {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="e.g., bags.swap.v1"
+          placeholder="e.g., defi.swap.v1"
           className="flex-1 px-4 py-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-all duration-200 focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)]/30 focus:outline-none"
         />
         <button
@@ -239,7 +267,12 @@ function CapabilitiesInput({ value, onChange }) {
 }
 
 export default function Register() {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [credentialType, setCredentialType] = useState('crypto');
+  const [oauthToken, setOauthToken] = useState('');
+  const isEnterpriseAuth = credentialType === 'oauth2' || credentialType === 'entra_id';
+  const [chains, setChains] = useState([]);
+  const [chainType, setChainType] = useState('solana-bags');
   const [formData, setFormData] = useState({
     pubkey: '',
     name: '',
@@ -256,6 +289,10 @@ export default function Register() {
   const [submitting, setSubmitting] = useState(false);
   const [registeredAgent, setRegisteredAgent] = useState(null);
 
+  useEffect(() => {
+    getChains().then(setChains).catch(console.error);
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -269,11 +306,29 @@ export default function Register() {
   const validateStep = (step) => {
     const newErrors = {};
 
+    if (step === 0) {
+      if (isEnterpriseAuth) {
+        if (!oauthToken.trim()) {
+          newErrors.oauthToken = 'Token is required';
+        }
+      } else {
+        if (!chainType) {
+          newErrors.chainType = 'Please select a chain';
+        }
+      }
+    }
+
     if (step === 1) {
       if (!formData.pubkey.trim()) {
-        newErrors.pubkey = 'Public key is required';
-      } else if (formData.pubkey.length < 32) {
-        newErrors.pubkey = 'Invalid Ed25519 public key';
+        newErrors.pubkey = isEVMChain(chainType) ? 'Wallet address is required' : 'Public key is required';
+      } else if (isEVMChain(chainType)) {
+        if (!formData.pubkey.startsWith('0x') || formData.pubkey.length !== 42) {
+          newErrors.pubkey = 'Invalid EVM address (must start with 0x and be 42 characters)';
+        }
+      } else {
+        if (formData.pubkey.length < 32) {
+          newErrors.pubkey = 'Invalid Ed25519 public key';
+        }
       }
       if (!formData.name.trim()) {
         newErrors.name = 'Agent name is required';
@@ -288,12 +343,25 @@ export default function Register() {
       }
     }
 
+    if (step === 3 && isEnterpriseAuth) {
+      if (!formData.name.trim()) {
+        newErrors.name = 'Agent name is required';
+      } else if (formData.name.length < 2) {
+        newErrors.name = 'Name must be at least 2 characters';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleNext = async () => {
     if (validateStep(currentStep)) {
+      // Enterprise auth: from Step 0 -> jump to Step 3 (metadata)
+      if (isEnterpriseAuth && currentStep === 0) {
+        setCurrentStep(3);
+        return;
+      }
       if (currentStep === 1) {
         // Fetch challenge before moving to step 2
         try {
@@ -304,12 +372,23 @@ export default function Register() {
           return;
         }
       }
-      setCurrentStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
+      setCurrentStep((prev) => Math.min(prev + 1, TOTAL_STEPS - 1));
     }
   };
 
   const handleBack = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
+    // Enterprise auth: steps 3/4 -> go back to 0 (or step-1 for crypto steps)
+    if (isEnterpriseAuth) {
+      if (currentStep === 3) {
+        setCurrentStep(0);
+        return;
+      }
+      if (currentStep === 4) {
+        setCurrentStep(3);
+        return;
+      }
+    }
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
     setServerError('');
   };
 
@@ -318,20 +397,34 @@ export default function Register() {
     setServerError('');
 
     try {
-      const registrationData = {
-        pubkey: formData.pubkey,
-        name: formData.name,
-        signature: formData.signature,
-        token_mint: formData.tokenMint || undefined,
-        capabilities: formData.capabilities
-          ? formData.capabilities.split(',').map((c) => c.trim()).filter(Boolean)
-          : undefined,
-        creator_x_handle: formData.creatorXHandle || undefined,
-        creator_wallet: formData.creatorWallet || undefined,
-        description: formData.description || undefined,
-      };
+      let response;
 
-      const response = await registerAgent(registrationData);
+      if (isEnterpriseAuth) {
+        response = await registerAgent({
+          credential_type: credentialType,
+          token: oauthToken,
+          name: formData.name,
+          description: formData.description || undefined,
+          capabilities: formData.capabilities
+            ? formData.capabilities.split(',').map((c) => c.trim()).filter(Boolean)
+            : undefined,
+        });
+      } else {
+        response = await registerAgent({
+          pubkey: formData.pubkey,
+          name: formData.name,
+          chain_type: chainType,
+          signature: formData.signature,
+          token_mint: formData.tokenMint || undefined,
+          capabilities: formData.capabilities
+            ? formData.capabilities.split(',').map((c) => c.trim()).filter(Boolean)
+            : undefined,
+          creator_x_handle: formData.creatorXHandle || undefined,
+          creator_wallet: formData.creatorWallet || undefined,
+          description: formData.description || undefined,
+        });
+      }
+
       setRegisteredAgent(response);
     } catch (err) {
       setServerError(err.message || 'Registration failed. Please try again.');
@@ -403,7 +496,7 @@ export default function Register() {
 
       {/* Step Indicator */}
       <StepIndicator currentStep={currentStep} />
-      <StepLabel currentStep={currentStep} />
+      <StepLabel currentStep={currentStep} isEnterpriseAuth={isEnterpriseAuth} />
 
       {/* Server Error */}
       {serverError && (
@@ -419,18 +512,150 @@ export default function Register() {
 
       {/* Form Container */}
       <div className="glass rounded-2xl p-6 md:p-8 border border-[var(--border-subtle)] animate-fade-in">
-        {/* Step 1: Agent Identity */}
-        {currentStep === 1 && (
+        {/* Step 0: Credential Type + Chain Selection */}
+        {currentStep === 0 && (
+          <div className="animate-fade-in space-y-6">
+            {/* Credential Type Selection */}
+            <div>
+              <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">Identity Type</h2>
+              <p className="text-[var(--text-secondary)] text-sm">Choose how your agent will authenticate.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <button
+                onClick={() => setCredentialType('crypto')}
+                className={`p-4 rounded-xl border text-left transition-all ${
+                  credentialType === 'crypto'
+                    ? 'border-cyan-500 bg-cyan-500/10 ring-1 ring-cyan-500/30'
+                    : 'border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-default)]'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <span className="font-semibold text-[var(--text-primary)]">Cryptographic</span>
+                </div>
+                <p className="text-xs text-[var(--text-muted)]">Ed25519 or SECP256K1 key pair with challenge-response verification</p>
+              </button>
+
+              <button
+                onClick={() => setCredentialType('oauth2')}
+                className={`p-4 rounded-xl border text-left transition-all ${
+                  credentialType === 'oauth2'
+                    ? 'border-cyan-500 bg-cyan-500/10 ring-1 ring-cyan-500/30'
+                    : 'border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-default)]'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  <span className="font-semibold text-[var(--text-primary)]">Enterprise (OAuth2)</span>
+                </div>
+                <p className="text-xs text-[var(--text-muted)]">OIDC token from Okta, Auth0, or other OAuth2 providers</p>
+              </button>
+
+              <button
+                onClick={() => setCredentialType('entra_id')}
+                className={`p-4 rounded-xl border text-left transition-all ${
+                  credentialType === 'entra_id'
+                    ? 'border-cyan-500 bg-cyan-500/10 ring-1 ring-cyan-500/30'
+                    : 'border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-default)]'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <span className="font-semibold text-[var(--text-primary)]">Microsoft Entra ID</span>
+                </div>
+                <p className="text-xs text-[var(--text-muted)]">Workload Identity Federation with Azure AD</p>
+              </button>
+            </div>
+
+            {/* Chain Selection — only for crypto */}
+            {credentialType === 'crypto' && (
+              <div className="mt-6">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Select Chain</h3>
+                  <p className="text-[var(--text-secondary)] text-sm">Choose the blockchain your agent operates on.</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {chains.map((chain) => (
+                    <button
+                      key={chain.chainType}
+                      onClick={() => setChainType(chain.chainType)}
+                      className={`p-4 rounded-xl border text-left transition-all ${
+                        chainType === chain.chainType
+                          ? 'border-cyan-500 bg-cyan-500/10 ring-1 ring-cyan-500/30'
+                          : 'border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-default)]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`w-3 h-3 rounded-full`} style={{ backgroundColor: getChainColor(chain.chainType) }} />
+                        <span className="font-semibold text-[var(--text-primary)]">{chain.name}</span>
+                      </div>
+                      <div className="mt-2 text-xs text-[var(--text-muted)] space-y-1">
+                        <div>Signing: {chain.signingAlgo}</div>
+                        <div>Address: {chain.addressFormat}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {chains.length === 0 && (
+                  <div className="text-center py-8 text-[var(--text-muted)]">
+                    <p>Loading chains...</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* OAuth2 / Entra ID Token Input */}
+            {(credentialType === 'oauth2' || credentialType === 'entra_id') && (
+              <div className="mt-6 space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+                    {credentialType === 'entra_id' ? 'Entra ID Token' : 'OAuth2/OIDC Token'}
+                  </h3>
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Paste the JWT token from your identity provider.
+                  </p>
+                </div>
+                <textarea
+                  value={oauthToken}
+                  onChange={(e) => setOauthToken(e.target.value)}
+                  placeholder="eyJhbGciOiJSUzI1NiIs..."
+                  rows={4}
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-lg px-4 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/30 font-mono"
+                />
+                {errors.oauthToken && (
+                  <p className="text-xs text-red-400 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+                    </svg>
+                    {errors.oauthToken}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step 1: Agent Identity — only for crypto */}
+        {currentStep === 1 && !isEnterpriseAuth && (
           <div className="animate-fade-in">
             <FormField
-              label="Agent Public Key"
+              label={isEVMChain(chainType) ? 'Wallet Address (0x...)' : 'Agent Public Key'}
               name="pubkey"
               value={formData.pubkey}
               onChange={handleChange}
-              placeholder="Enter Ed25519 public key (base58-encoded)"
+              placeholder={isEVMChain(chainType) ? '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18' : 'Enter Ed25519 public key (base58-encoded)'}
               required
               error={errors.pubkey}
-              helpText="Your agent's Ed25519 public key for cryptographic identity verification"
+              helpText={isEVMChain(chainType) ? 'Your agent\'s EVM wallet address for cryptographic identity verification' : 'Your agent\'s Ed25519 public key for cryptographic identity verification'}
             />
             <FormField
               label="Agent Name"
@@ -445,8 +670,8 @@ export default function Register() {
           </div>
         )}
 
-        {/* Step 2: Sign Challenge */}
-        {currentStep === 2 && (
+        {/* Step 2: Sign Challenge — only for crypto */}
+        {currentStep === 2 && !isEnterpriseAuth && (
           <div className="animate-fade-in">
             <div className="mb-6 p-4 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-subtle)]">
               <div className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2">
@@ -456,7 +681,10 @@ export default function Register() {
                 {formData.challenge}
               </div>
               <p className="mt-3 text-sm text-[var(--text-muted)]">
-                Sign this message with your Ed25519 private key to prove ownership of this agent.
+                {isSolanaChain(chainType)
+                  ? 'Sign this message with your Ed25519 private key to prove ownership of this agent.'
+                  : 'Sign this message with your wallet to prove ownership of this agent.'
+                }
               </p>
             </div>
 
@@ -487,7 +715,7 @@ export default function Register() {
                   <p className="font-medium text-amber-400 mb-1">How to sign:</p>
                   <ol className="list-decimal list-inside space-y-1 text-xs">
                     <li>Copy the challenge message above</li>
-                    <li>Use your agent's private key to sign it (Ed25519)</li>
+                    <li>Use your {isEVMChain(chainType) ? 'wallet' : "agent's private key"} to sign it ({isEVMChain(chainType) ? 'personal_sign' : 'Ed25519'})</li>
                     <li>Base64 encode the signature</li>
                     <li>Paste the result in the field above</li>
                   </ol>
@@ -500,76 +728,117 @@ export default function Register() {
               <div className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-3">
                 Signing Options
               </div>
-              
-              {/* Phantom Wallet */}
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg className="w-4 h-4 text-[var(--accent-purple)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                  <span className="text-sm font-medium text-[var(--text-primary)]">Phantom Wallet</span>
-                </div>
-                <p className="text-xs text-[var(--text-muted)] ml-6">
-                  Use Phantom wallet's "Sign Message" feature. Copy the challenge message above, open Phantom, 
-                  click the menu (☰) → "Sign Message", paste the challenge, and sign with your agent's wallet.
-                </p>
-              </div>
 
-              {/* CLI Signing */}
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg className="w-4 h-4 text-[var(--accent-cyan)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span className="text-sm font-medium text-[var(--text-primary)]">CLI Signing</span>
-                </div>
-                <div className="ml-6 space-y-2">
-                  <p className="text-xs text-[var(--text-muted)]">
-                    Save the challenge to a file and sign using your Ed25519 private key:
-                  </p>
-                  <div className="bg-[var(--bg-primary)] p-3 rounded-lg font-mono text-xs text-[var(--text-secondary)] overflow-x-auto">
-                    <div className="text-[var(--text-muted)]"># Save challenge to file</div>
-                    <div>echo "<span className="text-amber-400">{formData.challenge}</span>" &gt; challenge.txt</div>
-                    <div className="mt-1 text-[var(--text-muted)]"># Sign the message</div>
-                    <div># Using libsodium or similar Ed25519 signing tool</div>
-                    <div>sign_challenge(challenge.txt, private_key)</div>
-                    <div className="mt-1 text-[var(--text-muted)]"># Or use any Ed25519-compatible signing utility</div>
+              {/* Solana-specific signing */}
+              {isSolanaChain(chainType) && (
+                <>
+                  {/* Phantom Wallet */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-4 h-4 text-[var(--accent-purple)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      <span className="text-sm font-medium text-[var(--text-primary)]">Phantom Wallet</span>
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)] ml-6">
+                      Use Phantom wallet's "Sign Message" feature. Copy the challenge message above, open Phantom,
+                      click the menu (\u2630) \u2192 "Sign Message", paste the challenge, and sign with your agent's wallet.
+                    </p>
+                  </div>
+
+                  {/* CLI Signing */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-4 h-4 text-[var(--accent-cyan)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-sm font-medium text-[var(--text-primary)]">CLI Signing</span>
+                    </div>
+                    <div className="ml-6 space-y-2">
+                      <p className="text-xs text-[var(--text-muted)]">
+                        Save the challenge to a file and sign using your Ed25519 private key:
+                      </p>
+                      <div className="bg-[var(--bg-primary)] p-3 rounded-lg font-mono text-xs text-[var(--text-secondary)] overflow-x-auto">
+                        <div className="text-[var(--text-muted)]"># Save challenge to file</div>
+                        <div>echo "<span className="text-amber-400">{formData.challenge}</span>" &gt; challenge.txt</div>
+                        <div className="mt-1 text-[var(--text-muted)]"># Sign the message</div>
+                        <div># Using libsodium or similar Ed25519 signing tool</div>
+                        <div>sign_challenge(challenge.txt, private_key)</div>
+                        <div className="mt-1 text-[var(--text-muted)]"># Or use any Ed25519-compatible signing utility</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expected Format */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm font-medium text-[var(--text-primary)]">Expected Signature Format</span>
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)] ml-6 mb-2">
+                      Your signature should look like this (base64-encoded Ed25519 signature):
+                    </p>
+                    <div className="ml-6 bg-[var(--bg-primary)] p-3 rounded-lg font-mono text-xs text-[var(--text-secondary)] break-all">
+                      5Nq8Xk9m7PqR3vL2w...<span className="text-[var(--text-muted)]"> (88 characters)</span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* EVM-specific signing */}
+              {isEVMChain(chainType) && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                    <h4 className="font-medium text-[var(--text-primary)] mb-2">Sign with MetaMask</h4>
+                    <ol className="list-decimal list-inside text-sm text-[var(--text-secondary)] space-y-2">
+                      <li>Open your browser console (F12)</li>
+                      <li>Run: <code className="bg-[var(--bg-primary)] px-2 py-0.5 rounded text-xs">
+                        await ethereum.request({'{'}method: 'personal_sign', params: [challenge, address]{'}'})
+                      </code></li>
+                      <li>Paste the returned signature below</li>
+                    </ol>
+                  </div>
+                  <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                    <h4 className="font-medium text-[var(--text-primary)] mb-2">Sign with ethers.js</h4>
+                    <pre className="text-xs text-[var(--text-muted)] overflow-x-auto"><code>{`const wallet = new ethers.Wallet(privateKey);
+const signature = await wallet.signMessage(challenge);`}</code></pre>
                   </div>
                 </div>
-              </div>
-
-              {/* Expected Format */}
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-sm font-medium text-[var(--text-primary)]">Expected Signature Format</span>
-                </div>
-                <p className="text-xs text-[var(--text-muted)] ml-6 mb-2">
-                  Your signature should look like this (base64-encoded Ed25519 signature):
-                </p>
-                <div className="ml-6 bg-[var(--bg-primary)] p-3 rounded-lg font-mono text-xs text-[var(--text-secondary)] break-all">
-                  5Nq8Xk9m7PqR3vL2w...<span className="text-[var(--text-muted)]"> (88 characters)</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Step 3: Additional Metadata */}
+        {/* Step 3: Additional Metadata (crypto) / Agent Details (enterprise) */}
         {currentStep === 3 && (
           <div className="animate-fade-in">
-            <FormField
-              label="Token Mint (Optional)"
-              name="tokenMint"
-              value={formData.tokenMint}
-              onChange={handleChange}
-              placeholder="Enter token mint address"
-              helpText="The SPL token associated with this agent"
-            />
+            {isEnterpriseAuth && (
+              <FormField
+                label="Agent Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="e.g., My Enterprise Agent"
+                required
+                error={errors.name}
+                helpText="A display name for your agent"
+              />
+            )}
 
-            <CapabilitiesInput value={formData.capabilities} onChange={handleChange} />
+            {!isEnterpriseAuth && isSolanaChain(chainType) && (
+              <FormField
+                label="Token Mint (Optional)"
+                name="tokenMint"
+                value={formData.tokenMint}
+                onChange={handleChange}
+                placeholder="Enter token mint address"
+                helpText="The SPL token associated with this agent"
+              />
+            )}
+
+            <CapabilitiesInput value={formData.capabilities} onChange={handleChange} chainType={chainType} />
 
             <FormField
               label="Creator X Handle (Optional)"
@@ -607,17 +876,53 @@ export default function Register() {
             <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Review Your Registration</h3>
 
             <div className="space-y-4 mb-6">
-              <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/30 border border-[var(--border-subtle)]">
-                <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">Public Key</div>
-                <div className="font-mono text-sm text-[var(--text-secondary)] break-all">{formData.pubkey}</div>
-              </div>
+              {isEnterpriseAuth ? (
+                <>
+                  <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/30 border border-[var(--border-subtle)]">
+                    <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">Credential Type</div>
+                    <div className="text-[var(--text-primary)] flex items-center gap-2">
+                      {credentialType === 'entra_id' && (
+                        <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                      )}
+                      {credentialType === 'oauth2' && (
+                        <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                      )}
+                      <span className="font-medium">{credentialType === 'entra_id' ? 'Microsoft Entra ID' : 'Enterprise (OAuth2)'}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/30 border border-[var(--border-subtle)]">
+                    <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">Token</div>
+                    <div className="font-mono text-sm text-[var(--text-secondary)] break-all">{oauthToken.substring(0, 40)}...{oauthToken.substring(oauthToken.length - 10)}</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/30 border border-[var(--border-subtle)]">
+                    <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">Chain</div>
+                    <div className="text-[var(--text-primary)] flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getChainColor(chainType) }} />
+                      {chains.find(c => c.chainType === chainType)?.name || chainType}
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/30 border border-[var(--border-subtle)]">
+                    <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">{isEVMChain(chainType) ? 'Wallet Address' : 'Public Key'}</div>
+                    <div className="font-mono text-sm text-[var(--text-secondary)] break-all">{formData.pubkey}</div>
+                  </div>
+                </>
+              )}
 
               <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/30 border border-[var(--border-subtle)]">
                 <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">Agent Name</div>
                 <div className="text-[var(--text-primary)] font-medium">{formData.name}</div>
               </div>
 
-              {formData.tokenMint && (
+              {!isEnterpriseAuth && formData.tokenMint && (
                 <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/30 border border-[var(--border-subtle)]">
                   <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">Token Mint</div>
                   <div className="font-mono text-sm text-[var(--text-secondary)] break-all">{formData.tokenMint}</div>
@@ -640,7 +945,7 @@ export default function Register() {
                 </div>
               )}
 
-              {(formData.creatorXHandle || formData.creatorWallet) && (
+              {!isEnterpriseAuth && (formData.creatorXHandle || formData.creatorWallet) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {formData.creatorXHandle && (
                     <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/30 border border-[var(--border-subtle)]">
@@ -683,13 +988,13 @@ export default function Register() {
           <button
             type="button"
             onClick={handleBack}
-            disabled={currentStep === 1}
+            disabled={currentStep === 0}
             className="px-6 py-2.5 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Back
           </button>
 
-          {currentStep < TOTAL_STEPS ? (
+          {currentStep < TOTAL_STEPS - 1 ? (
             <button
               type="button"
               onClick={handleNext}

@@ -5,7 +5,7 @@
 
 const express = require('express');
 const { authenticate } = require('../middleware/authenticate');
-const { authorize, ROLES } = require('../middleware/authorize');
+const { authorize, requireScope, ROLES } = require('../middleware/authorize');
 const { orgContext } = require('../middleware/orgContext');
 const {
   getOrganization,
@@ -14,7 +14,12 @@ const {
   updateMemberRole,
   removeMember,
   createInvite,
-  getOrgStats
+  getOrgStats,
+  getOrgIdPs,
+  getOrgIdP,
+  createOrgIdP,
+  updateOrgIdP,
+  deleteOrgIdP
 } = require('../models/orgQueries');
 
 const router = express.Router();
@@ -30,7 +35,7 @@ const ROLE_HIERARCHY = {
  * GET /orgs/:orgId
  * Get organization details
  */
-router.get('/orgs/:orgId', authenticate, orgContext, async (req, res, next) => {
+router.get('/orgs/:orgId', authenticate, orgContext, requireScope('read'), async (req, res, next) => {
   try {
     const org = await getOrganization(req.orgId);
     if (!org) {
@@ -46,7 +51,7 @@ router.get('/orgs/:orgId', authenticate, orgContext, async (req, res, next) => {
  * PUT /orgs/:orgId
  * Update organization (admin only)
  */
-router.put('/orgs/:orgId', authenticate, orgContext, authorize(ROLES.ADMIN), async (req, res, next) => {
+router.put('/orgs/:orgId', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
   try {
     const { name, description, settings } = req.body;
     const org = await updateOrganization(req.orgId, { name, description, settings });
@@ -63,7 +68,7 @@ router.put('/orgs/:orgId', authenticate, orgContext, authorize(ROLES.ADMIN), asy
  * GET /orgs/:orgId/members
  * List organization members (manager or admin)
  */
-router.get('/orgs/:orgId/members', authenticate, orgContext, authorize(ROLES.MANAGER, ROLES.ADMIN), async (req, res, next) => {
+router.get('/orgs/:orgId/members', authenticate, orgContext, authorize(ROLES.MANAGER, ROLES.ADMIN), requireScope('read'), async (req, res, next) => {
   try {
     const members = await getOrgMembers(req.orgId);
     return res.json(members);
@@ -76,7 +81,7 @@ router.get('/orgs/:orgId/members', authenticate, orgContext, authorize(ROLES.MAN
  * PUT /orgs/:orgId/members/:userId
  * Update member role (admin only)
  */
-router.put('/orgs/:orgId/members/:userId', authenticate, orgContext, authorize(ROLES.ADMIN), async (req, res, next) => {
+router.put('/orgs/:orgId/members/:userId', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
   try {
     const { role } = req.body;
     const { userId } = req.params;
@@ -104,7 +109,7 @@ router.put('/orgs/:orgId/members/:userId', authenticate, orgContext, authorize(R
  * DELETE /orgs/:orgId/members/:userId
  * Remove member from organization (admin only)
  */
-router.delete('/orgs/:orgId/members/:userId', authenticate, orgContext, authorize(ROLES.ADMIN), async (req, res, next) => {
+router.delete('/orgs/:orgId/members/:userId', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('admin'), async (req, res, next) => {
   try {
     const { userId } = req.params;
 
@@ -127,7 +132,7 @@ router.delete('/orgs/:orgId/members/:userId', authenticate, orgContext, authoriz
  * POST /orgs/:orgId/invite
  * Invite a new user to the organization (admin or manager)
  */
-router.post('/orgs/:orgId/invite', authenticate, orgContext, authorize(ROLES.MANAGER, ROLES.ADMIN), async (req, res, next) => {
+router.post('/orgs/:orgId/invite', authenticate, orgContext, authorize(ROLES.MANAGER, ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
   try {
     const { email, role } = req.body;
 
@@ -155,10 +160,113 @@ router.post('/orgs/:orgId/invite', authenticate, orgContext, authorize(ROLES.MAN
  * GET /orgs/:orgId/stats
  * Get organization statistics
  */
-router.get('/orgs/:orgId/stats', authenticate, orgContext, async (req, res, next) => {
+router.get('/orgs/:orgId/stats', authenticate, orgContext, requireScope('read'), async (req, res, next) => {
   try {
     const stats = await getOrgStats(req.orgId);
     return res.json(stats);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ── Identity Provider Management ──
+
+/**
+ * GET /orgs/:orgId/identity-providers
+ * List all configured identity providers for the organization
+ */
+router.get('/orgs/:orgId/identity-providers', authenticate, orgContext, authorize(ROLES.MANAGER, ROLES.ADMIN), requireScope('read'), async (req, res, next) => {
+  try {
+    const idps = await getOrgIdPs(req.orgId);
+    return res.json({ identityProviders: idps });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /orgs/:orgId/identity-providers
+ * Add a new identity provider configuration
+ */
+router.post('/orgs/:orgId/identity-providers', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
+  try {
+    const { providerType, issuerUrl, clientId, allowedAudiences, claimMappings, enabled } = req.body;
+
+    if (!providerType || !issuerUrl) {
+      return res.status(400).json({ error: 'providerType and issuerUrl are required' });
+    }
+
+    const validTypes = ['oauth2', 'entra_id', 'okta', 'auth0'];
+    if (!validTypes.includes(providerType)) {
+      return res.status(400).json({ error: `providerType must be one of: ${validTypes.join(', ')}` });
+    }
+
+    try { new URL(issuerUrl); } catch {
+      return res.status(400).json({ error: 'issuerUrl must be a valid URL' });
+    }
+
+    const idp = await createOrgIdP({
+      orgId: req.orgId,
+      providerType,
+      issuerUrl,
+      clientId,
+      allowedAudiences: allowedAudiences || [],
+      claimMappings: claimMappings || {},
+      enabled: enabled !== false,
+    });
+
+    return res.status(201).json({ identityProvider: idp });
+  } catch (error) {
+    if (error.code === '23505') {
+      return res.status(409).json({ error: 'Identity provider with this issuer URL already configured for this organization' });
+    }
+    next(error);
+  }
+});
+
+/**
+ * PUT /orgs/:orgId/identity-providers/:idpId
+ * Update an identity provider configuration
+ */
+router.put('/orgs/:orgId/identity-providers/:idpId', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
+  try {
+    const { idpId } = req.params;
+    const { providerType, issuerUrl, clientId, allowedAudiences, claimMappings, enabled } = req.body;
+
+    if (issuerUrl) {
+      try { new URL(issuerUrl); } catch {
+        return res.status(400).json({ error: 'issuerUrl must be a valid URL' });
+      }
+    }
+
+    const idp = await updateOrgIdP(idpId, req.orgId, {
+      providerType, issuerUrl, clientId, allowedAudiences, claimMappings, enabled,
+    });
+
+    if (!idp) {
+      return res.status(404).json({ error: 'Identity provider not found' });
+    }
+
+    return res.json({ identityProvider: idp });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * DELETE /orgs/:orgId/identity-providers/:idpId
+ * Remove an identity provider configuration
+ */
+router.delete('/orgs/:orgId/identity-providers/:idpId', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
+  try {
+    const { idpId } = req.params;
+    const deleted = await deleteOrgIdP(idpId, req.orgId);
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Identity provider not found' });
+    }
+
+    return res.json({ deleted: true, identityProvider: deleted });
   } catch (error) {
     next(error);
   }

@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../components/AuthProvider';
-import { getOrg, getOrgMembers, getApiKeys, createApiKey, deleteApiKey } from '../lib/authApi';
+import { getOrg, getOrgMembers, getApiKeys, createApiKey, deleteApiKey, getIdentityProviders, createIdentityProvider, updateIdentityProvider, deleteIdentityProvider } from '../lib/authApi';
 
 const TABS = [
   { id: 'org', label: 'Organization' },
   { id: 'keys', label: 'API Keys' },
   { id: 'team', label: 'Team Members' },
+  { id: 'identity-providers', label: 'Identity Providers' },
 ];
 
 function formatDate(dateString) {
@@ -349,6 +350,213 @@ function TeamSection({ orgId }) {
   );
 }
 
+// ---- Identity Providers Section ----
+function IdentityProvidersSection({ orgId }) {
+  const [idps, setIdps] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddIdP, setShowAddIdP] = useState(false);
+  const [newIdP, setNewIdP] = useState({ providerType: 'oauth2', issuerUrl: '', clientId: '' });
+  const [error, setError] = useState('');
+
+  const fetchIdPs = useCallback(async () => {
+    if (!orgId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await getIdentityProviders(orgId);
+      setIdps(data.identityProviders || []);
+    } catch {
+      setIdps([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [orgId]);
+
+  useEffect(() => {
+    fetchIdPs();
+  }, [fetchIdPs]);
+
+  async function handleCreateIdP() {
+    if (!newIdP.issuerUrl.trim()) {
+      setError('Issuer URL is required');
+      return;
+    }
+    try {
+      await createIdentityProvider(orgId, {
+        provider_type: newIdP.providerType,
+        issuer_url: newIdP.issuerUrl,
+        client_id: newIdP.clientId || undefined,
+      });
+      setShowAddIdP(false);
+      setNewIdP({ providerType: 'oauth2', issuerUrl: '', clientId: '' });
+      setError('');
+      fetchIdPs();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to create identity provider');
+    }
+  }
+
+  async function handleDeleteIdP(idpId) {
+    if (!window.confirm('Are you sure you want to remove this identity provider?')) return;
+    try {
+      await deleteIdentityProvider(orgId, idpId);
+      setIdps(prev => prev.filter(p => p.id !== idpId));
+    } catch (err) {
+      console.error('Failed to delete IdP:', err);
+    }
+  }
+
+  async function handleToggleIdP(idp) {
+    try {
+      await updateIdentityProvider(orgId, idp.id, { enabled: !idp.enabled });
+      setIdps(prev => prev.map(p => p.id === idp.id ? { ...p, enabled: !p.enabled } : p));
+    } catch (err) {
+      console.error('Failed to update IdP:', err);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="animate-pulse space-y-4">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="h-20 bg-[var(--bg-tertiary)] rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">Identity Providers</h3>
+          <p className="text-sm text-[var(--text-secondary)]">Configure enterprise identity providers for agent registration.</p>
+        </div>
+        <button
+          onClick={() => setShowAddIdP(true)}
+          className="px-4 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 transition-all text-sm font-medium"
+        >
+          Add Provider
+        </button>
+      </div>
+
+      {/* IdP List */}
+      {idps.length === 0 ? (
+        <div className="text-center py-12 glass rounded-xl border border-[var(--border-subtle)]">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-[var(--bg-tertiary)] flex items-center justify-center">
+            <svg className="w-6 h-6 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <p className="text-sm text-[var(--text-muted)]">No identity providers configured yet.</p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">Add an OAuth2, Entra ID, or OIDC provider to enable enterprise agent registration.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {idps.map(idp => (
+            <div key={idp.id} className="p-4 rounded-xl bg-[var(--bg-tertiary)]/30 border border-[var(--border-subtle)] flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                    idp.provider_type === 'entra_id' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' :
+                    idp.provider_type === 'okta' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30' :
+                    'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                  }`}>
+                    {idp.provider_type}
+                  </span>
+                  <span className="font-medium text-[var(--text-primary)]">{idp.issuer_url}</span>
+                  {!idp.enabled && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">Disabled</span>
+                  )}
+                </div>
+                {idp.client_id && (
+                  <p className="text-xs text-[var(--text-muted)] mt-1">Client ID: {idp.client_id}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleToggleIdP(idp)}
+                  className="px-3 py-1.5 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-all"
+                >
+                  {idp.enabled ? 'Disable' : 'Enable'}
+                </button>
+                <button
+                  onClick={() => handleDeleteIdP(idp.id)}
+                  className="px-3 py-1.5 rounded-lg text-xs text-red-400 hover:text-red-300 bg-red-500/5 border border-red-500/20 hover:border-red-500/40 transition-all"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add IdP Modal */}
+      {showAddIdP && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6 w-full max-w-lg space-y-4">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">Add Identity Provider</h3>
+
+            <div>
+              <label className="block text-sm text-[var(--text-secondary)] mb-1">Provider Type</label>
+              <select
+                value={newIdP.providerType}
+                onChange={(e) => setNewIdP(p => ({ ...p, providerType: e.target.value }))}
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)]"
+              >
+                <option value="oauth2">OAuth2 / OIDC</option>
+                <option value="entra_id">Microsoft Entra ID</option>
+                <option value="okta">Okta</option>
+                <option value="auth0">Auth0</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm text-[var(--text-secondary)] mb-1">Issuer URL</label>
+              <input
+                value={newIdP.issuerUrl}
+                onChange={(e) => setNewIdP(p => ({ ...p, issuerUrl: e.target.value }))}
+                placeholder="https://login.microsoftonline.com/{tenant}/v2.0"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-[var(--text-secondary)] mb-1">Client ID (optional)</label>
+              <input
+                value={newIdP.clientId}
+                onChange={(e) => setNewIdP(p => ({ ...p, clientId: e.target.value }))}
+                placeholder="Application (client) ID"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)]"
+              />
+            </div>
+
+            {error && <p className="text-xs text-red-400">{error}</p>}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => { setShowAddIdP(false); setError(''); }}
+                className="px-4 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateIdP}
+                className="px-4 py-2 rounded-lg bg-cyan-500 text-white text-sm font-medium hover:bg-cyan-600 transition-all"
+              >
+                Add Provider
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- Main Settings Page ----
 export default function Settings() {
   const { user } = useAuth();
@@ -404,6 +612,7 @@ export default function Settings() {
         {activeTab === 'org' && <OrgSection org={org} loading={orgLoading} />}
         {activeTab === 'keys' && <ApiKeysSection />}
         {activeTab === 'team' && <TeamSection orgId={user?.orgId} />}
+        {activeTab === 'identity-providers' && <IdentityProvidersSection orgId={user?.orgId} />}
       </div>
     </div>
   );

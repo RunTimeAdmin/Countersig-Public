@@ -1,14 +1,22 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { discoverAgents } from '../lib/api';
+import { discoverAgents, getChains } from '../lib/api';
 import TrustBadge from '../components/TrustBadge';
 import CapabilityList from '../components/CapabilityList';
 
 const SUGGESTED_CAPABILITIES = [
   { id: 'bags.swap.v1', label: 'bags.swap.v1', color: 'cyan' },
-  { id: 'bags.fee-claim.v1', label: 'bags.fee-claim.v1', color: 'emerald' },
+  { id: 'bags.trade.v1', label: 'bags.trade.v1', color: 'cyan' },
   { id: 'bags.launch.v1', label: 'bags.launch.v1', color: 'purple' },
+  { id: 'bags.fee-claim.v1', label: 'bags.fee-claim.v1', color: 'emerald' },
+  { id: 'defi.swap.v1', label: 'defi.swap.v1', color: 'emerald' },
+  { id: 'defi.lend.v1', label: 'defi.lend.v1', color: 'emerald' },
+  { id: 'defi.stake.v1', label: 'defi.stake.v1', color: 'emerald' },
+  { id: 'nft.mint.v1', label: 'nft.mint.v1', color: 'purple' },
+  { id: 'nft.trade.v1', label: 'nft.trade.v1', color: 'purple' },
+  { id: 'oracle.price.v1', label: 'oracle.price.v1', color: 'blue' },
   { id: 'infra.solana.health.v1', label: 'infra.solana.health.v1', color: 'blue' },
+  { id: 'infra.monitor.v1', label: 'infra.monitor.v1', color: 'blue' },
 ];
 
 const COLOR_CLASSES = {
@@ -91,12 +99,28 @@ function ScoreBadge({ score }) {
   );
 }
 
+function getChainColor(chainType) {
+  const colors = { 'solana-bags': '#9945FF', 'solana': '#14F195', 'ethereum': '#627EEA', 'base': '#0052FF', 'polygon': '#8247E5' };
+  return colors[chainType] || '#888';
+}
+
+function getChainLabel(chainType) {
+  const labels = { 'solana-bags': 'BAGS', 'solana': 'SOL', 'ethereum': 'ETH', 'base': 'BASE', 'polygon': 'MATIC' };
+  return labels[chainType] || chainType;
+}
+
 export default function Discover() {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState(null);
+  const [chains, setChains] = useState([]);
+  const [chainFilter, setChainFilter] = useState('');
+
+  useEffect(() => {
+    getChains().then(setChains).catch(() => {});
+  }, []);
 
   const handleSearch = useCallback(async (capability) => {
     if (!capability.trim()) return;
@@ -106,7 +130,7 @@ export default function Discover() {
     setHasSearched(true);
 
     try {
-      const response = await discoverAgents({ capability: capability.trim() });
+      const response = await discoverAgents({ capability: capability.trim(), chain: chainFilter || undefined });
       setResults(response.agents || []);
     } catch (err) {
       setError(err.message || 'Failed to discover agents');
@@ -114,7 +138,7 @@ export default function Discover() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [chainFilter]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -152,7 +176,7 @@ export default function Discover() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Find the best agent for... (e.g., bags.swap.v1)"
+              placeholder="Find the best agent for... (e.g., defi.swap.v1)"
               className="w-full pl-14 pr-32 py-4 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-lg focus:border-[var(--accent-cyan)] focus:ring-2 focus:ring-[var(--accent-cyan)]/20 transition-all duration-200"
             />
             <button
@@ -163,6 +187,23 @@ export default function Discover() {
               Search
             </button>
           </form>
+
+          {/* Chain Filter */}
+          <div className="mt-4">
+            <div className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2">
+              Filter by Chain
+            </div>
+            <select
+              value={chainFilter}
+              onChange={(e) => setChainFilter(e.target.value)}
+              className="w-full sm:w-48 px-4 py-2.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)] transition-colors"
+            >
+              <option value="">All Chains</option>
+              {chains.map(c => (
+                <option key={c.chainType} value={c.chainType}>{c.name}</option>
+              ))}
+            </select>
+          </div>
 
           {/* Suggested Capabilities */}
           <div className="mt-6">
@@ -239,6 +280,21 @@ export default function Discover() {
             )}
           </button>
         </form>
+
+        {/* Chain Filter - compact */}
+        <div className="flex items-center gap-2 mt-3">
+          <span className="text-xs text-[var(--text-muted)]">Chain:</span>
+          <select
+            value={chainFilter}
+            onChange={(e) => setChainFilter(e.target.value)}
+            className="px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] text-sm focus:border-[var(--accent-cyan)] focus:outline-none"
+          >
+            <option value="">All Chains</option>
+            {chains.map(c => (
+              <option key={c.chainType} value={c.chainType}>{c.name}</option>
+            ))}
+          </select>
+        </div>
 
         {/* Suggested Capabilities */}
         <div className="flex flex-wrap gap-2 mt-3">
@@ -320,7 +376,7 @@ export default function Discover() {
               <span className="font-mono text-[var(--accent-cyan)]">{searchQuery}</span>
             </div>
             <div className="text-xs text-[var(--text-muted)]">
-              Ranked by Bags Score
+              Ranked by Reputation Score
             </div>
           </div>
 
@@ -351,6 +407,17 @@ export default function Discover() {
                         }`}>
                           {agent.status}
                         </span>
+                        {agent.chain_type && (
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider"
+                            style={{
+                              backgroundColor: `${getChainColor(agent.chain_type)}20`,
+                              color: getChainColor(agent.chain_type)
+                            }}
+                          >
+                            {getChainLabel(agent.chain_type)}
+                          </span>
+                        )}
                       </div>
 
                       <div className="font-mono text-sm text-[var(--text-muted)] mb-3">

@@ -1,5 +1,31 @@
 import PropTypes from 'prop-types';
 
+const FACTOR_LABELS = {
+  'solana-bags': {
+    feeActivity: 'BAGS Fee Activity',
+    successRate: 'Success Rate',
+    age: 'Account Age',
+    saidTrust: 'SAID Trust Score',
+    community: 'Community Standing'
+  },
+  'solana': {
+    activity: 'On-Chain Activity',
+    successRate: 'Success Rate',
+    age: 'Account Age',
+    community: 'Community Standing'
+  },
+  _default: {
+    activity: 'On-Chain Activity',
+    successRate: 'Transaction Success',
+    age: 'Account Age',
+    community: 'Community Standing'
+  }
+};
+
+function getFactorLabels(chainType) {
+  return FACTOR_LABELS[chainType] || FACTOR_LABELS._default;
+}
+
 const categories = [
   { key: 'feeActivity', label: 'Fee Activity', max: 30, color: 'cyan' },
   { key: 'successRate', label: 'Success Rate', max: 25, color: 'emerald' },
@@ -7,6 +33,32 @@ const categories = [
   { key: 'saidTrust', label: 'SAID Trust', max: 15, color: 'amber' },
   { key: 'community', label: 'Community', max: 10, color: 'pink' },
 ];
+
+const categoriesByChain = {
+  'solana-bags': [
+    { key: 'feeActivity', max: 30, color: 'cyan' },
+    { key: 'successRate', max: 25, color: 'emerald' },
+    { key: 'age', max: 20, color: 'purple' },
+    { key: 'saidTrust', max: 15, color: 'amber' },
+    { key: 'community', max: 10, color: 'pink' },
+  ],
+  'solana': [
+    { key: 'activity', max: 30, color: 'cyan' },
+    { key: 'successRate', max: 25, color: 'emerald' },
+    { key: 'age', max: 20, color: 'purple' },
+    { key: 'community', max: 10, color: 'pink' },
+  ],
+  _default: [
+    { key: 'activity', max: 30, color: 'cyan' },
+    { key: 'successRate', max: 25, color: 'emerald' },
+    { key: 'age', max: 20, color: 'purple' },
+    { key: 'community', max: 10, color: 'pink' },
+  ],
+};
+
+function getCategories(chainType) {
+  return categoriesByChain[chainType] || categoriesByChain._default;
+}
 
 const colorMap = {
   cyan: {
@@ -43,7 +95,10 @@ function getScoreColor(score, max) {
   return 'text-red-400';
 }
 
-export default function ReputationBreakdown({ breakdown }) {
+export default function ReputationBreakdown({ breakdown, chainType }) {
+  const labels = getFactorLabels(chainType);
+  const cats = getCategories(chainType);
+
   // Handle nested object shape: { feeActivity: { score: N, max: M }, ... }
   const getScore = (value) => {
     if (typeof value === 'number') return value;
@@ -57,7 +112,7 @@ export default function ReputationBreakdown({ breakdown }) {
   };
   
   const totalScore = Object.values(breakdown || {}).reduce((a, b) => a + getScore(b), 0);
-  const maxScore = categories.reduce((a, c) => a + c.max, 0);
+  const maxScore = cats.reduce((a, c) => a + c.max, 0);
   
   const getLabel = (score) => {
     if (score >= 80) return 'HIGH';
@@ -72,7 +127,7 @@ export default function ReputationBreakdown({ breakdown }) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">Reputation Breakdown</h3>
-          <p className="text-sm text-[var(--text-muted)]">5-factor scoring system</p>
+          <p className="text-sm text-[var(--text-muted)]">{cats.length}-factor scoring system</p>
         </div>
         <div className="text-right">
           <div className={`text-4xl font-bold ${getScoreColor(totalScore, maxScore)}`}>
@@ -87,18 +142,19 @@ export default function ReputationBreakdown({ breakdown }) {
 
       {/* Score bars */}
       <div className="space-y-4">
-        {categories.map((cat) => {
+        {cats.map((cat) => {
           const value = breakdown?.[cat.key] || 0;
           const score = getScore(value);
           const max = getMax(value, cat.max);
           const percentage = Math.min(100, (score / max) * 100);
           const colors = colorMap[cat.color];
+          const label = labels[cat.key] || cat.key;
           
           return (
             <div key={cat.key} className="group">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-[var(--text-secondary)]">{cat.label}</span>
+                  <span className="text-sm text-[var(--text-secondary)]">{label}</span>
                   <span className="text-xs text-[var(--text-muted)]">({max})</span>
                 </div>
                 <span className={`text-sm font-semibold ${colors.text}`}>
@@ -144,13 +200,8 @@ export default function ReputationBreakdown({ breakdown }) {
 }
 
 ReputationBreakdown.propTypes = {
-  breakdown: PropTypes.shape({
-    feeActivity: PropTypes.oneOfType([PropTypes.number, PropTypes.shape({ score: PropTypes.number, max: PropTypes.number })]),
-    successRate: PropTypes.oneOfType([PropTypes.number, PropTypes.shape({ score: PropTypes.number, max: PropTypes.number })]),
-    age: PropTypes.oneOfType([PropTypes.number, PropTypes.shape({ score: PropTypes.number, max: PropTypes.number })]),
-    saidTrust: PropTypes.oneOfType([PropTypes.number, PropTypes.shape({ score: PropTypes.number, max: PropTypes.number })]),
-    community: PropTypes.oneOfType([PropTypes.number, PropTypes.shape({ score: PropTypes.number, max: PropTypes.number })]),
-  }),
+  breakdown: PropTypes.object,
+  chainType: PropTypes.string,
 };
 
 ReputationBreakdown.defaultProps = {
@@ -161,4 +212,5 @@ ReputationBreakdown.defaultProps = {
     saidTrust: { score: 0, max: 15 },
     community: { score: 0, max: 10 },
   },
+  chainType: undefined,
 };

@@ -6,6 +6,14 @@ import TrustBadge from '../components/TrustBadge';
 
 const TOTAL_STEPS = 4;
 
+const DEMO_CHAINS = [
+  { type: 'solana-bags', name: 'Solana (BAGS)', color: '#9945FF', algo: 'Ed25519' },
+  { type: 'solana', name: 'Solana (Generic)', color: '#14F195', algo: 'Ed25519' },
+  { type: 'ethereum', name: 'Ethereum', color: '#627EEA', algo: 'SECP256K1' },
+  { type: 'base', name: 'Base', color: '#0052FF', algo: 'SECP256K1' },
+  { type: 'polygon', name: 'Polygon', color: '#8247E5', algo: 'SECP256K1' },
+];
+
 // Checkmark icon component
 function CheckIcon({ className = '' }) {
   return (
@@ -133,6 +141,7 @@ export default function Demo() {
   const [signature, setSignature] = useState(null);
   const [verificationResult, setVerificationResult] = useState(null);
   const [badgeData, setBadgeData] = useState(null);
+  const [demoChain, setDemoChain] = useState('solana-bags');
   const [loading, setLoading] = useState({});
   const [error, setError] = useState(null);
 
@@ -144,6 +153,14 @@ export default function Demo() {
       name: `Demo Agent ${randomDigits}`,
     }));
   }, []);
+
+  // Update capabilities when chain changes
+  useEffect(() => {
+    const caps = demoChain?.startsWith('solana')
+      ? ['bags.swap.v1', 'bags.trade.v1', 'infra.solana.health.v1', 'defi.swap.v1']
+      : ['defi.swap.v1', 'defi.lend.v1', 'nft.mint.v1', 'oracle.price.v1'];
+    setAgentData(prev => ({ ...prev, capabilities: caps }));
+  }, [demoChain]);
 
   // Step 1: Generate Keypair
   const generateKeypair = () => {
@@ -192,6 +209,7 @@ export default function Demo() {
         signature,
         message,
         nonce,
+        chain_type: demoChain,
       };
 
       const response = await registerAgent(registrationData);
@@ -282,11 +300,12 @@ export default function Demo() {
     setVerificationResult(null);
     setBadgeData(null);
     setError(null);
+    setDemoChain('solana-bags');
     const randomDigits = Math.floor(1000 + Math.random() * 9000);
     setAgentData({
       name: `Demo Agent ${randomDigits}`,
       description: 'This is a demo agent created to showcase AgentID\'s verification flow',
-      capabilities: ['demo', 'testing'],
+      capabilities: ['bags.swap.v1', 'bags.trade.v1', 'infra.solana.health.v1', 'defi.swap.v1'],
       categories: ['utility'],
     });
   };
@@ -418,6 +437,32 @@ export default function Demo() {
                   </div>
                 </div>
               </div>
+
+              {/* Chain Selection */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">Select Chain</h3>
+                <p className="text-sm text-[var(--text-secondary)]">Choose the blockchain for this demo registration.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {DEMO_CHAINS.map((chain) => (
+                    <button
+                      key={chain.type}
+                      onClick={() => setDemoChain(chain.type)}
+                      className={`p-3 rounded-lg border text-left transition-all text-sm ${
+                        demoChain === chain.type
+                          ? 'border-cyan-500 bg-cyan-500/10'
+                          : 'border-[var(--border-subtle)] bg-[var(--bg-card)] hover:border-[var(--border-default)]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: chain.color }} />
+                        <span className="font-medium text-[var(--text-primary)]">{chain.name}</span>
+                      </div>
+                      <div className="text-xs text-[var(--text-muted)] mt-1">{chain.algo}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <button
                 onClick={generateKeypair}
                 className="text-sm text-[var(--text-muted)] hover:text-[var(--accent-cyan)] transition-colors"

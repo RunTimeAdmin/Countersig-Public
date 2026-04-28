@@ -4,6 +4,8 @@
  */
 
 const rateLimit = require('express-rate-limit');
+const { RedisStore } = require('rate-limit-redis');
+const { redis } = require('../models/redis');
 
 // Default rate limit: 100 requests per 15 minutes per IP
 const DEFAULT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
@@ -23,6 +25,18 @@ const REGISTRATION_MAX_REQUESTS = 5;
  * @param {string} options.message - Custom error message
  * @returns {Function} Express middleware
  */
+// Attempt to create Redis-backed store with graceful fallback
+let redisStore;
+try {
+  redisStore = new RedisStore({
+    sendCommand: (...args) => redis.call(...args),
+    prefix: 'rl:',
+  });
+} catch (err) {
+  console.warn('Redis rate limit store unavailable, falling back to memory store:', err.message);
+  redisStore = undefined;
+}
+
 function createLimiter(options = {}) {
   const windowMs = options.windowMs || DEFAULT_WINDOW_MS;
   const max = options.max || DEFAULT_MAX_REQUESTS;
@@ -35,6 +49,7 @@ function createLimiter(options = {}) {
       error: message,
       status: 429
     },
+    store: redisStore,
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     handler: (req, res, next, options) => {

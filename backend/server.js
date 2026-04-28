@@ -80,8 +80,17 @@ app.use((req, res, next) => {
 });
 
 // CORS middleware
+const corsOrigins = config.corsOrigin;
 app.use(cors({
-  origin: config.corsOrigin,
+  origin: corsOrigins.includes('*')
+    ? '*'
+    : function (origin, callback) {
+        if (!origin || corsOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
   credentials: true
 }));
 
@@ -90,12 +99,53 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Health check route
-app.get('/health', (req, res) => {
-  res.json({
+app.get('/health', async (req, res) => {
+  const health = {
     status: 'ok',
-    service: 'agentid-api',
-    timestamp: new Date().toISOString()
-  });
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '2.0.0',
+    postgres: 'unknown',
+    redis: 'unknown',
+    chains: []
+  };
+
+  // Check PostgreSQL
+  try {
+    const { pool } = require('./src/models/db');
+    await pool.query('SELECT 1');
+    health.postgres = 'connected';
+  } catch (err) {
+    health.postgres = 'disconnected';
+    health.status = 'degraded';
+  }
+
+  // Check Redis
+  try {
+    const redis = require('./src/models/redis').redis;
+    if (redis && redis.status === 'ready') {
+      health.redis = 'connected';
+    } else if (redis) {
+      await redis.ping();
+      health.redis = 'connected';
+    } else {
+      health.redis = 'not configured';
+    }
+  } catch (err) {
+    health.redis = 'disconnected';
+    health.status = 'degraded';
+  }
+
+  // Check chain adapters
+  try {
+    const { getSupportedChains } = require('./src/services/chainAdapters');
+    health.chains = getSupportedChains().map(c => c.chainType);
+  } catch (err) {
+    health.chains = [];
+  }
+
+  const statusCode = health.status === 'ok' ? 200 : 503;
+  res.status(statusCode).json(health);
 });
 
 // Rate limiting
@@ -120,6 +170,82 @@ app.use((req, res, next) => {
     }
   }
   next();
+});
+
+// JWKS endpoint — public, no auth required
+// Exposes key metadata so receiving agents can verify A2A tokens
+app.get('/.well-known/jwks.json', (req, res) => {
+  res.json({
+    keys: [
+      {
+        kty: 'oct',
+        kid: 'agentid-a2a-v1',
+        use: 'sig',
+        alg: 'HS256'
+        // Note: HMAC secrets are symmetric — the actual key is NOT exposed.
+        // Verifiers must obtain the shared secret via secure channel.
+        // This endpoint documents the key metadata and algorithm.
+      }
+    ],
+    issuer: 'agentidapp.com',
+    documentation: 'https://agentidapp.com/docs/a2a-auth',
+    // Provide the verification endpoint for agents that can't use shared secrets
+    verify_endpoint: '/agents/verify-token'
+  });
+});
+
+// DID Document endpoint — public, no auth required
+// Exposes W3C DID document for did:web:agentidapp.com
+app.get('/.well-known/did.json', (req, res) => {
+  res.json({
+    '@context': [
+      'https://www.w3.org/ns/did/v1',
+      'https://w3id.org/security/suites/ed25519-2020/v1',
+      'https://w3id.org/security/suites/secp256k1-2019/v1'
+    ],
+    id: 'did:web:agentidapp.com',
+    controller: 'did:web:agentidapp.com',
+    verificationMethod: [
+      {
+        id: 'did:web:agentidapp.com#ed25519-key',
+        type: 'Ed25519VerificationKey2020',
+        controller: 'did:web:agentidapp.com',
+        // Public key would be populated from env in production
+        publicKeyMultibase: process.env.DID_ED25519_PUBLIC_KEY || 'z_PLACEHOLDER_CONFIGURE_IN_ENV'
+      },
+      {
+        id: 'did:web:agentidapp.com#secp256k1-key',
+        type: 'EcdsaSecp256k1VerificationKey2019',
+        controller: 'did:web:agentidapp.com',
+        publicKeyMultibase: process.env.DID_SECP256K1_PUBLIC_KEY || 'z_PLACEHOLDER_CONFIGURE_IN_ENV'
+      }
+    ],
+    authentication: [
+      'did:web:agentidapp.com#ed25519-key',
+      'did:web:agentidapp.com#secp256k1-key'
+    ],
+    assertionMethod: [
+      'did:web:agentidapp.com#ed25519-key',
+      'did:web:agentidapp.com#secp256k1-key'
+    ],
+    service: [
+      {
+        id: 'did:web:agentidapp.com#agentid-api',
+        type: 'AgentIDService',
+        serviceEndpoint: 'https://api.agentidapp.com'
+      },
+      {
+        id: 'did:web:agentidapp.com#a2a-verify',
+        type: 'A2AVerificationService',
+        serviceEndpoint: 'https://api.agentidapp.com/agents/verify-token'
+      },
+      {
+        id: 'did:web:agentidapp.com#credential-issuance',
+        type: 'VerifiableCredentialService',
+        serviceEndpoint: 'https://api.agentidapp.com/agents/{agentId}/credential'
+      }
+    ]
+  });
 });
 
 // API routes

@@ -10,7 +10,7 @@
 The AgentID Widget provides a **visual trust indicator** that can be embedded in any web application, documentation, or marketplace listing. It displays real-time reputation data including:
 
 - **Verification status** (Verified, Unverified, Flagged)
-- **Trust score** (0-100 BAGS Score)
+- **Trust score** (0-100 Reputation Score)
 - **Action statistics** (total actions, success rate)
 - **Registration metadata** (registration date, capabilities)
 
