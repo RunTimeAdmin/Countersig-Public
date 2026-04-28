@@ -518,6 +518,16 @@ router.put('/agents/:agentId/update', authenticate, requireScope('write'), authL
 
       // Backward compatibility: try legacy format if new format fails
       if (!isSignatureValid) {
+        // Hard sunset for legacy signing format
+        const LEGACY_DEADLINE = parseInt(process.env.LEGACY_SIGNING_DEADLINE, 10) ||
+          new Date('2026-07-01').getTime(); // Default: July 1, 2026
+        if (Date.now() > LEGACY_DEADLINE) {
+          return res.status(400).json({
+            error: 'Legacy signature format is no longer accepted. Please use the current signing format.',
+            migrationGuide: 'Sign: AGENTID-UPDATE:{agentId}:{timestamp}:{fieldHash}'
+          });
+        }
+
         // Reject if legacy signing has been disabled for this agent
         if (agent.legacy_signing_disabled) {
           return res.status(401).json({ error: 'Legacy signature format no longer accepted for this agent' });

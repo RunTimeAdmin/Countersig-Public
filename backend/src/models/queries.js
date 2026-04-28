@@ -47,14 +47,17 @@ async function getAgent(agentId) {
  * @param {string} idpProvider - Identity provider
  * @returns {Promise<Object|null>} - Agent row or null
  */
-async function getAgentByExternalId(externalId, idpProvider) {
-  const result = await query(
-    `SELECT * FROM agent_identities 
-     WHERE external_id = $1 AND idp_provider = $2 
-     AND revoked_at IS NULL AND deleted_at IS NULL
-     LIMIT 1`,
-    [externalId, idpProvider]
-  );
+async function getAgentByExternalId(externalId, idpProvider, orgId = null) {
+  let sql = `SELECT * FROM agent_identities 
+     WHERE external_id = $1 AND idp_provider = $2`;
+  const params = [externalId, idpProvider];
+  if (orgId) {
+    sql += ` AND org_id = $3`;
+    params.push(orgId);
+  }
+  sql += ` AND revoked_at IS NULL AND deleted_at IS NULL
+     LIMIT 1`;
+  const result = await query(sql, params);
   return result.rows[0] || null;
 }
 

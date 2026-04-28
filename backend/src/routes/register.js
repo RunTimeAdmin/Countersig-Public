@@ -157,7 +157,8 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
       }
 
       // 5. Per-pubkey throttling: max 5 registrations per pubkey per 24 hours (atomic INCR+EXPIRE)
-      const pubkeyThrottleKey = `reg:pubkey:${pubkey}`;
+      const orgId = req.orgId || req.user?.orgId || 'default';
+      const pubkeyThrottleKey = `reg:pubkey:${orgId}:${pubkey}`;
       const luaScript = `
         local v = redis.call('INCR', KEYS[1])
         if v == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
@@ -274,7 +275,7 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
       const { externalId, provider, email, name: claimName } = result.identity;
 
       // Check for duplicate by external ID
-      const existingAgent = await getAgentByExternalId(externalId, provider);
+      const existingAgent = await getAgentByExternalId(externalId, provider, req.user.orgId);
       if (existingAgent) {
         return res.status(409).json({ error: 'Agent with this external identity already exists', agentId: existingAgent.agent_id });
       }
