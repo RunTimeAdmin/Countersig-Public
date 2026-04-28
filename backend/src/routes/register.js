@@ -13,6 +13,7 @@ const authManager = require('../auth/authManager');
 const { registrationLimiter } = require('../middleware/rateLimit');
 const { redis } = require('../models/redis');
 const { transformAgent, isValidSolanaAddress } = require('../utils/transform');
+const eventBus = require('../services/eventBus');
 
 const router = express.Router();
 
@@ -218,6 +219,14 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
           chainType: resolvedChainType
         });
 
+        eventBus.publish('agent.registered', {
+          orgId: agent.org_id || null,
+          agentId: agent.agent_id,
+          pubkey: agent.pubkey,
+          name: agent.name,
+          credentialType: agent.credential_type || 'CRYPTOGRAPHIC'
+        });
+
         // 7. Return created agent with SAID status
         return res.status(201).json({
           agent: transformAgent(agent),
@@ -282,6 +291,14 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
         credentialType: credential_type,
         externalId,
         idpProvider: provider,
+      });
+
+      eventBus.publish('agent.registered', {
+        orgId: agent.org_id || null,
+        agentId: agent.agent_id,
+        pubkey: agent.pubkey,
+        name: agent.name,
+        credentialType: agent.credential_type || credential_type.toUpperCase()
       });
 
       return res.status(201).json({

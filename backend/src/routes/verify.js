@@ -8,6 +8,7 @@ const { issueChallenge, verifyChallenge, isNonceUsed } = require('../services/pk
 const { getAgent } = require('../models/queries');
 const { authLimiter } = require('../middleware/rateLimit');
 const { authenticate } = require('../middleware/authenticate');
+const eventBus = require('../services/eventBus');
 
 const router = express.Router();
 
@@ -120,6 +121,12 @@ router.post('/response', authenticate, authLimiter, async (req, res, next) => {
     // 3. Call verifyChallenge
     try {
       const result = await verifyChallenge(agentId, agent.pubkey, nonce, signature);
+
+      eventBus.publish('agent.verified', {
+        orgId: agent.org_id || null,
+        agentId,
+        verificationMethod: 'pki_challenge'
+      });
 
       // 3. If valid, return success response
       return res.status(200).json(result);

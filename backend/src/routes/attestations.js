@@ -19,6 +19,7 @@ const { requireScope } = require('../middleware/authorize');
 const { transformAgent, isValidSolanaAddress } = require('../utils/transform');
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');
+const eventBus = require('../services/eventBus');
 
 const router = express.Router();
 
@@ -66,6 +67,14 @@ router.post('/agents/:agentId/attest', authenticate, requireScope('write'), auth
     }
 
     const transformedAgent = transformAgent(updatedAgent);
+
+    eventBus.publish('attestation.created', {
+      orgId: agent.org_id || null,
+      agentId,
+      attestorId: req.user?.userId || null,
+      score: transformedAgent.bagsScore
+    });
+
     return res.status(200).json({
       agentId,
       pubkey: agent.pubkey,
@@ -172,6 +181,13 @@ router.post('/agents/:agentId/flag', authenticate, requireScope('write'), authLi
       reporterPubkey,
       reason,
       evidence: evidence || null
+    });
+
+    eventBus.publish('agent.flagged', {
+      orgId: agent.org_id || null,
+      agentId,
+      reason,
+      flaggedBy: reporterPubkey
     });
 
     // Check if unresolved flags >= 3, auto-update status to 'flagged'

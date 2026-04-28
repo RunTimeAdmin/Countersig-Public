@@ -18,6 +18,7 @@ const { requireScope } = require('../middleware/authorize');
 const { orgContext } = require('../middleware/orgContext');
 const { transformAgent, transformAgents, isValidSolanaAddress } = require('../utils/transform');
 const { generateA2AToken, verifyA2AToken } = require('../services/authService');
+const eventBus = require('../services/eventBus');
 
 const router = express.Router();
 
@@ -635,6 +636,12 @@ router.put('/agents/:agentId/update', authenticate, requireScope('write'), authL
       });
     }
 
+    eventBus.publish('agent.updated', {
+      orgId: agent.org_id || null,
+      agentId,
+      updatedFields: Object.keys(updateFields)
+    });
+
     // 7. Return updated agent
     return res.status(200).json({
       agent: transformAgent(updatedAgent)
@@ -768,6 +775,12 @@ router.post('/agents/:agentId/revoke', authenticate, requireScope('write'), auth
         error: 'Failed to revoke agent'
       });
     }
+
+    eventBus.publish('agent.revoked', {
+      orgId: agent.org_id || null,
+      agentId,
+      revokedBy: req.user?.userId || null
+    });
 
     // 9. Return success response
     return res.status(200).json({
