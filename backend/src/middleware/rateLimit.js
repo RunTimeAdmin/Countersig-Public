@@ -17,6 +17,8 @@ const AUTH_MAX_REQUESTS = 20;
 // Registration rate limit: 5 requests per 15 minutes
 const REGISTRATION_MAX_REQUESTS = 5;
 
+let redisStoreAvailable = true;
+
 /**
  * Creates a configurable rate limiter
  * @param {Object} options - Configuration options
@@ -33,7 +35,8 @@ function createRedisStore(prefix) {
       prefix: prefix,
     });
   } catch (err) {
-    console.warn('Redis rate limit store unavailable, falling back to memory store:', err.message);
+    redisStoreAvailable = false;
+    console.error('[RateLimit] ERROR: Redis rate limit store creation failed, falling back to in-memory store:', err.message);
     return undefined;
   }
 }
@@ -43,15 +46,19 @@ function createLimiter(options = {}) {
   const max = options.max || DEFAULT_MAX_REQUESTS;
   const message = options.message || 'Too many requests, please try again later.';
   const prefix = options.prefix || 'rl:default:';
+  const fallbackMax = options.fallbackMax || max;
 
-  return rateLimit({
+  const store = createRedisStore(prefix);
+  const effectiveMax = redisStoreAvailable ? max : fallbackMax;
+
+  const limiter = rateLimit({
     windowMs,
-    max,
+    max: effectiveMax,
     message: {
       error: message,
       status: 429
     },
-    store: createRedisStore(prefix),
+    store,
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     handler: (req, res, next, options) => {
@@ -59,6 +66,13 @@ function createLimiter(options = {}) {
       res.status(429).json(options.message);
     }
   });
+
+  return (req, res, next) => {
+    if (!redisStoreAvailable) {
+      console.warn('[RateLimit] DEGRADED: using in-memory store — rate limits are per-instance');
+    }
+    limiter(req, res, next);
+  };
 }
 
 // Default limiter: 100 requests per 15 minutes
@@ -72,6 +86,7 @@ const defaultLimiter = createLimiter({
 const authLimiter = createLimiter({
   windowMs: DEFAULT_WINDOW_MS,
   max: AUTH_MAX_REQUESTS,
+  fallbackMax: Math.floor(AUTH_MAX_REQUESTS / 2),
   prefix: 'rl:auth:',
   message: 'Too many authentication attempts, please try again later.'
 });

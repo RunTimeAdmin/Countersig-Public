@@ -167,62 +167,72 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
         return res.status(429).json({ error: 'Too many registrations for this public key. Maximum 5 per 24 hours.' });
       }
 
-      // 5. Attempt SAID binding (non-blocking, only for Solana chain types)
-      const timestamp = Date.now();
-      let saidStatus = { registered: false, error: null };
+      try {
+        // 5. Attempt SAID binding (non-blocking, only for Solana chain types)
+        const timestamp = Date.now();
+        let saidStatus = { registered: false, error: null };
 
-      if (resolvedChainType.startsWith('solana')) {
-        try {
-          const saidResult = await registerWithSAID({
-            pubkey,
-            timestamp,
-            signature,
-            name,
-            description,
-            capabilities: capabilities || [],
-            tokenMint
-          });
+        if (resolvedChainType.startsWith('solana')) {
+          try {
+            const saidResult = await registerWithSAID({
+              pubkey,
+              timestamp,
+              signature,
+              name,
+              description,
+              capabilities: capabilities || [],
+              tokenMint
+            });
 
-          if (saidResult) {
-            saidStatus = { registered: true, data: saidResult };
-          } else {
-            saidStatus = { registered: false, error: 'SAID registration returned null' };
+            if (saidResult) {
+              saidStatus = { registered: true, data: saidResult };
+            } else {
+              saidStatus = { registered: false, error: 'SAID registration returned null' };
+            }
+          } catch (saidError) {
+            // Log warning but continue with registration
+            console.warn('SAID binding failed during registration:', saidError.message);
+            saidStatus = { registered: false, error: saidError.message };
           }
-        } catch (saidError) {
-          // Log warning but continue with registration
-          console.warn('SAID binding failed during registration:', saidError.message);
-          saidStatus = { registered: false, error: saidError.message };
         }
+
+        // 6. Check if this is a demo agent
+        const isDemo = req.body.isDemo === true; // explicit boolean, not name-based
+        if (isDemo && req.user.role !== 'admin') {
+          return res.status(403).json({ error: 'Only admins can create demo agents' });
+        }
+
+        // 7. Store agent record
+        const agent = await createAgent({
+          pubkey,
+          name,
+          description,
+          tokenMint,
+          bagsApiKeyId: null, // Will be set later if needed
+          capabilitySet: capabilities || [],
+          creatorX,
+          creatorWallet,
+          isDemo,
+          orgId: req.user.orgId,
+          createdBy: req.user.userId,
+          chainType: resolvedChainType
+        });
+
+        // 7. Return created agent with SAID status
+        return res.status(201).json({
+          agent: transformAgent(agent),
+          agentId: agent.agent_id,
+          said: saidStatus
+        });
+      } catch (err) {
+        // Decrement rate limit counter on registration failure so legitimate retries aren't blocked
+        try {
+          await redis.decr(pubkeyThrottleKey);
+        } catch (decrErr) {
+          console.warn('Failed to decrement registration rate limit:', decrErr.message);
+        }
+        throw err;
       }
-
-      // 6. Check if this is a demo agent
-      const isDemo = req.body.isDemo === true; // explicit boolean, not name-based
-      if (isDemo && req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Only admins can create demo agents' });
-      }
-
-      // 7. Store agent record
-      const agent = await createAgent({
-        pubkey,
-        name,
-        description,
-        tokenMint,
-        bagsApiKeyId: null, // Will be set later if needed
-        capabilitySet: capabilities || [],
-        creatorX,
-        creatorWallet,
-        isDemo,
-        orgId: req.user.orgId,
-        createdBy: req.user.userId,
-        chainType: resolvedChainType
-      });
-
-      // 7. Return created agent with SAID status
-      return res.status(201).json({
-        agent: transformAgent(agent),
-        agentId: agent.agent_id,
-        said: saidStatus
-      });
 
     } else if (credential_type === 'oauth2' || credential_type === 'entra_id') {
       const { token, name: agentName, description, capabilities = [] } = req.body;
