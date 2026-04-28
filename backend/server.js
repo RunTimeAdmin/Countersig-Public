@@ -35,6 +35,7 @@ const errorHandler = require('./src/middleware/errorHandler');
 const { defaultLimiter } = require('./src/middleware/rateLimit');
 const { auditMiddleware } = require('./src/middleware/auditMiddleware');
 const { cleanupDemoAgents } = require('./src/models/queries');
+const { redis } = require('./src/models/redis');
 const axios = require('axios');
 
 // Import route modules
@@ -168,12 +169,18 @@ app.use(auditMiddleware);
 // CSRF protection - require custom header on mutating requests
 app.use((req, res, next) => {
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
-    // Skip CSRF check for public endpoints
-    const publicPaths = ['/public/', '/badge/', '/widget/', '/health'];
-    if (publicPaths.some(p => req.path.startsWith(p))) {
+    // Explicit allowlist of paths that skip CSRF validation:
+    // - /public/  : public registry endpoints (read-only semantics, no sensitive state mutation)
+    // - /badge/   : badge image endpoints (idempotent, no auth)
+    // - /widget/  : widget embed endpoints (read-only, no auth)
+    // - /health   : health check (never mutates state)
+    // - /verify-token : A2A token verification (unauthenticated, called by external agents
+    //                    that do not send the X-Requested-With header)
+    const csrfSkipPaths = ['/public/', '/badge/', '/widget/', '/health', '/verify-token'];
+    if (csrfSkipPaths.some(p => req.path.startsWith(p))) {
       return next();
     }
-    // Bearer auth doesn't need CSRF (browsers don't auto-attach)
+    // Bearer auth doesn't need CSRF (browsers don't auto-attach Authorization headers)
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) return next();
     if (req.get('X-Requested-With') !== 'AgentID') {
@@ -308,18 +315,27 @@ if (require.main === module) {
       .catch(() => console.warn('SAID Gateway: unreachable (non-critical — SAID features will degrade gracefully)'));
     
     // Start demo agent cleanup job (runs every hour)
+    // Uses a Redis-based distributed lock so only one instance runs cleanup
     const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
-    setInterval(async () => {
+    async function cleanupDemoAgentsWithLock() {
       try {
-        const deletedCount = await cleanupDemoAgents();
-        if (deletedCount > 0) {
-          console.log(`Demo cleanup: removed ${deletedCount} demo agent(s) older than 24 hours`);
+        if (!redis || redis.status !== 'ready') {
+          // No Redis available — single instance assumed, run locally
+          await cleanupDemoAgents();
+          return;
+        }
+        // Acquire lock for 1 hour (matches the interval)
+        const acquired = await redis.set('demo-cleanup-lock', Date.now().toString(), 'NX', 'EX', 3600);
+        if (acquired) {
+          await cleanupDemoAgents();
         }
       } catch (err) {
         console.error('Demo cleanup error:', err.message);
       }
-    }, CLEANUP_INTERVAL_MS);
-    console.log('Demo agent cleanup scheduled (every hour)');
+    }
+
+    setInterval(cleanupDemoAgentsWithLock, CLEANUP_INTERVAL_MS);
+    console.log('Demo agent cleanup scheduled (every hour, distributed lock enabled)');
 
     // Initialize real-time event listeners
     const { initPolicyListeners } = require('./src/services/policyEngine');
