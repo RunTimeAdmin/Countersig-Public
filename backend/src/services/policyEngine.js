@@ -145,6 +145,7 @@ async function executeAction(rule, event) {
  * @returns {Array}
  */
 async function evaluateEvent(event) {
+  const startTime = Date.now();
   const orgId = event.data ? event.data.orgId : null;
   if (!orgId) {
     return [];
@@ -163,6 +164,11 @@ async function evaluateEvent(event) {
     const triggered = results
       .filter(r => r.status === 'fulfilled')
       .map(r => r.value);
+
+    const elapsed = Date.now() - startTime;
+    if (elapsed > 100) {
+      console.warn(`[PolicyEngine] Slow rule evaluation: ${elapsed}ms for event ${event.type} (${matched.length} rules)`);
+    }
 
     return triggered;
   } catch (err) {

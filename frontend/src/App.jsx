@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './components/AuthProvider';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -17,6 +17,39 @@ import Settings from './pages/Settings';
 import AuditLog from './pages/AuditLog';
 import AgentGroups from './pages/AgentGroups';
 import Policies from './pages/Policies';
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Route error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <h2>Something went wrong</h2>
+          <p style={{ color: '#666' }}>An unexpected error occurred. Please try refreshing the page.</p>
+          <button
+            onClick={() => { this.setState({ hasError: false }); window.location.href = '/'; }}
+            style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}
+          >
+            Go Home
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function Navigation() {
   const location = useLocation();
@@ -255,22 +288,24 @@ function App() {
         <div className="min-h-screen flex flex-col">
           <Navigation />
           <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<Registry />} />
-              <Route path="/agents/:agentId" element={<AgentDetail />} />
-              <Route path="/discover" element={<Discover />} />
-              <Route path="/demo" element={<Demo />} />
-              <Route path="/security" element={<Security />} />
-              <Route path="/guides" element={<Guides />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-              <Route path="/register" element={<ProtectedRoute><Register /></ProtectedRoute>} />
-              <Route path="/audit" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
-              <Route path="/groups" element={<ProtectedRoute><AgentGroups /></ProtectedRoute>} />
-              <Route path="/policies" element={<ProtectedRoute><Policies /></ProtectedRoute>} />
-            </Routes>
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<Registry />} />
+                <Route path="/agents/:agentId" element={<AgentDetail />} />
+                <Route path="/discover" element={<Discover />} />
+                <Route path="/demo" element={<Demo />} />
+                <Route path="/security" element={<Security />} />
+                <Route path="/guides" element={<Guides />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/register" element={<ProtectedRoute><Register /></ProtectedRoute>} />
+                <Route path="/audit" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
+                <Route path="/groups" element={<ProtectedRoute><AgentGroups /></ProtectedRoute>} />
+                <Route path="/policies" element={<ProtectedRoute><Policies /></ProtectedRoute>} />
+              </Routes>
+            </ErrorBoundary>
           </main>
           <Footer />
         </div>

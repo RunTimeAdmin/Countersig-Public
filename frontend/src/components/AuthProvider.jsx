@@ -7,33 +7,29 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Try to restore session on mount
+  // Try to restore session on mount from httpOnly cookie
   useEffect(() => {
-    const stored = localStorage.getItem('agentid_user');
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-        // Verify session is still valid
-        refresh().catch(() => {
-          setUser(null);
-          localStorage.removeItem('agentid_user');
-        });
-      } catch {
-        localStorage.removeItem('agentid_user');
-      }
-    }
-    setLoading(false);
+    refresh()
+      .then((res) => {
+        if (res.data?.user) {
+          setUser(res.data.user);
+        }
+      })
+      .catch(() => {
+        setUser(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   const login = useCallback((userData) => {
     setUser(userData);
-    localStorage.setItem('agentid_user', JSON.stringify(userData));
   }, []);
 
   const logout = useCallback(async () => {
     try { await logoutApi(); } catch {}
     setUser(null);
-    localStorage.removeItem('agentid_user');
   }, []);
 
   return (

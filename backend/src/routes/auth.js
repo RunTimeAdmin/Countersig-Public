@@ -299,7 +299,15 @@ router.post('/auth/refresh', authLimiter, async (req, res, next) => {
     res.cookie('aid_access', tokens.accessToken, { ...COOKIE_OPTIONS, maxAge: ACCESS_MAX_AGE });
     res.cookie('aid_refresh', tokens.refreshToken, { ...COOKIE_OPTIONS, maxAge: REFRESH_MAX_AGE });
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        orgId: user.org_id
+      }
+    });
   } catch (error) {
     next(error);
   }
