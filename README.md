@@ -134,6 +134,44 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) to view the app.
 
+## Production Deployment
+
+> For a complete production deployment walkthrough, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md).
+
+### Required Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REDIS_URL` | Redis connection string |
+| `REDIS_HOST` | Explicit Redis host (recommended for Docker) |
+| `REDIS_PORT` | Explicit Redis port (recommended for Docker) |
+| `REDIS_PASSWORD` | Explicit Redis password (recommended for Docker) |
+| `JWT_SECRET` | 64-char hex secret for token signing |
+| `JWT_EXPIRY` | Access token lifetime (default: 15m) |
+| `JWT_REFRESH_EXPIRY` | Refresh token lifetime (default: 7d) |
+| `BAGS_API_KEY` | BAGS reputation API key |
+| `CORS_ORIGIN` | Allowed frontend origin (e.g. `https://agentidapp.com`) |
+| `AGENTID_BASE_URL` | Public API URL (e.g. `https://api.agentidapp.com`) |
+| `PORT` | Server port (default: 3002) |
+| `NODE_ENV` | `production` |
+| `DB_SSL` | Set to `"true"` only for hosted databases with SSL |
+| `OAUTH2_ENABLED` | Optional auth provider flag |
+| `ENTRA_ID_ENABLED` | Optional auth provider flag |
+
+### Deploy Order
+
+1. Provision PostgreSQL 16 and Redis 7
+2. Set all environment variables
+3. Run database migrations: `node src/models/migrate.js`
+4. Start the API server: `node server.js`
+5. Configure reverse proxy (Caddy or nginx) for HTTPS — reference `Caddyfile` in repo root
+
+### Secret Rotation
+
+- **JWT_SECRET**: Rotation requires invalidating active sessions.
+- **BAGS_API_KEY**: Can be rotated independently.
+
 ## API Documentation
 
 See [docs/API_REFERENCE.md](docs/API_REFERENCE.md) for the complete API reference, or visit the [live API docs](https://agentidapp.com/docs).
@@ -141,17 +179,6 @@ See [docs/API_REFERENCE.md](docs/API_REFERENCE.md) for the complete API referenc
 ## Developer Guide
 
 See [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) for architecture details, multi-chain integration, enterprise auth setup, and SDK usage.
-
-## Production Deployment
-
-See [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for production deployment with Docker Compose and Caddy reverse proxy.
-
-```bash
-# Production deployment
-cp .env.production.example .env
-# Edit .env with production secrets
-docker-compose -f docker-compose.prod.yml up -d
-```
 
 ## License
 

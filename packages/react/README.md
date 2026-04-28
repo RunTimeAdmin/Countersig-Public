@@ -1,5 +1,11 @@
 # @agentid/react
 
+> **Status: In Development** — This package is not yet published to npm.
+
+This package will provide React components for displaying AgentID trust badges, reputation scores, and capability lists. It is under active development as part of AgentID 2.0.
+
+For current integration, use the REST API directly. See the [API Reference](../../docs/API_REFERENCE.md).
+
 React components for displaying [AgentID](https://agentidapp.com) trust badges, reputation scores, and capability lists. Zero Tailwind dependency — all styles are self-contained inline CSS.
 
 ## Installation

@@ -1,5 +1,11 @@
 # @agentid/sdk
 
+> **Status: In Development** — This package is not yet published to npm.
+
+This package will provide a TypeScript client library for the AgentID NHI platform. It is under active development as part of AgentID 2.0.
+
+For current integration, use the REST API directly. See the [API Reference](../../docs/API_REFERENCE.md).
+
 TypeScript client library for the [AgentID](https://agentidapp.com) Non-Human Identity (NHI) platform. Register agents, verify identities, manage trust scores, and issue A2A tokens.
 
 ## Installation
