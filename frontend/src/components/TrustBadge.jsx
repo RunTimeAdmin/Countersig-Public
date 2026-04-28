@@ -226,16 +226,16 @@ export default function TrustBadge({
             {name && (
               <div className="text-[var(--text-primary)] font-semibold truncate text-lg flex items-center gap-2">
                 <span>{name}</span>
-                {agent?.chain_type && CHAIN_CONFIG[agent.chain_type] && (
+                {(agent?.chainType || agent?.chain_type) && CHAIN_CONFIG[agent.chainType || agent.chain_type] && (
                   <span
                     className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
                     style={{
-                      backgroundColor: `${CHAIN_CONFIG[agent.chain_type].color}20`,
-                      color: CHAIN_CONFIG[agent.chain_type].color,
-                      border: `1px solid ${CHAIN_CONFIG[agent.chain_type].color}40`
+                      backgroundColor: `${CHAIN_CONFIG[agent.chainType || agent.chain_type].color}20`,
+                      color: CHAIN_CONFIG[agent.chainType || agent.chain_type].color,
+                      border: `1px solid ${CHAIN_CONFIG[agent.chainType || agent.chain_type].color}40`
                     }}
                   >
-                    {CHAIN_CONFIG[agent.chain_type].label}
+                    {CHAIN_CONFIG[agent.chainType || agent.chain_type].label}
                   </span>
                 )}
               </div>

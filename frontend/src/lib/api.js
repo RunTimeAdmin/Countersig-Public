@@ -24,7 +24,7 @@ export const getAgents = async (filters = {}) => {
   if (filters.limit) params.append('limit', filters.limit);
   if (filters.offset) params.append('offset', filters.offset);
   
-  const response = await api.get(`/agents?${params.toString()}`);
+  const response = await api.get(`/public/agents?${params.toString()}`);
   return response.data;
 };
 

@@ -85,7 +85,7 @@ router.get('/agents', authenticate, requireScope('read'), defaultLimiter, async 
  */
 router.get('/public/agents', defaultLimiter, async (req, res, next) => {
   try {
-    const { status, capability, limit, offset } = req.query;
+    const { status, capability, chain, limit, offset } = req.query;
 
     let parsedLimit = parseInt(limit, 10) || 50;
     let parsedOffset = parseInt(offset, 10) || 0;
@@ -95,25 +95,28 @@ router.get('/public/agents', defaultLimiter, async (req, res, next) => {
     }
 
     const agents = await listAgents({
-      status: status || 'active',
+      status: status || undefined,
       capability,
+      chain,
       limit: parsedLimit,
       offset: parsedOffset,
       includeDemo: false,
       orgId: null
     });
 
-    const total = await countAgents({ status: status || 'active', capability, includeDemo: false, orgId: null });
+    const total = await countAgents({ status: status || undefined, capability, chain, includeDemo: false, orgId: null });
 
-    // Only return public-safe fields
-    const publicAgents = agents.map(a => ({
-      agent_id: a.agent_id,
+    // Transform to camelCase and return public-safe fields
+    const publicAgents = transformAgents(agents).map(a => ({
+      agentId: a.agentId,
       name: a.name,
       pubkey: a.pubkey,
       status: a.status,
-      bags_score: a.bags_score,
+      bagsScore: a.bagsScore,
       capabilities: a.capabilities,
-      registered_at: a.registered_at
+      registeredAt: a.registeredAt,
+      chainType: a.chainType,
+      totalActions: a.totalActions
     }));
 
     return res.status(200).json({
