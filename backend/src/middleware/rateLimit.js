@@ -25,22 +25,24 @@ const REGISTRATION_MAX_REQUESTS = 5;
  * @param {string} options.message - Custom error message
  * @returns {Function} Express middleware
  */
-// Attempt to create Redis-backed store with graceful fallback
-let redisStore;
-try {
-  redisStore = new RedisStore({
-    sendCommand: (...args) => redis.call(...args),
-    prefix: 'rl:',
-  });
-} catch (err) {
-  console.warn('Redis rate limit store unavailable, falling back to memory store:', err.message);
-  redisStore = undefined;
+// Create a fresh Redis-backed store per limiter (required by express-rate-limit v7+)
+function createRedisStore(prefix) {
+  try {
+    return new RedisStore({
+      sendCommand: (...args) => redis.call(...args),
+      prefix: prefix,
+    });
+  } catch (err) {
+    console.warn('Redis rate limit store unavailable, falling back to memory store:', err.message);
+    return undefined;
+  }
 }
 
 function createLimiter(options = {}) {
   const windowMs = options.windowMs || DEFAULT_WINDOW_MS;
   const max = options.max || DEFAULT_MAX_REQUESTS;
   const message = options.message || 'Too many requests, please try again later.';
+  const prefix = options.prefix || 'rl:default:';
 
   return rateLimit({
     windowMs,
@@ -49,7 +51,7 @@ function createLimiter(options = {}) {
       error: message,
       status: 429
     },
-    store: redisStore,
+    store: createRedisStore(prefix),
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     handler: (req, res, next, options) => {
@@ -62,13 +64,15 @@ function createLimiter(options = {}) {
 // Default limiter: 100 requests per 15 minutes
 const defaultLimiter = createLimiter({
   windowMs: DEFAULT_WINDOW_MS,
-  max: DEFAULT_MAX_REQUESTS
+  max: DEFAULT_MAX_REQUESTS,
+  prefix: 'rl:default:'
 });
 
 // Strict limiter for auth endpoints: 20 requests per 15 minutes
 const authLimiter = createLimiter({
   windowMs: DEFAULT_WINDOW_MS,
   max: AUTH_MAX_REQUESTS,
+  prefix: 'rl:auth:',
   message: 'Too many authentication attempts, please try again later.'
 });
 
@@ -76,6 +80,7 @@ const authLimiter = createLimiter({
 const registrationLimiter = createLimiter({
   windowMs: DEFAULT_WINDOW_MS,
   max: REGISTRATION_MAX_REQUESTS,
+  prefix: 'rl:register:',
   message: 'Too many registration attempts, please try again later.'
 });
 

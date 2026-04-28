@@ -4,7 +4,7 @@
  */
 
 const express = require('express');
-const authenticate = require('../middleware/authenticate');
+const { authenticate } = require('../middleware/authenticate');
 const { requireScope } = require('../middleware/authorize');
 const {
   getAuditLogs,
