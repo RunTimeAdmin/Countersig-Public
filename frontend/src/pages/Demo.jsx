@@ -531,7 +531,7 @@ export default function Demo() {
               </button>
               <ApiCallSection
                 title="See the API call"
-                curl={`curl -X POST http://localhost:3000/api/register \\
+                curl={`curl -X POST https://api.agentidapp.com/register \\
   -H "Content-Type: application/json" \\
   -d '{
     "pubkey": "${getPublicKeyBase58()}",
@@ -643,7 +643,7 @@ export default function Demo() {
                 </p>
                 <ApiCallSection
                   title="See the API call"
-                  curl={`curl -X POST http://localhost:3000/api/verify/challenge \\
+                  curl={`curl -X POST https://api.agentidapp.com/verify/challenge \\
   -H "Content-Type: application/json" \\
   -d '{
     "agentId": "${agentId}"
@@ -700,7 +700,7 @@ export default function Demo() {
             {signature && (
               <ApiCallSection
                 title="See the API call"
-                curl={`curl -X POST http://localhost:3000/api/verify/response \\
+                curl={`curl -X POST https://api.agentidapp.com/verify/response \\
   -H "Content-Type: application/json" \\
   -d '{
     "agentId": "${agentId}",
@@ -806,7 +806,7 @@ export default function Demo() {
 
                 <ApiCallSection
                   title="See the API call"
-                  curl={`curl http://localhost:3000/api/badge/${agentId}`}
+                  curl={`curl https://api.agentidapp.com/badge/${agentId}`}
                 />
               </div>
             )}

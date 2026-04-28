@@ -238,7 +238,7 @@ function Footer() {
             </span>
           </div>
           <div className="flex items-center space-x-6 text-sm text-[var(--text-muted)]">
-            <a href="https://github.com/RunTimeAdmin/AgentID-2.0/wiki" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent-cyan)] transition-colors">Documentation</a>
+            <a href="/docs/index.html" className="hover:text-[var(--accent-cyan)] transition-colors">Documentation</a>
             <a href="https://github.com/RunTimeAdmin/AgentID-2.0/blob/main/docs/API_REFERENCE.md" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent-cyan)] transition-colors">API</a>
             <a href="https://github.com/RunTimeAdmin/AgentID-2.0" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent-cyan)] transition-colors">GitHub</a>
           </div>
