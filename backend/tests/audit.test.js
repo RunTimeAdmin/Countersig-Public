@@ -3,11 +3,18 @@
  * Tests for calculateRiskScore, logAction, verifyAuditChain, and exportAuditLogs
  */
 
+const mockClient = {
+  query: jest.fn(),
+  release: jest.fn()
+};
+
 jest.mock('../src/models/db', () => ({
-  query: jest.fn()
+  query: jest.fn(),
+  pool: { connect: jest.fn().mockResolvedValue(mockClient) }
 }));
 
 const crypto = require('crypto');
+const stableStringify = require('safe-stable-stringify');
 const { query } = require('../src/models/db');
 const {
   calculateRiskScore,
@@ -18,6 +25,8 @@ const {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockClient.query.mockClear();
+  mockClient.release.mockClear();
 });
 
 describe('Audit Service', () => {
@@ -49,8 +58,9 @@ describe('Audit Service', () => {
 
   describe('logAction', () => {
     it('should insert a record with correct fields', async () => {
-      query.mockResolvedValueOnce({ rows: [] }); // no previous entry
-      query.mockResolvedValueOnce({
+      mockClient.query.mockResolvedValueOnce({ rows: [] }); // BEGIN
+      mockClient.query.mockResolvedValueOnce({ rows: [] }); // no previous entry
+      mockClient.query.mockResolvedValueOnce({
         rows: [{
           id: 1,
           org_id: 'org1',
@@ -58,7 +68,8 @@ describe('Audit Service', () => {
           prev_hash: '0'.repeat(64),
           entry_hash: 'abc123'
         }]
-      });
+      }); // INSERT
+      mockClient.query.mockResolvedValueOnce({ rows: [] }); // COMMIT
 
       const result = await logAction({
         orgId: 'org1',
@@ -69,7 +80,7 @@ describe('Audit Service', () => {
         resourceId: 's1'
       });
 
-      expect(query).toHaveBeenCalledTimes(2);
+      expect(mockClient.query).toHaveBeenCalledTimes(4);
       expect(result).toHaveProperty('org_id', 'org1');
       expect(result).toHaveProperty('action', 'login');
     });
@@ -77,40 +88,50 @@ describe('Audit Service', () => {
     it('should compute entry_hash from prev_hash', async () => {
       const prevHashHex = 'a'.repeat(64);
 
-      query.mockResolvedValueOnce({
+      mockClient.query.mockResolvedValueOnce({ rows: [] }); // BEGIN
+      mockClient.query.mockResolvedValueOnce({
         rows: [{ entry_hash: prevHashHex }]
-      });
-      query.mockResolvedValueOnce({
+      }); // SELECT prev_hash
+      mockClient.query.mockResolvedValueOnce({
         rows: [{ id: 1, entry_hash: 'newhash', prev_hash: prevHashHex }]
-      });
+      }); // INSERT
+      mockClient.query.mockResolvedValueOnce({ rows: [] }); // COMMIT
 
       await logAction({ orgId: 'org1', action: 'login' });
 
-      const insertCall = query.mock.calls[1];
+      const insertCall = mockClient.query.mock.calls[2];
       expect(insertCall[1][9]).toBe(prevHashHex); // prev_hash parameter
       expect(insertCall[1][10]).toMatch(/^[a-f0-9]{64}$/); // entry_hash is 64-char hex
     });
 
     it("should use '0'.repeat(64) as prev_hash when no previous entry", async () => {
-      query.mockResolvedValueOnce({ rows: [] });
-      query.mockResolvedValueOnce({
+      mockClient.query.mockResolvedValueOnce({ rows: [] }); // BEGIN
+      mockClient.query.mockResolvedValueOnce({ rows: [] }); // SELECT no rows
+      mockClient.query.mockResolvedValueOnce({
         rows: [{ id: 1, prev_hash: '0'.repeat(64) }]
-      });
+      }); // INSERT
+      mockClient.query.mockResolvedValueOnce({ rows: [] }); // COMMIT
 
       await logAction({ orgId: 'org1', action: 'login' });
 
-      const insertCall = query.mock.calls[1];
+      const insertCall = mockClient.query.mock.calls[2];
       expect(insertCall[1][9]).toBe('0'.repeat(64));
     });
   });
 
   describe('verifyAuditChain', () => {
     function computeExpectedHash(prevHash, entry) {
-      const hashPayload = JSON.stringify({
-        action: entry.action,
-        resource_id: entry.resource_id,
-        actor_id: entry.actor_id,
-        timestamp: new Date(entry.created_at).toISOString()
+      const hashPayload = stableStringify({
+        org_id: entry.org_id || null,
+        actor_id: entry.actor_id || null,
+        actor_type: entry.actor_type || null,
+        action: entry.action || null,
+        resource_type: entry.resource_type || null,
+        resource_id: entry.resource_id || null,
+        changes: entry.changes || null,
+        metadata: entry.metadata || null,
+        risk_score: entry.risk_score || 0,
+        timestamp: entry.created_at ? new Date(entry.created_at).toISOString() : null
       });
       return crypto.createHash('sha256').update(prevHash + hashPayload, 'utf8').digest('hex');
     }
@@ -129,7 +150,7 @@ describe('Audit Service', () => {
             actor_id: 'u1',
             created_at: '2024-01-01T00:00:00.000Z'
           }),
-          created_at: '2024-01-01T00:00:00.000Z'
+          created_at: new Date('2024-01-01T00:00:00.000Z')
         },
         {
           id: 2,
@@ -156,11 +177,11 @@ describe('Audit Service', () => {
               created_at: '2024-01-01T01:00:00.000Z'
             }
           ),
-          created_at: '2024-01-01T01:00:00.000Z'
+          created_at: new Date('2024-01-01T01:00:00.000Z')
         }
       ];
 
-      query.mockResolvedValue({ rows: entries });
+      mockClient.query.mockResolvedValue({ rows: entries });
       const result = await verifyAuditChain('org1');
       expect(result.valid).toBe(true);
       expect(result.totalEntries).toBe(2);
@@ -176,11 +197,11 @@ describe('Audit Service', () => {
           actor_id: 'u1',
           prev_hash: '0'.repeat(64),
           entry_hash: 'tamperedhash000000000000000000000000000000000000000000000000',
-          created_at: '2024-01-01T00:00:00.000Z'
+          created_at: new Date('2024-01-01T00:00:00.000Z')
         }
       ];
 
-      query.mockResolvedValue({ rows: entries });
+      mockClient.query.mockResolvedValue({ rows: entries });
       const result = await verifyAuditChain('org1');
       expect(result.valid).toBe(false);
       expect(result.firstInvalidEntry).toBe(1);
@@ -200,7 +221,7 @@ describe('Audit Service', () => {
             actor_id: 'u1',
             created_at: '2024-01-01T00:00:00.000Z'
           }),
-          created_at: '2024-01-01T00:00:00.000Z'
+          created_at: new Date('2024-01-01T00:00:00.000Z')
         },
         {
           id: 2,
@@ -209,18 +230,18 @@ describe('Audit Service', () => {
           actor_id: 'u1',
           prev_hash: 'broken000000000000000000000000000000000000000000000000000000',
           entry_hash: 'irrelevant',
-          created_at: '2024-01-01T01:00:00.000Z'
+          created_at: new Date('2024-01-01T01:00:00.000Z')
         }
       ];
 
-      query.mockResolvedValue({ rows: entries });
+      mockClient.query.mockResolvedValue({ rows: entries });
       const result = await verifyAuditChain('org1');
       expect(result.valid).toBe(false);
       expect(result.firstInvalidEntry).toBe(2);
     });
 
     it('should return valid for empty chain', async () => {
-      query.mockResolvedValue({ rows: [] });
+      mockClient.query.mockResolvedValue({ rows: [] });
       const result = await verifyAuditChain('org1');
       expect(result.valid).toBe(true);
       expect(result.totalEntries).toBe(0);

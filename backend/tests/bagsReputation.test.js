@@ -21,6 +21,8 @@ jest.mock('../src/config', () => ({
 
 jest.mock('axios');
 
+jest.mock('../src/models/redis', () => ({ getCache: jest.fn(), setCache: jest.fn() }));
+
 const { getAgent, getAgentActions, getUnresolvedFlagCount, updateBagsScore } = require('../src/models/queries');
 const { getSAIDTrustScore } = require('../src/services/saidBinding');
 const { computeBagsScore, refreshAndStoreScore } = require('../src/services/bagsReputation');

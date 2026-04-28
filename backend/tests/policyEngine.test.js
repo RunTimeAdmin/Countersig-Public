@@ -11,6 +11,8 @@ jest.mock('../src/services/eventBus', () => ({
   publish: jest.fn()
 }));
 
+jest.mock('../src/services/badgeBuilder', () => ({ invalidateAgentCaches: jest.fn() }));
+
 const { query } = require('../src/models/db');
 const eventBus = require('../src/services/eventBus');
 const { evaluateCondition, evaluateEvent, executeAction } = require('../src/services/policyEngine');
@@ -102,8 +104,8 @@ describe('Policy Engine', () => {
       const result = await evaluateEvent(event);
 
       expect(result).toHaveLength(1);
-      expect(result[0].rule.id).toBe(1);
-      expect(result[0].actionResult.executed).toBe(true);
+      expect(result[0].ruleId).toBe(1);
+      expect(result[0].executed).toBe(true);
     });
 
     it('should return empty array when no conditions match', async () => {

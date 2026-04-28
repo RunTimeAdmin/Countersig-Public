@@ -4,6 +4,8 @@
  * generateApiKey, verifyApiKey, and Redis token management
  */
 
+process.env.JWT_SECRET = 'test-secret-key-that-is-at-least-32-chars-long';
+
 jest.mock('../src/models/redis', () => ({
   redis: {
     setex: jest.fn(),
