@@ -92,6 +92,10 @@ async function logAction({
   try {
     await client.query('BEGIN');
 
+    // PERFORMANCE NOTE: This FOR UPDATE lock serializes audit inserts per org.
+    // At current scale this is fine, but under heavy write load (e.g., bulk attestations
+    // from a single org), this becomes a contention point. Future optimization: use an
+    // append-only hash chain with periodic checkpointing instead of per-insert locking.
     // 1. Get previous hash for this org
     const prevResult = await client.query(
       'SELECT entry_hash FROM audit_logs WHERE org_id = $1 ORDER BY id DESC LIMIT 1 FOR UPDATE',
@@ -102,7 +106,10 @@ async function logAction({
       ? prevResult.rows[0].entry_hash
       : '0'.repeat(64);
 
-    // 2. Build hash payload using buildHashPayload for all fields
+    // 2. Compute risk score once for use in payload and insert
+    const riskScore = calculateRiskScore(action, metadata);
+
+    // 3. Build hash payload using buildHashPayload for all fields
     const timestamp = new Date().toISOString();
     const hashPayload = buildHashPayload({
       orgId,
@@ -113,15 +120,12 @@ async function logAction({
       resourceId,
       changes,
       metadata,
-      riskScore: calculateRiskScore(action, metadata),
+      riskScore,
       timestamp
     });
 
-    // 3. Compute entry hash
+    // 4. Compute entry hash
     const entryHash = computeHash(prevHash + hashPayload);
-
-    // 4. Compute risk score
-    const riskScore = calculateRiskScore(action, metadata);
 
     // 5. Insert into audit_logs
     const insertResult = await client.query(

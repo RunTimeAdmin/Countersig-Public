@@ -1,6 +1,13 @@
 /**
- * ChallengeStore - Redis-backed storage with in-memory fallback
- * Handles challenge and nonce storage with automatic fallback when Redis is unavailable
+ * Challenge Nonce Replay Tracker
+ * 
+ * NOTE: The database (via pkiChallenge.js) is the source of truth for challenge
+ * issuance and verification. This store only tracks used nonces to prevent replay
+ * attacks. It uses Redis when available, falling back to an in-memory Map.
+ * 
+ * In a multi-instance deployment with Redis unavailable, nonce replay protection
+ * degrades to per-instance scope. The challenge itself remains safe because
+ * verification is always checked against PostgreSQL.
  */
 
 const { redis } = require('./redis');

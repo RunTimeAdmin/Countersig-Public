@@ -26,8 +26,6 @@ function scrub(obj) {
  */
 const ACTION_MAP = {
   'POST /register': 'register',
-  'POST /auth/register': 'user_register',
-  'POST /auth/login': 'login',
   'PUT /agents': 'update',
   'DELETE /agents': 'revoke',
   'POST /api-keys': 'create_api_key',
