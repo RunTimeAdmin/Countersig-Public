@@ -1,6 +1,15 @@
 /**
  * BAGS Reputation Service
  * Computes a configurable reputation score (0-100) using 5 factors
+ *
+ * BAGS Chain Scoring Weights (total: 100)
+ *
+ * NOTE: Scoring weights vary by chain adapter. Scores are NOT directly comparable
+ * across different chains. A score of 75 on bags-chain may represent different
+ * trust characteristics than 75 on solana-generic. Badge labels (HIGH/MEDIUM/LOW)
+ * use the same thresholds but underlying factor weights differ.
+ *
+ * See also: solanaGeneric adapter for alternative weight distribution.
  */
 
 const axios = require('axios');
@@ -36,7 +45,7 @@ async function computeBagsScore(agentId, prefetched = {}) {
       if (agent.token_mint) {
         const response = await axios.get(
           `https://public-api-v2.bags.fm/api/v1/analytics/fees/token/${agent.token_mint}`,
-          { timeout: 5000 }
+          { timeout: 5000, headers: { 'x-api-key': config.bagsApiKey } }
         );
         const totalFeesSOL = response.data?.totalFeesSOL || 0;
         feeActivityScore = Math.min(30, Math.floor(totalFeesSOL * 10));

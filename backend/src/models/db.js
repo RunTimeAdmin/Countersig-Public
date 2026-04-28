@@ -26,6 +26,9 @@ function getPool() {
   if (!pool) {
     pool = new Pool({
       connectionString: config.databaseUrl,
+      max: parseInt(process.env.DB_POOL_MAX, 10) || 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
       // Enable SSL only when explicitly requested via DB_SSL=true env var
       // Docker PostgreSQL typically doesn't support SSL; hosted databases (e.g. Supabase, RDS) do
       ...(process.env.DB_SSL === 'true' && {

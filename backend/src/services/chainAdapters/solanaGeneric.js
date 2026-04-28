@@ -1,6 +1,15 @@
 /**
  * Solana Generic Chain Adapter
  * For non-BAGS Solana agents — Ed25519 verification without BAGS API dependency
+ *
+ * Solana Generic Scoring Weights (total: 100)
+ *
+ * NOTE: Scoring weights vary by chain adapter. Scores are NOT directly comparable
+ * across different chains. A score of 75 on solana-generic may represent different
+ * trust characteristics than 75 on bags-chain. Badge labels (HIGH/MEDIUM/LOW)
+ * use the same thresholds but underlying factor weights differ.
+ *
+ * See also: bagsReputation adapter for alternative weight distribution.
  */
 
 const nacl = require('tweetnacl');
