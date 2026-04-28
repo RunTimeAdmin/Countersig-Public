@@ -51,11 +51,14 @@ services:
     ports:
       - "3002:3002"
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-agentid}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/agentid
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379
-      CORS_ORIGIN: https://agentid2.provenanceai.network
-      AGENTID_BASE_URL: https://agentid2.provenanceai.network
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      CORS_ORIGIN: https://agentidapp.com
+      AGENTID_BASE_URL: https://api.agentidapp.com
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       JWT_EXPIRY: 15m
       JWT_REFRESH_EXPIRY: 7d

@@ -26,8 +26,9 @@ function getPool() {
   if (!pool) {
     pool = new Pool({
       connectionString: config.databaseUrl,
-      // Additional pool configuration for production stability
-      ...(config.nodeEnv === 'production' && {
+      // Enable SSL only when explicitly requested via DB_SSL=true env var
+      // Docker PostgreSQL typically doesn't support SSL; hosted databases (e.g. Supabase, RDS) do
+      ...(process.env.DB_SSL === 'true' && {
         ssl: {
           rejectUnauthorized: process.env.DB_CA_CERT ? true : false,
           ca: process.env.DB_CA_CERT ? Buffer.from(process.env.DB_CA_CERT, 'base64') : undefined
