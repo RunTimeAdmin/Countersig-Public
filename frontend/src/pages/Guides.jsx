@@ -6,6 +6,10 @@ const UserIcon = ({ className }) => (<svg className={className} fill="none" stro
 const CodeIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>);
 const ExternalLinkIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>);
 const ArrowRightIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>);
+const PuzzleIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" /></svg>);
+const ServerIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 01-2 2v4a2 2 0 012 2h14a2 2 0 012-2v-4a2 2 0 01-2-2m-2-4h.01M17 16h.01" /></svg>);
+const LockIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>);
+const RefreshIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>);
 
 export default function Guides() {
   return (
@@ -29,7 +33,7 @@ export default function Guides() {
         </div>
       </section>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="glass rounded-2xl p-6 border border-gray-700 hover:border-cyan-500/50 transition-colors">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center">
@@ -57,9 +61,65 @@ export default function Guides() {
             <ArrowRightIcon className="w-4 h-4" />
           </a>
         </div>
+
+        <div className="glass rounded-2xl p-6 border border-gray-700 hover:border-emerald-500/50 transition-colors">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <PuzzleIcon className="w-6 h-6 text-emerald-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Widget & Trust Badges</h2>
+          </div>
+          <p className="text-gray-400 mb-4">Embed verifiable trust badges on your website. Customize appearance, configure real-time verification, and display agent reputation.</p>
+          <a href="/docs/index.html#trustmark" className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors">
+            <span>Read Guide</span>
+            <ArrowRightIcon className="w-4 h-4" />
+          </a>
+        </div>
+
+        <div className="glass rounded-2xl p-6 border border-gray-700 hover:border-amber-500/50 transition-colors">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
+              <ServerIcon className="w-6 h-6 text-amber-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Deployment Guide</h2>
+          </div>
+          <p className="text-gray-400 mb-4">Deploy AgentID to production with Docker Compose, configure PostgreSQL, Redis, and Caddy reverse proxy for HTTPS.</p>
+          <a href="https://github.com/RunTimeAdmin/AgentID-2.0/blob/main/docs/DEPLOYMENT_GUIDE.md" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 transition-colors">
+            <span>Read Guide</span>
+            <ExternalLinkIcon className="w-4 h-4" />
+          </a>
+        </div>
+
+        <div className="glass rounded-2xl p-6 border border-gray-700 hover:border-rose-500/50 transition-colors">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center">
+              <LockIcon className="w-6 h-6 text-rose-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Authentication</h2>
+          </div>
+          <p className="text-gray-400 mb-4">Configure pluggable authentication providers including Ed25519 crypto, OAuth2/OIDC, Microsoft Entra ID, API keys, and A2A JWT tokens.</p>
+          <a href="/docs/index.html#api" className="inline-flex items-center gap-2 text-rose-400 hover:text-rose-300 transition-colors">
+            <span>Read Guide</span>
+            <ArrowRightIcon className="w-4 h-4" />
+          </a>
+        </div>
+
+        <div className="glass rounded-2xl p-6 border border-gray-700 hover:border-yellow-500/50 transition-colors">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+              <RefreshIcon className="w-6 h-6 text-yellow-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Migration Guide</h2>
+          </div>
+          <p className="text-gray-400 mb-4">Upgrade between AgentID versions with step-by-step migration instructions, schema changes, and backward compatibility notes.</p>
+          <a href="https://github.com/RunTimeAdmin/AgentID-2.0/blob/main/docs/MIGRATION_GUIDE.md" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors">
+            <span>Read Guide</span>
+            <ExternalLinkIcon className="w-4 h-4" />
+          </a>
+        </div>
       </div>
 
-      <div className="mt-8 glass rounded-2xl p-6 border border-gray-700">
+      <div className="mt-6 glass rounded-2xl p-6 border border-gray-700">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-semibold text-white mb-1">API Reference</h3>
@@ -71,6 +131,11 @@ export default function Guides() {
           </a>
         </div>
       </div>
+
+      <section className="mt-16 mb-8">
+        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2 text-center">Technical Reference</h2>
+        <p className="text-[var(--text-secondary)] text-center mb-8">In-depth technical documentation for advanced integrations</p>
+      </section>
 
       <section className="mt-12 space-y-4">
         <h2 className="text-2xl font-bold text-[var(--text-primary)]">Multi-Chain Registration</h2>
