@@ -124,11 +124,13 @@ router.post('/agents/:agentId/flag', authenticate, requireScope('write'), authLi
 
     // Check timestamp is within 5 minutes (300000ms) for replay protection
     const now = Date.now();
-    const timeDiff = Math.abs(now - timestamp);
+    const timeDiff = now - timestamp;
+
     if (timeDiff > 300000) {
-      return res.status(400).json({
-        error: 'Timestamp is too old or too far in the future. Must be within 5 minutes of current time.'
-      });
+      return res.status(400).json({ error: 'Timestamp too old (max 5 minutes)' });
+    }
+    if (timeDiff < -60000) {
+      return res.status(400).json({ error: 'Timestamp too far in the future (max 1 minute skew)' });
     }
 
     // Check agent exists

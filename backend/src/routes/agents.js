@@ -260,7 +260,11 @@ router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
         // Note: In production, this would contain an actual cryptographic signature
         // For now, we include a placeholder indicating server-side signing is needed
         proofValue: 'UNSIGNED_CREDENTIAL_REQUIRES_DID_KEY_CONFIGURATION'
-      }
+      },
+      ...((!process.env.DID_ED25519_PUBLIC_KEY) && {
+        demo: true,
+        warning: 'This credential is unsigned — DID key not configured'
+      })
     };
 
     // Set appropriate content type for W3C VC

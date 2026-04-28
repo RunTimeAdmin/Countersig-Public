@@ -122,6 +122,12 @@ function auditMiddleware(req, res, next) {
     return originalJson(body);
   };
 
+  const originalSend = res.send.bind(res);
+  res.send = function send(body) {
+    responseBody = responseBody || body;
+    return originalSend(body);
+  };
+
   // Log after the response finishes
   res.on('finish', () => {
     // Fire and forget — do not block the response
