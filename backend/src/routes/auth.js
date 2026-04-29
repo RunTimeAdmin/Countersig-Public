@@ -126,6 +126,11 @@ router.post('/auth/register', authLimiter, async (req, res, next) => {
 
       res.cookie('aid_access', accessToken, { ...COOKIE_OPTIONS, maxAge: ACCESS_MAX_AGE });
       res.cookie('aid_refresh', refreshToken, { ...COOKIE_OPTIONS, maxAge: REFRESH_MAX_AGE });
+      res.cookie('aid_logged_in', '1', {
+        ...COOKIE_OPTIONS,
+        httpOnly: false,  // Override: frontend needs to read this
+        maxAge: REFRESH_MAX_AGE  // Match refresh token lifetime
+      });
 
       return res.status(201).json({
         user: { id: user.id, email: user.email, name: user.name, role: user.role },
@@ -239,6 +244,11 @@ router.post('/auth/login', authLimiter, async (req, res, next) => {
 
     res.cookie('aid_access', accessToken, { ...COOKIE_OPTIONS, maxAge: ACCESS_MAX_AGE });
     res.cookie('aid_refresh', refreshToken, { ...COOKIE_OPTIONS, maxAge: REFRESH_MAX_AGE });
+    res.cookie('aid_logged_in', '1', {
+      ...COOKIE_OPTIONS,
+      httpOnly: false,  // Override: frontend needs to read this
+      maxAge: REFRESH_MAX_AGE  // Match refresh token lifetime
+    });
 
     return res.status(200).json({
       user: {
@@ -299,6 +309,11 @@ router.post('/auth/refresh', authLimiter, async (req, res, next) => {
 
     res.cookie('aid_access', tokens.accessToken, { ...COOKIE_OPTIONS, maxAge: ACCESS_MAX_AGE });
     res.cookie('aid_refresh', tokens.refreshToken, { ...COOKIE_OPTIONS, maxAge: REFRESH_MAX_AGE });
+    res.cookie('aid_logged_in', '1', {
+      ...COOKIE_OPTIONS,
+      httpOnly: false,  // Override: frontend needs to read this
+      maxAge: REFRESH_MAX_AGE  // Match refresh token lifetime
+    });
 
     return res.status(200).json({
       user: {
@@ -334,6 +349,7 @@ router.post('/auth/logout', async (req, res, next) => {
 
     res.clearCookie('aid_access', COOKIE_OPTIONS);
     res.clearCookie('aid_refresh', COOKIE_OPTIONS);
+    res.clearCookie('aid_logged_in', { ...COOKIE_OPTIONS, httpOnly: false });
 
     return res.status(200).json({ success: true });
   } catch (error) {

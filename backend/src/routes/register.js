@@ -17,6 +17,13 @@ const eventBus = require('../services/eventBus');
 
 const router = express.Router();
 
+// Atomic INCR+EXPIRE Lua script for rate limiting (shared by crypto and OAuth branches)
+const luaScript = `
+  local v = redis.call('INCR', KEYS[1])
+  if v == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+  return v
+`;
+
 /**
  * Validate registration input
  * @param {Object} body - Request body
@@ -165,11 +172,6 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
       // 6. Per-pubkey throttling: max 5 registrations per pubkey per 24 hours (atomic INCR+EXPIRE)
       const orgId = req.orgId || req.user?.orgId || 'default';
       const pubkeyThrottleKey = `reg:pubkey:${orgId}:${pubkey}`;
-      const luaScript = `
-        local v = redis.call('INCR', KEYS[1])
-        if v == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
-        return v
-      `;
       const regCount = await redis.eval(luaScript, 1, pubkeyThrottleKey, 86400);
       if (regCount > 5) {
         return res.status(429).json({ error: 'Too many registrations for this public key. Maximum 5 per 24 hours.' });
@@ -278,6 +280,18 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
       const existingAgent = await getAgentByExternalId(externalId, provider, req.user.orgId);
       if (existingAgent) {
         return res.status(409).json({ error: 'Agent with this external identity already exists', agentId: existingAgent.agent_id });
+      }
+
+      // Per-identity throttle for OAuth/Entra registrations
+      const oauthThrottleKey = `reg:oauth:${req.orgId || req.user?.orgId || 'default'}:${externalId}`;
+      const oauthRegCount = await redis.eval(
+        luaScript,
+        1,
+        oauthThrottleKey,
+        86400
+      );
+      if (oauthRegCount > 5) {
+        return res.status(429).json({ error: 'Too many registrations for this identity. Try again in 24 hours.' });
       }
 
       // Create agent record

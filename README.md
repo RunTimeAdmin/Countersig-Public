@@ -158,6 +158,11 @@ Open [http://localhost:5173](http://localhost:5173) to view the app.
 | `DB_SSL` | Set to `"true"` only for hosted databases with SSL |
 | `OAUTH2_ENABLED` | Optional auth provider flag |
 | `ENTRA_ID_ENABLED` | Optional auth provider flag |
+| `HEALTH_DETAIL_SECRET` | Secret for detailed health check endpoint (any strong random string) |
+| `COOKIE_DOMAIN` | Cookie domain scope for cross-subdomain auth (e.g., `.agentidapp.com`) |
+| `DB_POOL_MAX` | PostgreSQL connection pool max size (default: 20) |
+| `LEGACY_SIGNING_DEADLINE` | Unix timestamp after which legacy signatures are rejected (default: 2026-07-01) |
+| `DID_ED25519_PUBLIC_KEY` | Ed25519 public key for DID document (required for production VCs) |
 
 ### Deploy Order
 
@@ -175,6 +180,16 @@ Open [http://localhost:5173](http://localhost:5173) to view the app.
 ## API Documentation
 
 See [docs/API_REFERENCE.md](docs/API_REFERENCE.md) for the complete API reference, or visit the [live API docs](https://agentidapp.com/docs).
+
+## Client Libraries
+
+| Package | Description | Install |
+|---------|-------------|---------|
+| [@agentid/sdk](./packages/sdk) | Core JavaScript/TypeScript SDK | `npm install @agentid/sdk` |
+| [@agentid/react](./packages/react) | React hooks and components | `npm install @agentid/react` |
+| [@agentid/verify](./packages/verify) | Credential verification utilities | `npm install @agentid/verify` |
+
+> **Note:** These packages are in active development and not yet published to npm. See each package's README for current status.
 
 ## Developer Guide
 
