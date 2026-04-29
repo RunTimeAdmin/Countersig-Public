@@ -13,6 +13,7 @@ const { query, pool } = require('../models/db');
 const eventBus = require('./eventBus');
 const { assertPublicHttpsUrl } = require('../utils/urlValidator');
 const config = require('../config');
+const { getLogger, logger: baseLogger } = require('../utils/logger');
 
 // BullMQ Redis connection configuration
 const redisConnection = {
@@ -72,7 +73,7 @@ const webhookWorker = new Worker('webhook-delivery', async (job) => {
 }, { connection: redisConnection, concurrency: 5 });
 
 webhookWorker.on('failed', (job, err) => {
-  console.error(`[WebhookService] Webhook job ${job?.id} failed:`, err.message);
+  baseLogger.error({ jobId: job?.id, err }, 'Webhook job failed');
 });
 
 /**
@@ -96,7 +97,7 @@ async function recordDelivery(webhookId, eventId, eventType, attempt, success, s
        error ? String(error).substring(0, 500) : null]
     );
   } catch (err) {
-    console.error('[WebhookService] Failed to record delivery:', err.message);
+    getLogger().error({ err }, 'Failed to record webhook delivery');
   }
 }
 
@@ -165,13 +166,13 @@ async function processEventWebhooks(event) {
     // Enqueue each matching webhook for delivery
     for (const webhook of matchingWebhooks) {
       deliverWithRetry(webhook, event).catch((err) => {
-        console.error('[WebhookService] Error enqueueing webhook:', err.message);
+        getLogger().error({ err }, 'Error enqueueing webhook');
       });
     }
 
     return matchingWebhooks.length;
   } catch (err) {
-    console.error('[WebhookService] Error processing event webhooks:', err.message);
+    getLogger().error({ err }, 'Error processing event webhooks');
     return 0;
   }
 }
@@ -183,10 +184,10 @@ async function processEventWebhooks(event) {
 function initWebhookListeners() {
   eventBus.on('*', (event) => {
     processEventWebhooks(event).catch((err) => {
-      console.error('[WebhookService] Listener error:', err.message);
+      baseLogger.error({ err }, 'Webhook listener error');
     });
   });
-  console.log('[WebhookService] Webhook listeners initialized');
+  baseLogger.info('Webhook listeners initialized');
 }
 
 /**

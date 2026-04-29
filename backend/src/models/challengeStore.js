@@ -12,6 +12,7 @@
 
 const { redis } = require('./redis');
 const config = require('../config');
+const { logger } = require('../utils/logger');
 
 // Default TTL for challenges (5 minutes)
 const DEFAULT_CHALLENGE_TTL = config.challengeExpirySeconds || 300;
@@ -49,12 +50,12 @@ class ChallengeStore {
       await redis.ping();
       this.isFallbackMode = false;
       if (this.fallbackWarned) {
-        console.log('ChallengeStore: Redis connection restored');
+        logger.info('ChallengeStore: Redis connection restored');
         this.fallbackWarned = false;
       }
     } catch (err) {
       if (!this.isFallbackMode) {
-        console.warn('ChallengeStore: Redis unavailable, falling back to in-memory storage');
+        logger.warn('ChallengeStore: Redis unavailable, falling back to in-memory storage');
         this.isFallbackMode = true;
         this.fallbackWarned = true;
       }
@@ -71,7 +72,7 @@ class ChallengeStore {
       try {
         await redis.ping();
         this.isFallbackMode = false;
-        console.log('ChallengeStore: Redis connection restored');
+        logger.info('ChallengeStore: Redis connection restored');
         return true;
       } catch (err) {
         return false;
@@ -95,7 +96,7 @@ class ChallengeStore {
         await redis.setex(key, ttlSeconds, value);
         return true;
       } catch (err) {
-        console.error('ChallengeStore: Redis setex error:', err.message);
+        logger.error({ err }, 'ChallengeStore: Redis setex error');
         // Fall through to in-memory fallback
       }
     }
@@ -119,7 +120,7 @@ class ChallengeStore {
         const value = await redis.get(key);
         return value;
       } catch (err) {
-        console.error('ChallengeStore: Redis get error:', err.message);
+        logger.error({ err }, 'ChallengeStore: Redis get error');
         // Fall through to in-memory fallback
       }
     }
@@ -150,7 +151,7 @@ class ChallengeStore {
         await redis.del(key);
         return true;
       } catch (err) {
-        console.error('ChallengeStore: Redis del error:', err.message);
+        logger.error({ err }, 'ChallengeStore: Redis del error');
         // Fall through to in-memory fallback
       }
     }
@@ -175,7 +176,7 @@ class ChallengeStore {
         await redis.setex(key, ttlSeconds, '1');
         return true;
       } catch (err) {
-        console.error('ChallengeStore: Redis setex error for used nonce:', err.message);
+        logger.error({ err }, 'ChallengeStore: Redis setex error for used nonce');
         // Fall through to in-memory fallback
       }
     }
@@ -200,7 +201,7 @@ class ChallengeStore {
         const value = await redis.get(key);
         return value !== null;
       } catch (err) {
-        console.error('ChallengeStore: Redis get error for used nonce:', err.message);
+        logger.error({ err }, 'ChallengeStore: Redis get error for used nonce');
         // Fall through to in-memory fallback
       }
     }
@@ -244,7 +245,7 @@ class ChallengeStore {
     }
     
     if (cleanedChallenges > 0 || cleanedNonces > 0) {
-      console.log(`ChallengeStore cleanup: removed ${cleanedChallenges} expired challenges, ${cleanedNonces} expired nonces`);
+      logger.debug({ cleanedChallenges, cleanedNonces }, 'ChallengeStore cleanup completed');
     }
   }
 

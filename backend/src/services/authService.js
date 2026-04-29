@@ -8,13 +8,13 @@ try {
   bcrypt = require('bcrypt');
 } catch {
   bcrypt = require('bcryptjs');
-  console.warn('[AuthService] Using bcryptjs fallback — native bcrypt not available');
 }
 const jwt = require('jsonwebtoken');
 const jose = require('jose');
 const crypto = require('crypto');
 const { redis } = require('../models/redis');
 const { timingSafeEqual } = require('../utils/crypto');
+const { getLogger, logger: baseLogger } = require('../utils/logger');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -46,18 +46,18 @@ async function initA2AKeys() {
       a2aPrivateKey = await jose.importPKCS8(signingPem, 'EdDSA');
       a2aPublicKey = await jose.importSPKI(verifyPem, 'EdDSA');
       a2aUseHMAC = false;
-      console.log('[AuthService] A2A tokens: Ed25519 asymmetric signing enabled');
+      baseLogger.info('A2A tokens: Ed25519 asymmetric signing enabled');
     } catch (err) {
-      console.error('[AuthService] Failed to load A2A Ed25519 keys:', err.message);
+      baseLogger.error({ err }, 'Failed to load A2A Ed25519 keys');
       if (process.env.NODE_ENV === 'production') {
         throw new Error('FATAL: Invalid A2A Ed25519 keys in production');
       }
-      console.warn('[AuthService] Falling back to HMAC signing for A2A tokens (development only)');
+      baseLogger.warn('Falling back to HMAC signing for A2A tokens (development only)');
     }
   } else if (process.env.NODE_ENV === 'production') {
     throw new Error('FATAL: A2A_SIGNING_KEY and A2A_VERIFY_KEY are required in production');
   } else {
-    console.warn('[AuthService] A2A Ed25519 keys not configured — using HMAC fallback (development only)');
+    baseLogger.warn('A2A Ed25519 keys not configured — using HMAC fallback (development only)');
   }
 }
 
@@ -186,7 +186,7 @@ async function storeRefreshToken(tokenId, userId) {
     await pipeline.exec();
     return true;
   } catch (err) {
-    console.error('Redis storeRefreshToken error:', err.message);
+    getLogger().error({ err }, 'Redis storeRefreshToken error');
     return false;
   }
 }
@@ -209,7 +209,7 @@ async function revokeRefreshToken(tokenId, userId) {
     }
     return true;
   } catch (err) {
-    console.error('Redis revokeRefreshToken error:', err.message);
+    getLogger().error({ err }, 'Redis revokeRefreshToken error');
     return false;
   }
 }
@@ -232,7 +232,7 @@ async function revokeAllSessions(userId) {
     }
     return true;
   } catch (err) {
-    console.error('Redis revokeAllSessions error:', err.message);
+    getLogger().error({ err }, 'Redis revokeAllSessions error');
     return false;
   }
 }
@@ -249,7 +249,7 @@ async function revokeUserAccess(userId) {
     await redis.setex(`revoked:user:${userId}`, ttl, '1');
     return true;
   } catch (err) {
-    console.error('Redis revokeUserAccess error:', err.message);
+    getLogger().error({ err }, 'Redis revokeUserAccess error');
     return false;
   }
 }
@@ -265,7 +265,7 @@ async function isUserRevoked(userId) {
     return revoked === '1';
   } catch (err) {
     // Redis failure should NOT block authentication (fail-open for availability)
-    console.error('Redis isUserRevoked error:', err.message);
+    getLogger().error({ err }, 'Redis isUserRevoked error');
     return false;
   }
 }
@@ -282,7 +282,7 @@ async function isRefreshTokenValid(tokenId, userId) {
     if (!stored || !userId) return false;
     return timingSafeEqual(stored, String(userId));
   } catch (err) {
-    console.error('Redis isRefreshTokenValid error:', err.message);
+    getLogger().error({ err }, 'Redis isRefreshTokenValid error');
     return false;
   }
 }

@@ -7,6 +7,7 @@
 
 const config = require('../config');
 const { AppError } = require('../utils/errors');
+const { getLogger, getRequestId } = require('../utils/logger');
 
 /**
  * Global error handler middleware
@@ -17,14 +18,13 @@ const { AppError } = require('../utils/errors');
  */
 function errorHandler(err, req, res, next) {
   // Log the error
-  console.error('Error:', {
-    message: err.message,
+  const log = getLogger();
+  log.error({
+    err,
     code: err.code || 'UNKNOWN',
-    stack: err.stack,
     path: req.path,
     method: req.method,
-    timestamp: new Date().toISOString()
-  });
+  }, err.message);
 
   // If it's an operational AppError, use its properties
   if (err instanceof AppError) {
@@ -39,6 +39,8 @@ function errorHandler(err, req, res, next) {
     if (config.nodeEnv === 'development') {
       response.stack = err.stack;
     }
+    const requestId = getRequestId();
+    if (requestId) response.requestId = requestId;
     return res.status(err.statusCode).json(response);
   }
 
@@ -54,6 +56,9 @@ function errorHandler(err, req, res, next) {
     errorResponse.stack = err.stack;
     errorResponse.details = err.details || null;
   }
+
+  const requestId = getRequestId();
+  if (requestId) errorResponse.requestId = requestId;
 
   res.status(status).json(errorResponse);
 }

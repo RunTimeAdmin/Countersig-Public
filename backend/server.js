@@ -1,16 +1,13 @@
 require('dotenv').config();
 
+const { logger, getLogger } = require('./src/utils/logger');
+const requestLogger = require('./src/middleware/requestLogger');
+
 // Required environment variables - server will not start without these
 const required = ['DATABASE_URL', 'BAGS_API_KEY', 'REDIS_URL', 'JWT_SECRET'];
 const missing = required.filter(key => !process.env[key]);
 if (missing.length > 0) {
-  console.error('========================================');
-  console.error('FATAL: Missing required environment variables:');
-  missing.forEach(key => console.error(`  - ${key}`));
-  console.error('');
-  console.error('Copy .env.example to .env and configure:');
-  console.error('  cp .env.example .env');
-  console.error('========================================');
+  logger.fatal({ missing }, 'Missing required environment variables. Copy .env.example to .env and configure.');
   process.exit(1);
 }
 
@@ -18,18 +15,16 @@ if (missing.length > 0) {
 const recommended = ['CORS_ORIGIN', 'AGENTID_BASE_URL'];
 const missingRecommended = recommended.filter(key => !process.env[key]);
 if (missingRecommended.length > 0) {
-  console.warn('WARNING: Missing recommended environment variables (using defaults):');
-  missingRecommended.forEach(key => console.warn(`  - ${key}`));
+  logger.warn({ missing: missingRecommended }, 'Missing recommended environment variables (using defaults)');
 }
 
 if (process.env.NODE_ENV === 'production' && !process.env.DID_ED25519_PUBLIC_KEY) {
-  console.warn('WARNING: DID_ED25519_PUBLIC_KEY not set — /.well-known/did.json will return 503');
+  logger.warn('DID_ED25519_PUBLIC_KEY not set — /.well-known/did.json will return 503');
 }
 
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const crypto = require('crypto');
 const config = require('./src/config');
 const { timingSafeEqual } = require('./src/utils/crypto');
 const errorHandler = require('./src/middleware/errorHandler');
@@ -78,13 +73,6 @@ app.use(helmet({
   }
 }));
 
-// Request ID middleware
-app.use((req, res, next) => {
-  req.id = req.get('X-Request-Id') || crypto.randomUUID();
-  res.set('X-Request-Id', req.id);
-  next();
-});
-
 // CORS middleware
 const corsOrigins = config.corsOrigin;
 app.use(cors({
@@ -103,6 +91,9 @@ app.use(cors({
 // Body parsing middleware
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Request ID + structured request logging
+app.use(requestLogger);
 
 // Health check route
 app.get('/health', async (req, res) => {
@@ -234,7 +225,7 @@ app.get('/.well-known/jwks.json', async (req, res) => {
     }
     res.json({ keys: [jwk] });
   } catch (err) {
-    console.error('[JWKS] Error exporting public key:', err.message);
+    logger.error({ err }, 'Error exporting JWKS public key');
     res.status(500).json({ error: 'Failed to export JWKS' });
   }
 });
@@ -381,14 +372,12 @@ app.use(errorHandler);
 // Start server
 if (require.main === module) {
   app.listen(config.port, () => {
-    console.log(`🚀 AgentID API server running on port ${config.port}`);
-    console.log(`📊 Environment: ${config.nodeEnv}`);
-    console.log(`🏥 Health check: http://localhost:${config.port}/health`);
+    logger.info({ port: config.port, env: config.nodeEnv }, 'AgentID API server running');
 
     // Non-blocking SAID Gateway connectivity check
     axios.get(`${config.saidGatewayUrl}/health`, { timeout: 5000 })
-      .then(() => console.log('SAID Gateway: connected'))
-      .catch(() => console.warn('SAID Gateway: unreachable (non-critical — SAID features will degrade gracefully)'));
+      .then(() => logger.info('SAID Gateway: connected'))
+      .catch(() => logger.warn('SAID Gateway: unreachable (non-critical — SAID features will degrade gracefully)'));
     
     // Start demo agent cleanup job (runs every hour)
     // Uses a Redis-based distributed lock so only one instance runs cleanup
@@ -406,12 +395,12 @@ if (require.main === module) {
           await cleanupDemoAgents();
         }
       } catch (err) {
-        console.error('Demo cleanup error:', err.message);
+        logger.error({ err }, 'Demo cleanup error');
       }
     }
 
     setInterval(cleanupDemoAgentsWithLock, CLEANUP_INTERVAL_MS);
-    console.log('Demo agent cleanup scheduled (every hour, distributed lock enabled)');
+    logger.info('Demo agent cleanup scheduled (every hour, distributed lock enabled)');
 
     // Initialize real-time event listeners
     const { initPolicyListeners } = require('./src/services/policyEngine');

@@ -6,6 +6,7 @@
  */
 
 const { deleteCache, deleteCacheMulti } = require('../models/redis');
+const { logger } = require('../utils/logger');
 
 /**
  * Invalidate all agent caches (badge and reputation)
@@ -20,7 +21,7 @@ async function invalidateAgentCaches(agentId) {
     ]);
     return true;
   } catch (err) {
-    console.error('Agent cache invalidation error:', err.message);
+    logger.error({ err, agentId }, 'Agent cache invalidation error');
     return false;
   }
 }

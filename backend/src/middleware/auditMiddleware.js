@@ -5,6 +5,7 @@
  */
 
 const { logAction } = require('../services/auditService');
+const { getLogger } = require('../utils/logger');
 
 const SENSITIVE_FIELDS = new Set([
   'rawKey', 'password', 'password_hash', 'secret',
@@ -163,7 +164,7 @@ function auditMiddleware(req, res, next) {
           });
         }
       } catch (err) {
-        console.error('Audit middleware logging error:', err.message);
+        getLogger().error({ err }, 'Audit middleware logging error');
       }
     })();
   });

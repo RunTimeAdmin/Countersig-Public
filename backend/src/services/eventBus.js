@@ -5,6 +5,7 @@
 
 const EventEmitter = require('events');
 const { redis } = require('../models/redis');
+const { logger } = require('../utils/logger');
 
 class AgentEventBus extends EventEmitter {
   constructor() {
@@ -21,7 +22,7 @@ class AgentEventBus extends EventEmitter {
         this.subscriber = redis.duplicate();
         this.subscriber.subscribe(this.channel, (err) => {
           if (err) {
-            console.warn('[EventBus] Redis subscribe failed:', err.message);
+            logger.warn({ err }, 'Redis subscribe failed');
           }
         });
         this.subscriber.on('message', (channel, message) => {
@@ -32,13 +33,13 @@ class AgentEventBus extends EventEmitter {
               super.emit(event.type, event);
               super.emit('*', event);
             } catch (parseErr) {
-              console.error('[EventBus] Failed to parse Redis message:', parseErr.message);
+              logger.error({ err: parseErr }, 'Failed to parse Redis event message');
             }
           }
         });
       }
     } catch (err) {
-      console.warn('[EventBus] Redis pub/sub not available, using local only:', err.message);
+      logger.warn({ err }, 'Redis pub/sub not available, using local only');
     }
   }
 
@@ -58,7 +59,7 @@ class AgentEventBus extends EventEmitter {
         await redis.publish(this.channel, JSON.stringify(event));
       }
     } catch (err) {
-      console.error('[EventBus] Redis publish failed:', err.message);
+      logger.error({ err }, 'Redis publish failed');
     }
 
     return event;
@@ -70,7 +71,7 @@ class AgentEventBus extends EventEmitter {
         await this.subscriber.unsubscribe(this.channel);
         await this.subscriber.quit();
       } catch (err) {
-        console.warn('[EventBus] Error shutting down Redis subscriber:', err.message);
+        logger.warn({ err }, 'Error shutting down Redis subscriber');
       }
     }
     this.removeAllListeners();

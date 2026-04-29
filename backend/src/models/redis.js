@@ -5,6 +5,7 @@
 
 const Redis = require('ioredis');
 const config = require('../config');
+const { logger } = require('../utils/logger');
 
 // Parse Redis connection options from URL or individual env vars
 function getRedisOptions() {
@@ -41,7 +42,7 @@ function getRedisOptions() {
         ...baseOptions
       };
     } catch (e) {
-      console.warn('Failed to parse REDIS_URL, falling back to defaults:', e.message);
+      logger.warn({ err: e }, 'Failed to parse REDIS_URL, falling back to defaults');
     }
   }
 
@@ -50,21 +51,21 @@ function getRedisOptions() {
 
 // Create Redis client instance
 const redisOpts = getRedisOptions();
-console.log(`Redis connecting to ${redisOpts.host}:${redisOpts.port}`);
+logger.info({ host: redisOpts.host, port: redisOpts.port }, 'Redis connecting');
 const redis = new Redis(redisOpts);
 
 // Handle connection events
 redis.on('connect', () => {
-  console.log('Redis connected successfully');
+  logger.info('Redis connected successfully');
 });
 
 redis.on('error', (err) => {
-  console.error('Redis connection error:', err.message);
+  logger.error({ err }, 'Redis connection error');
   // Don't crash - Redis is a cache, not critical for operation
 });
 
 redis.on('reconnecting', () => {
-  console.log('Redis reconnecting...');
+  logger.info('Redis reconnecting...');
 });
 
 /**
@@ -77,7 +78,7 @@ async function getCache(key) {
     const value = await redis.get(key);
     return value ? JSON.parse(value) : null;
   } catch (err) {
-    console.error('Redis getCache error:', err.message);
+    logger.error({ err }, 'Redis getCache error');
     return null;
   }
 }
@@ -99,7 +100,7 @@ async function setCache(key, value, ttlSeconds) {
     }
     return true;
   } catch (err) {
-    console.error('Redis setCache error:', err.message);
+    logger.error({ err }, 'Redis setCache error');
     return false;
   }
 }
@@ -114,7 +115,7 @@ async function deleteCache(key) {
     await redis.del(key);
     return true;
   } catch (err) {
-    console.error('Redis deleteCache error:', err.message);
+    logger.error({ err }, 'Redis deleteCache error');
     return false;
   }
 }
@@ -134,7 +135,7 @@ async function deleteCacheMulti(keys) {
     await pipeline.exec();
     return true;
   } catch (err) {
-    console.error('Redis multi-delete error:', err.message);
+    logger.error({ err }, 'Redis multi-delete error');
     return false;
   }
 }
@@ -159,7 +160,7 @@ async function setCacheMulti(entries) {
     await pipeline.exec();
     return true;
   } catch (err) {
-    console.error('Redis multi-set error:', err.message);
+    logger.error({ err }, 'Redis multi-set error');
     return false;
   }
 }

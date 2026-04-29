@@ -6,6 +6,7 @@
 
 const { Pool } = require('pg');
 const config = require('../config');
+const { logger } = require('../utils/logger');
 
 let pool = null;
 let mockQueryFn = null;
@@ -42,7 +43,7 @@ function getPool() {
 
     // Handle connection errors - log but don't crash
     pool.on('error', (err) => {
-      console.error('Unexpected PostgreSQL pool error:', err.message);
+      logger.error({ err }, 'Unexpected PostgreSQL pool error');
     });
   }
   return pool;
@@ -63,17 +64,17 @@ async function query(text, params) {
   try {
     const p = getPool();
     if (p.waitingCount > 5) {
-      console.warn('DB pool pressure:', {
+      logger.warn({
         waiting: p.waitingCount,
         idle: p.idleCount,
         total: p.totalCount,
         max: p.options.max
-      });
+      }, 'DB pool pressure');
     }
     const result = await p.query(text, params);
     return result;
   } catch (err) {
-    console.error('Database query error:', err.message);
+    logger.error({ err }, 'Database query error');
     throw err;
   }
 }

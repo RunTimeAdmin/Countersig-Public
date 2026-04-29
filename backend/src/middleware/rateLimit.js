@@ -6,6 +6,7 @@
 const rateLimit = require('express-rate-limit');
 const { RedisStore } = require('rate-limit-redis');
 const { redis } = require('../models/redis');
+const { logger } = require('../utils/logger');
 
 // Default rate limit: 100 requests per 15 minutes per IP
 const DEFAULT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
@@ -36,7 +37,7 @@ function createRedisStore(prefix) {
     });
   } catch (err) {
     redisStoreAvailable = false;
-    console.error('[RateLimit] ERROR: Redis rate limit store creation failed, falling back to in-memory store:', err.message);
+    logger.error({ err }, 'Redis rate limit store creation failed, falling back to in-memory store');
     return undefined;
   }
 }
@@ -62,14 +63,14 @@ function createLimiter(options = {}) {
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     handler: (req, res, next, options) => {
-      console.warn(`Rate limit exceeded for IP: ${req.ip} on ${req.path}`);
+      logger.warn({ ip: req.ip, path: req.path }, 'Rate limit exceeded');
       res.status(429).json(options.message);
     }
   });
 
   return (req, res, next) => {
     if (!redisStoreAvailable) {
-      console.warn('[RateLimit] DEGRADED: using in-memory store — rate limits are per-instance');
+      logger.warn('Rate limiting degraded: using in-memory store — rate limits are per-instance');
     }
     limiter(req, res, next);
   };
