@@ -22,6 +22,7 @@ const { transformAgent, isValidSolanaAddress } = require('../utils/transform');
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');
 const eventBus = require('../services/eventBus');
+const { invalidateAgentCaches } = require('../services/cacheInvalidation');
 const { validate } = require('../middleware/validate');
 const { attestationSchema } = require('../schemas');
 
@@ -52,6 +53,9 @@ router.post('/agents/:agentId/attest', authenticate, requireScope('write'), auth
 
     // Increment action counters
     const updatedAgent = await incrementActions(agentId, success);
+
+    // Invalidate cached badge/reputation data immediately
+    await invalidateAgentCaches(agentId);
 
     // If success, refresh and store the BAGS score
     if (success) {

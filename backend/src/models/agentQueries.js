@@ -7,6 +7,7 @@
 
 const { query } = require('./db');
 const { invalidateAgentCaches } = require('../services/cacheInvalidation');
+const eventBus = require('../services/eventBus');
 
 // ============================================================================
 // Agent Identity Queries
@@ -149,6 +150,7 @@ async function updateAgent(agentId, fields, updatedBy = null) {
   const sql = `UPDATE agent_identities SET ${updates.join(', ')} WHERE agent_id = $${paramIndex} RETURNING *`;
   const result = await query(sql, values);
   await invalidateAgentCaches(agentId);
+  eventBus.publish('agent:updated', { agentId });
   return result.rows[0] || null;
 }
 
@@ -251,6 +253,7 @@ async function updateBagsScore(agentId, score) {
     RETURNING *
   `;
   const result = await query(sql, [score, agentId]);
+  eventBus.publish('agent:score_updated', { agentId });
   return result.rows[0] || null;
 }
 
@@ -348,6 +351,7 @@ async function revokeAgent(agentId) {
   `;
   const result = await query(sql, [agentId]);
   await invalidateAgentCaches(agentId);
+  eventBus.publish('agent:revoked', { agentId });
   return result.rows[0] || null;
 }
 

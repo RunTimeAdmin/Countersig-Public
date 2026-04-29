@@ -403,8 +403,10 @@ if (require.main === module) {
     logger.info('Demo agent cleanup scheduled (every hour, distributed lock enabled)');
 
     // Initialize real-time event listeners
+    const { init: initCacheInvalidation } = require('./src/services/cacheInvalidation');
     const { initPolicyListeners } = require('./src/services/policyEngine');
     const { initWebhookListeners } = require('./src/services/webhookService');
+    initCacheInvalidation();
     initPolicyListeners();
     initWebhookListeners();
   });

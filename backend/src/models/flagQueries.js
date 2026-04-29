@@ -6,6 +6,8 @@
  */
 
 const { query } = require('./db');
+const { invalidateAgentCaches } = require('../services/cacheInvalidation');
+const eventBus = require('../services/eventBus');
 
 // ============================================================================
 // Flag Queries
@@ -27,6 +29,8 @@ async function createFlag({ agentId, pubkey, reporterPubkey, reason, evidence })
     agentId, pubkey, reporterPubkey, reason, 
     evidence ? JSON.stringify(evidence) : null
   ]);
+  await invalidateAgentCaches(agentId);
+  eventBus.publish('agent:flagged', { agentId });
   return result.rows[0];
 }
 
@@ -69,6 +73,11 @@ async function resolveFlag(id) {
     RETURNING *
   `;
   const result = await query(sql, [id]);
+  if (result.rows[0]) {
+    const agentId = result.rows[0].agent_id;
+    await invalidateAgentCaches(agentId);
+    eventBus.publish('agent:flagged', { agentId });
+  }
   return result.rows[0] || null;
 }
 
