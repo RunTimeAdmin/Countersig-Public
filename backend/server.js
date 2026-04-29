@@ -180,8 +180,9 @@ app.use((req, res, next) => {
     // - /health   : health check (never mutates state)
     // - /verify-token : A2A token verification (unauthenticated, called by external agents
     //                    that do not send the X-Requested-With header)
-    const csrfSkipPaths = ['/public/', '/badge/', '/widget/', '/health', '/verify-token'];
-    if (csrfSkipPaths.some(p => req.path.startsWith(p))) {
+    const csrfSkipExact = ['/health', '/verify-token'];
+    const csrfSkipPrefix = ['/public/', '/badge/', '/widget/'];
+    if (csrfSkipExact.includes(req.path) || csrfSkipPrefix.some(p => req.path.startsWith(p))) {
       return next();
     }
     // Bearer auth doesn't need CSRF (browsers don't auto-attach Authorization headers)
@@ -209,10 +210,10 @@ app.get('/.well-known/jwks.json', (req, res) => {
         // This endpoint documents the key metadata and algorithm.
       }
     ],
-    issuer: 'agentidapp.com',
-    documentation: 'https://agentidapp.com/docs/a2a-auth',
+    issuer: new URL(config.agentIdBaseUrl).hostname,
+    documentation: `${config.agentIdBaseUrl}/docs/a2a-auth`,
     // Provide the verification endpoint for agents that can't use shared secrets
-    verify_endpoint: '/agents/verify-token'
+    verify_endpoint: '/verify-token'
   });
 });
 
@@ -227,52 +228,55 @@ app.get('/.well-known/did.json', (req, res) => {
     });
   }
 
+  const didDomain = new URL(config.agentIdBaseUrl).hostname;
+  const didId = `did:web:${didDomain}`;
+
   res.json({
     '@context': [
       'https://www.w3.org/ns/did/v1',
       'https://w3id.org/security/suites/ed25519-2020/v1',
       'https://w3id.org/security/suites/secp256k1-2019/v1'
     ],
-    id: 'did:web:agentidapp.com',
-    controller: 'did:web:agentidapp.com',
+    id: didId,
+    controller: didId,
     verificationMethod: [
       {
-        id: 'did:web:agentidapp.com#ed25519-key',
+        id: `${didId}#ed25519-key`,
         type: 'Ed25519VerificationKey2020',
-        controller: 'did:web:agentidapp.com',
+        controller: didId,
         // Public key would be populated from env in production
         publicKeyMultibase: process.env.DID_ED25519_PUBLIC_KEY || 'z_PLACEHOLDER_CONFIGURE_IN_ENV'
       },
       {
-        id: 'did:web:agentidapp.com#secp256k1-key',
+        id: `${didId}#secp256k1-key`,
         type: 'EcdsaSecp256k1VerificationKey2019',
-        controller: 'did:web:agentidapp.com',
+        controller: didId,
         publicKeyMultibase: process.env.DID_SECP256K1_PUBLIC_KEY || 'z_PLACEHOLDER_CONFIGURE_IN_ENV'
       }
     ],
     authentication: [
-      'did:web:agentidapp.com#ed25519-key',
-      'did:web:agentidapp.com#secp256k1-key'
+      `${didId}#ed25519-key`,
+      `${didId}#secp256k1-key`
     ],
     assertionMethod: [
-      'did:web:agentidapp.com#ed25519-key',
-      'did:web:agentidapp.com#secp256k1-key'
+      `${didId}#ed25519-key`,
+      `${didId}#secp256k1-key`
     ],
     service: [
       {
-        id: 'did:web:agentidapp.com#agentid-api',
+        id: `${didId}#agentid-api`,
         type: 'AgentIDService',
-        serviceEndpoint: 'https://api.agentidapp.com'
+        serviceEndpoint: config.agentIdBaseUrl
       },
       {
-        id: 'did:web:agentidapp.com#a2a-verify',
+        id: `${didId}#a2a-verify`,
         type: 'A2AVerificationService',
-        serviceEndpoint: 'https://api.agentidapp.com/agents/verify-token'
+        serviceEndpoint: `${config.agentIdBaseUrl}/verify-token`
       },
       {
-        id: 'did:web:agentidapp.com#credential-issuance',
+        id: `${didId}#credential-issuance`,
         type: 'VerifiableCredentialService',
-        serviceEndpoint: 'https://api.agentidapp.com/agents/{agentId}/credential'
+        serviceEndpoint: `${config.agentIdBaseUrl}/agents/{agentId}/credential`
       }
     ]
   });
