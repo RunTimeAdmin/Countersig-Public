@@ -5,13 +5,15 @@
 
 const crypto = require('crypto');
 const { computeReputation, calcSuccessRate, calcAgeFactor, calcFlagFactor } = require('../reputationScorer');
+const { logger } = require('../../utils/logger');
 
-// Dynamic import for ethers (installed but may not be available yet)
+// Eager dependency check — fail fast if ethers is missing
 let ethers;
 try {
   ethers = require('ethers');
-} catch {
-  console.warn('[EVM Adapter] ethers.js not installed. EVM chain support disabled. Run: npm install ethers');
+} catch (err) {
+  logger.error('ethers package is required for EVM chain adapters. Install with: npm install ethers');
+  // Don't throw — allow server to start, but EVM operations will fail gracefully
 }
 
 // Chain-specific configurations
@@ -66,13 +68,13 @@ function createEVMAdapter(chainKey) {
     },
 
     async verifyOwnership(address, signature, challenge) {
-      if (!ethers) throw new Error('ethers.js not installed. EVM verification unavailable.');
+      if (!ethers) throw new Error('EVM operations require the ethers package');
       try {
         // EIP-191 personal_sign verification
         const recoveredAddress = ethers.verifyMessage(challenge, signature);
         return recoveredAddress.toLowerCase() === address.toLowerCase();
       } catch (err) {
-        console.error(`[${chainConfig.name}] Signature verification error:`, err.message);
+        logger.error({ err, chain: chainConfig.name }, 'EVM signature verification error');
         return false;
       }
     },
@@ -123,7 +125,7 @@ function createEVMAdapter(chainKey) {
               }
             }
           } catch (err) {
-            console.warn(`[${chainConfig.name}] Block explorer API error:`, err.message);
+            logger.warn({ err, chain: chainConfig.name }, 'Block explorer API error');
           }
           score += breakdown.onChainActivity.score;
 

@@ -17,6 +17,9 @@ const { logger } = require('../utils/logger');
 // Default TTL for challenges (5 minutes)
 const DEFAULT_CHALLENGE_TTL = config.challengeExpirySeconds || 300;
 
+// Max in-memory entries per store when Redis is unavailable (LRU eviction)
+const MAX_SIZE = parseInt(process.env.CHALLENGE_STORE_MAX_SIZE, 10) || 10000;
+
 /**
  * ChallengeStore class
  * Manages challenge and nonce storage with Redis fallback
@@ -101,7 +104,12 @@ class ChallengeStore {
       }
     }
     
-    // In-memory fallback
+    // In-memory fallback — LRU eviction if at capacity
+    if (this.memoryStore.size >= MAX_SIZE) {
+      const oldestKey = this.memoryStore.keys().next().value;
+      this.memoryStore.delete(oldestKey);
+      logger.warn({ evictedKey: oldestKey, storeSize: this.memoryStore.size }, 'Challenge store LRU eviction');
+    }
     const expiresAt = Date.now() + (ttlSeconds * 1000);
     this.memoryStore.set(key, { value, expiresAt });
     return true;
@@ -181,7 +189,12 @@ class ChallengeStore {
       }
     }
     
-    // In-memory fallback
+    // In-memory fallback — LRU eviction if at capacity
+    if (this.usedNoncesStore.size >= MAX_SIZE) {
+      const oldestKey = this.usedNoncesStore.keys().next().value;
+      this.usedNoncesStore.delete(oldestKey);
+      logger.warn({ evictedKey: oldestKey, storeSize: this.usedNoncesStore.size }, 'Used nonces store LRU eviction');
+    }
     const expiresAt = Date.now() + (ttlSeconds * 1000);
     this.usedNoncesStore.set(nonce, { expiresAt });
     return true;
@@ -247,6 +260,14 @@ class ChallengeStore {
     if (cleanedChallenges > 0 || cleanedNonces > 0) {
       logger.debug({ cleanedChallenges, cleanedNonces }, 'ChallengeStore cleanup completed');
     }
+  }
+
+  /**
+   * Get total in-memory entry count (for health monitoring)
+   * @returns {number} - Combined size of both memory stores
+   */
+  size() {
+    return this.memoryStore.size + this.usedNoncesStore.size;
   }
 
   /**
