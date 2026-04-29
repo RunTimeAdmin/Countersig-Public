@@ -50,17 +50,17 @@ async function getUsage(orgId) {
  * Get or create org plan record
  */
 async function getOrCreatePlan(orgId) {
-  let result = await pool.query('SELECT * FROM org_plans WHERE org_id = $1', [orgId]);
-  if (result.rows.length === 0) {
-    const now = new Date();
-    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    result = await pool.query(
-      `INSERT INTO org_plans (org_id, tier, current_period_start, current_period_end) 
-       VALUES ($1, 'free', $2, $3) RETURNING *`,
-      [orgId, periodStart, periodEnd]
-    );
-  }
+  const now = new Date();
+  const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  
+  const result = await pool.query(
+    `INSERT INTO org_plans (org_id, tier, current_period_start, current_period_end)
+     VALUES ($1, 'free', $2, $3)
+     ON CONFLICT (org_id) DO UPDATE SET updated_at = NOW()
+     RETURNING *`,
+    [orgId, periodStart, periodEnd]
+  );
   return result.rows[0];
 }
 

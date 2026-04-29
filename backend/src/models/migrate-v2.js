@@ -277,6 +277,16 @@ async function runV2Migration(pool) {
     `);
     console.log('  - Created table: org_plans');
 
+    // Seed org_plans for any existing organizations that don't have one yet
+    await client.query(`
+      INSERT INTO org_plans (org_id, tier, current_period_start, current_period_end)
+      SELECT id, 'free', date_trunc('month', NOW()), date_trunc('month', NOW()) + INTERVAL '1 month'
+      FROM organizations
+      WHERE id NOT IN (SELECT org_id FROM org_plans WHERE org_id IS NOT NULL)
+      ON CONFLICT DO NOTHING
+    `);
+    console.log('  - Seeded org_plans for existing organizations');
+
     await client.query('COMMIT');
     console.log('✓ v2 database migration completed successfully');
   } catch (err) {

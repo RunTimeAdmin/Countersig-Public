@@ -4,11 +4,17 @@ const config = require('../config');
 const { authenticate } = require('../middleware/authenticate');
 const billingService = require('../services/billingService');
 
+function requireOrgContext(req, res, next) {
+  if (!req.user?.orgId) {
+    return res.status(403).json({ error: 'Organization context required for billing operations' });
+  }
+  next();
+}
+
 // GET /billing/usage — current period usage
-router.get('/usage', authenticate, async (req, res) => {
+router.get('/usage', authenticate, requireOrgContext, async (req, res) => {
   try {
     const orgId = req.user.orgId;
-    if (!orgId) return res.status(400).json({ error: 'No organization context' });
     
     const usage = await billingService.getUsage(orgId);
     res.json(usage);
@@ -19,10 +25,9 @@ router.get('/usage', authenticate, async (req, res) => {
 });
 
 // GET /billing/plan — current plan details
-router.get('/plan', authenticate, async (req, res) => {
+router.get('/plan', authenticate, requireOrgContext, async (req, res) => {
   try {
     const orgId = req.user.orgId;
-    if (!orgId) return res.status(400).json({ error: 'No organization context' });
     
     const plan = await billingService.getOrCreatePlan(orgId);
     res.json({
@@ -38,10 +43,9 @@ router.get('/plan', authenticate, async (req, res) => {
 });
 
 // POST /billing/checkout — create Stripe Checkout session for upgrade
-router.post('/checkout', authenticate, express.json(), async (req, res) => {
+router.post('/checkout', authenticate, requireOrgContext, express.json(), async (req, res) => {
   try {
     const orgId = req.user.orgId;
-    if (!orgId) return res.status(400).json({ error: 'No organization context' });
     
     const { tier, successUrl, cancelUrl } = req.body;
     if (!tier || !['starter', 'professional'].includes(tier)) {
@@ -57,10 +61,9 @@ router.post('/checkout', authenticate, express.json(), async (req, res) => {
 });
 
 // POST /billing/portal — create Stripe Customer Portal session
-router.post('/portal', authenticate, express.json(), async (req, res) => {
+router.post('/portal', authenticate, requireOrgContext, express.json(), async (req, res) => {
   try {
     const orgId = req.user.orgId;
-    if (!orgId) return res.status(400).json({ error: 'No organization context' });
     
     const { returnUrl } = req.body;
     const session = await billingService.createPortalSession(orgId, returnUrl);
@@ -83,9 +86,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     
     if (config.stripeWebhookSecret) {
       event = stripe.webhooks.constructEvent(req.body, sig, config.stripeWebhookSecret);
-    } else {
-      // In dev, skip signature verification
+    } else if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+      console.warn('[billing] WARNING: Webhook signature verification disabled in dev mode');
       event = JSON.parse(req.body.toString());
+    } else {
+      return res.status(503).json({ error: 'Webhook signature verification not configured' });
     }
     
     await billingService.handleWebhookEvent(event);

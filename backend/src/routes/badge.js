@@ -6,7 +6,6 @@
 const express = require('express');
 const { getBadgeJSON, getBadgeSVG } = require('../services/badgeBuilder');
 const { defaultLimiter } = require('../middleware/rateLimit');
-const { meterEvent } = require('../middleware/billingMeter');
 
 const router = express.Router();
 
@@ -14,7 +13,7 @@ const router = express.Router();
  * GET /badge/:agentId
  * Returns trust badge JSON
  */
-router.get('/badge/:agentId', defaultLimiter, meterEvent('credential_fetch'), async (req, res, next) => {
+router.get('/badge/:agentId', defaultLimiter, async (req, res, next) => {
   try {
     const { agentId } = req.params;
 

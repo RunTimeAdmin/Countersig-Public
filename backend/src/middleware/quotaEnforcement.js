@@ -54,7 +54,7 @@ function enforceQuota(operationType) {
 
       next();
     } catch (err) {
-      console.error('[quota-enforcement] Error checking quota:', err.message);
+      console.error('[quota-enforcement] CRITICAL - Quota check failed, allowing request:', err.message, { orgId: req.user?.orgId, operationType });
       // Fail open: don't block requests if billing check fails
       next();
     }

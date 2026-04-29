@@ -119,6 +119,15 @@ router.post('/auth/register', registrationLimiter, async (req, res, next) => {
       // Update org owner
       await client.query('UPDATE organizations SET owner_user_id = $1 WHERE id = $2', [user.id, org.id]);
 
+      // Create default free plan for new org
+      const planNow = new Date();
+      const planPeriodStart = new Date(planNow.getFullYear(), planNow.getMonth(), 1);
+      const planPeriodEnd = new Date(planNow.getFullYear(), planNow.getMonth() + 1, 1);
+      await client.query(
+        'INSERT INTO org_plans (org_id, tier, current_period_start, current_period_end) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+        [org.id, 'free', planPeriodStart, planPeriodEnd]
+      );
+
       await client.query('COMMIT');
 
       // Generate tokens
