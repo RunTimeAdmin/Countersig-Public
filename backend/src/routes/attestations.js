@@ -23,6 +23,8 @@ const nacl = require('tweetnacl');
 const bs58 = require('bs58');
 const eventBus = require('../services/eventBus');
 const { invalidateAgentCaches } = require('../services/cacheInvalidation');
+const { recordTrustEdge } = require('../services/trustPropagation');
+const { query } = require('../models/db');
 const { validate } = require('../middleware/validate');
 const { attestationSchema } = require('../schemas');
 
@@ -75,6 +77,24 @@ router.post('/agents/:agentId/attest', authenticate, requireScope('write'), auth
       attestorId: req.user?.userId || null,
       score: transformedAgent.bagsScore
     });
+
+    // Fire-and-forget trust edge recording
+    if (req.user?.agentId) {
+      recordTrustEdge(req.user.agentId, agentId, success ? 'attestation' : 'flag').catch(() => {});
+    } else if (req.user?.userId) {
+      // Find an agent owned by this user's org to use as source
+      (async () => {
+        try {
+          const userAgent = await query(
+            'SELECT agent_id FROM agent_identities WHERE org_id = $1 AND deleted_at IS NULL LIMIT 1',
+            [req.user.orgId]
+          );
+          if (userAgent.rows.length) {
+            recordTrustEdge(userAgent.rows[0].agent_id, agentId, success ? 'attestation' : 'flag').catch(() => {});
+          }
+        } catch (_err) { /* fire and forget */ }
+      })();
+    }
 
     return res.status(200).json({
       agentId,

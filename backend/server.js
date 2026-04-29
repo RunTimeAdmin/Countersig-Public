@@ -454,6 +454,26 @@ if (require.main === module) {
     }, 60000);
     logger.info('Agent health status reconciliation scheduled (every 60s)');
 
+    // Trust score propagation — compute every 15 minutes with distributed lock
+    const { computeTrustScores } = require('./src/services/trustPropagation');
+    const TRUST_SCORE_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+    async function computeTrustScoresWithLock() {
+      try {
+        if (redis && redis.status === 'ready') {
+          const locked = await redis.set('lock:trust-scores', '1', 'NX', 'EX', 840); // 14min lock
+          if (locked) {
+            await computeTrustScores();
+          }
+        } else {
+          await computeTrustScores();
+        }
+      } catch (err) {
+        logger.error({ err }, 'Trust score computation job failed');
+      }
+    }
+    setInterval(computeTrustScoresWithLock, TRUST_SCORE_INTERVAL_MS);
+    logger.info('Trust score propagation scheduled (every 15 minutes, distributed lock enabled)');
+
     // Initialize real-time event listeners
     const { init: initCacheInvalidation } = require('./src/services/cacheInvalidation');
     const { initPolicyListeners } = require('./src/services/policyEngine');

@@ -1,6 +1,6 @@
 /**
  * BAGS Reputation Service
- * Computes a configurable reputation score (0-100) using 5 factors
+ * Computes a configurable reputation score (0-100) using 6 factors
  *
  * BAGS Chain Scoring Weights (total: 100)
  *
@@ -18,6 +18,7 @@ const { getAgent, getAgentActions, updateBagsScore } = require('../models/agentQ
 const { getUnresolvedFlagCount } = require('../models/flagQueries.js');
 const { getSAIDTrustScore } = require('./saidBinding.js');
 const { getCache, setCache } = require('../models/redis');
+const { query } = require('../models/db');
 
 /**
  * Compute BAGS reputation score for an agent
@@ -93,23 +94,37 @@ async function computeBagsScore(agentId, prefetched = {}) {
       saidTrustScore = 0;
     }
 
-    // 5. Community Verification (10 points max)
-    let communityScore = 10;
+    // 5. Community Verification (5 points max)
+    let communityScore = 5;
     try {
       const flagCount = await getUnresolvedFlagCount(agentId);
       if (flagCount === 0) {
-        communityScore = 10;
-      } else if (flagCount === 1) {
         communityScore = 5;
+      } else if (flagCount === 1) {
+        communityScore = 2;
       } else {
         communityScore = 0;
       }
     } catch (error) {
-      communityScore = 10; // Default to full score if query fails
+      communityScore = 5; // Default to full score if query fails
+    }
+
+    // 6. Trust Propagation (5 points max)
+    let trustPropagation = 0;
+    try {
+      const trustResult = await query(
+        'SELECT trust_score FROM agent_identities WHERE agent_id = $1',
+        [agentId]
+      );
+      if (trustResult.rows.length && trustResult.rows[0].trust_score != null) {
+        trustPropagation = Math.min(5, Math.round(trustResult.rows[0].trust_score / 20));
+      }
+    } catch (error) {
+      trustPropagation = 0; // fallback to 0
     }
 
     // Calculate total score
-    const totalScore = feeActivityScore + successRateScore + ageScore + saidTrustScore + communityScore;
+    const totalScore = feeActivityScore + successRateScore + ageScore + saidTrustScore + communityScore + trustPropagation;
 
     // Determine label
     let label;
@@ -132,7 +147,8 @@ async function computeBagsScore(agentId, prefetched = {}) {
         successRate: { score: successRateScore, max: 25 },
         age: { score: ageScore, max: 20 },
         saidTrust: { score: saidTrustScore, max: 15 },
-        community: { score: communityScore, max: 10 }
+        community: { score: communityScore, max: 5 },
+        trustPropagation: { score: trustPropagation, max: 5 }
       },
       saidScore: saidScore
     };
