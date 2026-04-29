@@ -3,9 +3,10 @@
  * Generates trust badges in multiple formats (JSON, SVG, HTML widget)
  */
 
-const queries = require('../models/queries');
+const queries = require('../models/agentQueries');
 const { computeBagsScore } = require('./bagsReputation');
-const { getCache, setCache, deleteCache } = require('../models/redis');
+const { getCache, setCache } = require('../models/redis');
+const { invalidateAgentCaches } = require('./cacheInvalidation');
 const config = require('../config');
 const { escapeHtml, escapeXml } = require('../utils/transform');
 
@@ -580,22 +581,6 @@ async function getWidgetHTML(agentId) {
     return html;
   } catch (error) {
     throw new Error(`Failed to generate widget HTML: ${error.message}`);
-  }
-}
-
-/**
- * Invalidate all agent caches (badge and reputation)
- * @param {string} agentId - Agent UUID
- * @returns {Promise<boolean>}
- */
-async function invalidateAgentCaches(agentId) {
-  try {
-    await deleteCache(`badge:${agentId}`);
-    await deleteCache(`reputation:${agentId}`);
-    return true;
-  } catch (err) {
-    console.error('Agent cache invalidation error:', err.message);
-    return false;
   }
 }
 

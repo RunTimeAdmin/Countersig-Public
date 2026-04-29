@@ -5,7 +5,7 @@
 
 const express = require('express');
 const { issueChallenge, verifyChallenge, isNonceUsed } = require('../services/pkiChallenge');
-const { getAgent } = require('../models/queries');
+const { getAgent } = require('../models/agentQueries');
 const { authLimiter } = require('../middleware/rateLimit');
 const { authenticate } = require('../middleware/authenticate');
 const eventBus = require('../services/eventBus');

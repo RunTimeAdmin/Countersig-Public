@@ -8,7 +8,7 @@ const nacl = require('tweetnacl');
 const bs58 = require('bs58');
 const axios = require('axios');
 const config = require('../../config');
-const queries = require('../../models/queries');
+const queries = require('../../models/agentQueries');
 const { getCache, setCache } = require('../../models/redis');
 
 const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1/agent/v2';

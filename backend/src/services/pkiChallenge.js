@@ -6,7 +6,8 @@
 const crypto = require('crypto');
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');
-const { createVerification, getVerification, completeVerification, updateLastVerified } = require('../models/queries.js');
+const { createVerification, getVerification, completeVerification } = require('../models/verificationQueries.js');
+const { updateLastVerified } = require('../models/agentQueries.js');
 const { challengeStore } = require('../models/challengeStore.js');
 const config = require('../config/index.js');
 

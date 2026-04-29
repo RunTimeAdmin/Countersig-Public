@@ -5,7 +5,7 @@
 
 const express = require('express');
 const { computeBagsScore } = require('../services/bagsReputation');
-const { getAgent } = require('../models/queries');
+const { getAgent } = require('../models/agentQueries');
 const { defaultLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();

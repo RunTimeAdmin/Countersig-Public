@@ -4,10 +4,13 @@
  */
 
 // Jest mocks - these must be BEFORE require()
-jest.mock('../src/models/queries', () => ({
+jest.mock('../src/models/verificationQueries', () => ({
   createVerification: jest.fn(),
   getVerification: jest.fn(),
   completeVerification: jest.fn(),
+}));
+
+jest.mock('../src/models/agentQueries', () => ({
   updateLastVerified: jest.fn(),
 }));
 
@@ -15,7 +18,8 @@ jest.mock('../src/config', () => ({
   challengeExpirySeconds: 300,
 }));
 
-const { createVerification, getVerification, completeVerification, updateLastVerified } = require('../src/models/queries');
+const { createVerification, getVerification, completeVerification } = require('../src/models/verificationQueries');
+const { updateLastVerified } = require('../src/models/agentQueries');
 const { issueChallenge, verifyChallenge } = require('../src/services/pkiChallenge');
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');

@@ -5,7 +5,7 @@
 
 const express = require('express');
 const { getWidgetHTML } = require('../services/badgeBuilder');
-const { getAgent } = require('../models/queries');
+const { getAgent } = require('../models/agentQueries');
 const { defaultLimiter } = require('../middleware/rateLimit');
 const { escapeHtml } = require('../utils/transform');
 

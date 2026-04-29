@@ -7,11 +7,13 @@ const express = require('express');
 const {
   getAgent,
   incrementActions,
+  updateAgentStatus
+} = require('../models/agentQueries');
+const {
   createFlag,
   getFlags,
-  getUnresolvedFlagCount,
-  updateAgentStatus
-} = require('../models/queries');
+  getUnresolvedFlagCount
+} = require('../models/flagQueries');
 const { refreshAndStoreScore } = require('../services/bagsReputation');
 const { defaultLimiter, authLimiter } = require('../middleware/rateLimit');
 const { authenticate } = require('../middleware/authenticate');

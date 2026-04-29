@@ -14,7 +14,8 @@
 
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');
-const queries = require('../../models/queries');
+const { getAgent, getAgentActions } = require('../../models/agentQueries');
+const { getUnresolvedFlagCount } = require('../../models/flagQueries');
 const { getCache, setCache } = require('../../models/redis');
 
 module.exports = {
@@ -60,11 +61,11 @@ module.exports = {
   async getReputationData(agentId, prefetched = {}) {
     // Generic Solana reputation: based on local DB data only (no BAGS analytics)
     // Uses: action success rate, registration age, SAID trust, community flags
-    const agent = prefetched.agent || await queries.getAgent(agentId);
+    const agent = prefetched.agent || await getAgent(agentId);
     if (!agent) return { score: 0, label: 'UNKNOWN', breakdown: {} };
 
-    const actions = prefetched.actions || await queries.getAgentActions(agentId);
-    const flagCount = await queries.getUnresolvedFlagCount(agentId);
+    const actions = prefetched.actions || await getAgentActions(agentId);
+    const flagCount = await getUnresolvedFlagCount(agentId);
 
     // Check cache
     const cacheKey = `reputation:${agentId}`;

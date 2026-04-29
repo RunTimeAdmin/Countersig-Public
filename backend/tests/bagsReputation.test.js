@@ -3,11 +3,14 @@
  * Tests for computeBagsScore scoring logic
  */
 
-jest.mock('../src/models/queries', () => ({
+jest.mock('../src/models/agentQueries', () => ({
   getAgent: jest.fn(),
   getAgentActions: jest.fn(),
-  getUnresolvedFlagCount: jest.fn(),
   updateBagsScore: jest.fn(),
+}));
+
+jest.mock('../src/models/flagQueries', () => ({
+  getUnresolvedFlagCount: jest.fn(),
 }));
 
 jest.mock('../src/services/saidBinding', () => ({
@@ -23,7 +26,8 @@ jest.mock('axios');
 
 jest.mock('../src/models/redis', () => ({ getCache: jest.fn(), setCache: jest.fn() }));
 
-const { getAgent, getAgentActions, getUnresolvedFlagCount, updateBagsScore } = require('../src/models/queries');
+const { getAgent, getAgentActions, updateBagsScore } = require('../src/models/agentQueries');
+const { getUnresolvedFlagCount } = require('../src/models/flagQueries');
 const { getSAIDTrustScore } = require('../src/services/saidBinding');
 const { computeBagsScore, refreshAndStoreScore } = require('../src/services/bagsReputation');
 const axios = require('axios');

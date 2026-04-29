@@ -14,7 +14,8 @@
 
 const axios = require('axios');
 const config = require('../config/index.js');
-const queries = require('../models/queries.js');
+const { getAgent, getAgentActions, updateBagsScore } = require('../models/agentQueries.js');
+const { getUnresolvedFlagCount } = require('../models/flagQueries.js');
 const { getSAIDTrustScore } = require('./saidBinding.js');
 const { getCache, setCache } = require('../models/redis');
 
@@ -34,7 +35,7 @@ async function computeBagsScore(agentId, prefetched = {}) {
     }
 
     // Get agent data for token_mint and pubkey
-    const agent = prefetched.agent || await queries.getAgent(agentId);
+    const agent = prefetched.agent || await getAgent(agentId);
     if (!agent) {
       throw new Error(`Agent not found: ${agentId}`);
     }
@@ -58,7 +59,7 @@ async function computeBagsScore(agentId, prefetched = {}) {
     // 2. Success Rate (25 points max)
     let successRateScore = 0;
     try {
-      const actions = prefetched.actions || await queries.getAgentActions(agentId);
+      const actions = prefetched.actions || await getAgentActions(agentId);
       if (actions) {
         const total = actions.total || 0;
         const successful = actions.successful || 0;
@@ -95,7 +96,7 @@ async function computeBagsScore(agentId, prefetched = {}) {
     // 5. Community Verification (10 points max)
     let communityScore = 10;
     try {
-      const flagCount = await queries.getUnresolvedFlagCount(agentId);
+      const flagCount = await getUnresolvedFlagCount(agentId);
       if (flagCount === 0) {
         communityScore = 10;
       } else if (flagCount === 1) {
@@ -153,7 +154,7 @@ async function computeBagsScore(agentId, prefetched = {}) {
 async function refreshAndStoreScore(agentId) {
   try {
     const scoreData = await computeBagsScore(agentId);
-    const updatedAgent = await queries.updateBagsScore(agentId, scoreData.score);
+    const updatedAgent = await updateBagsScore(agentId, scoreData.score);
     return {
       agent: updatedAgent,
       scoreData: scoreData

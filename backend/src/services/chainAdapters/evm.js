@@ -4,7 +4,8 @@
  */
 
 const crypto = require('crypto');
-const queries = require('../../models/queries');
+const { getAgent, getAgentActions } = require('../../models/agentQueries');
+const { getUnresolvedFlagCount } = require('../../models/flagQueries');
 const { getCache, setCache } = require('../../models/redis');
 
 // Dynamic import for ethers (installed but may not be available yet)
@@ -80,7 +81,7 @@ function createEVMAdapter(chainKey) {
 
     async getReputationData(agentId, prefetched = {}) {
       // EVM reputation: based on local DB data + optional block explorer data
-      const agent = prefetched.agent || await queries.getAgent(agentId);
+      const agent = prefetched.agent || await getAgent(agentId);
       if (!agent) return { score: 0, label: 'UNKNOWN', breakdown: {} };
 
       // Check cache
@@ -88,8 +89,8 @@ function createEVMAdapter(chainKey) {
       const cached = await getCache(cacheKey);
       if (cached) return cached;
 
-      const actions = prefetched.actions || await queries.getAgentActions(agentId);
-      const flagCount = await queries.getUnresolvedFlagCount(agentId);
+      const actions = prefetched.actions || await getAgentActions(agentId);
+      const flagCount = await getUnresolvedFlagCount(agentId);
 
       let score = 0;
       const breakdown = {};

@@ -34,7 +34,7 @@ const config = require('./src/config');
 const errorHandler = require('./src/middleware/errorHandler');
 const { defaultLimiter } = require('./src/middleware/rateLimit');
 const { auditMiddleware } = require('./src/middleware/auditMiddleware');
-const { cleanupDemoAgents } = require('./src/models/queries');
+const { cleanupDemoAgents } = require('./src/models/agentQueries');
 const { redis } = require('./src/models/redis');
 const axios = require('axios');
 
