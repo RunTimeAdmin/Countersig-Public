@@ -67,8 +67,10 @@ const webhookWorker = new Worker('webhook-delivery', async (job) => {
   });
 
   if (response.status < 200 || response.status >= 300) {
+    try { require('../middleware/metricsMiddleware').webhookDeliveries.inc({ status: 'failure' }); } catch (_) {}
     throw new Error(`Webhook delivery failed: ${response.status}`);
   }
+  try { require('../middleware/metricsMiddleware').webhookDeliveries.inc({ status: 'success' }); } catch (_) {}
   return { status: response.status };
 }, { connection: redisConnection, concurrency: 5 });
 

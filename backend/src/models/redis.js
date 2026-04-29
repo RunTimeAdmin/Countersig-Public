@@ -76,6 +76,10 @@ redis.on('reconnecting', () => {
 async function getCache(key) {
   try {
     const value = await redis.get(key);
+    try {
+      const { cacheHits, cacheMisses } = require('../middleware/metricsMiddleware');
+      if (value) { cacheHits.inc(); } else { cacheMisses.inc(); }
+    } catch (_) { /* metrics not available */ }
     return value ? JSON.parse(value) : null;
   } catch (err) {
     logger.error({ err }, 'Redis getCache error');

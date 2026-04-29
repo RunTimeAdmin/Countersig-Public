@@ -28,6 +28,7 @@ const helmet = require('helmet');
 const config = require('./src/config');
 const { timingSafeEqual } = require('./src/utils/crypto');
 const errorHandler = require('./src/middleware/errorHandler');
+const { metricsMiddleware, register } = require('./src/middleware/metricsMiddleware');
 const { defaultLimiter } = require('./src/middleware/rateLimit');
 const { auditMiddleware } = require('./src/middleware/auditMiddleware');
 const { cleanupDemoAgents } = require('./src/models/agentQueries');
@@ -94,6 +95,19 @@ app.use(express.urlencoded({ extended: true }));
 
 // Request ID + structured request logging
 app.use(requestLogger);
+
+// Prometheus request metrics
+app.use(metricsMiddleware);
+
+// Prometheus metrics endpoint (protected by METRICS_SECRET)
+app.get('/metrics', async (req, res) => {
+  const secret = process.env.METRICS_SECRET;
+  if (secret && req.headers['authorization'] !== `Bearer ${secret}`) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 
 // Health check route
 app.get('/health', async (req, res) => {
