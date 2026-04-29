@@ -187,6 +187,29 @@ app.use((req, res, next) => {
     // Bearer auth doesn't need CSRF (browsers don't auto-attach Authorization headers)
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) return next();
+
+    // Origin validation (defense-in-depth)
+    const origin = req.get('Origin') || req.get('Referer');
+    if (origin) {
+      try {
+        const originHost = new URL(origin).hostname;
+        const allowedHosts = (config.corsOrigin || [])
+          .filter(o => o !== '*')
+          .map(o => { try { return new URL(o).hostname; } catch { return null; } })
+          .filter(Boolean);
+        // Also allow the API's own domain
+        if (config.cookieDomain) {
+          allowedHosts.push(config.cookieDomain.replace(/^\./, ''));
+        }
+        if (!allowedHosts.some(h => originHost === h || originHost.endsWith('.' + h))) {
+          return res.status(403).json({ error: 'CSRF validation failed: origin not allowed' });
+        }
+      } catch (e) {
+        return res.status(403).json({ error: 'CSRF validation failed: invalid origin' });
+      }
+    }
+
+    // Secondary defense: require custom header on cookie-authenticated requests
     if (req.get('X-Requested-With') !== 'AgentID') {
       return res.status(403).json({ error: 'CSRF validation failed' });
     }
@@ -289,6 +312,14 @@ app.use((req, res, next) => {
   res.set('Deprecation', 'true');
   res.set('Sunset', '2026-10-01');
   res.set('Link', `</v1${req.path}>; rel="successor-version"`);
+  next();
+});
+
+// Cache headers for public read endpoints
+app.use(['/badge', '/widget', '/v1/badge', '/v1/widget'], (req, res, next) => {
+  if (req.method === 'GET') {
+    res.set('Cache-Control', 'public, max-age=300, s-maxage=600');
+  }
   next();
 });
 

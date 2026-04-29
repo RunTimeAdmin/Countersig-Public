@@ -27,6 +27,9 @@ const config = {
     ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
     : ['*'],
 
+  // Cookie configuration
+  cookieDomain: process.env.COOKIE_DOMAIN || '',
+
   // Cache and expiry configuration
   badgeCacheTtl: parseInt(process.env.BADGE_CACHE_TTL, 10) || 60,
   challengeExpirySeconds: parseInt(process.env.CHALLENGE_EXPIRY_SECONDS, 10) || 300,
