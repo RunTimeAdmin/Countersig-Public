@@ -209,6 +209,8 @@ router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
 
     const now = new Date().toISOString();
     
+    const isCredentialSigned = false; // TODO: flip to true once Data Integrity Proof signing is implemented
+
     const credential = {
       '@context': [
         'https://www.w3.org/2018/credentials/v1',
@@ -262,9 +264,9 @@ router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
         // For now, we include a placeholder indicating server-side signing is needed
         proofValue: 'UNSIGNED_CREDENTIAL_REQUIRES_DID_KEY_CONFIGURATION'
       },
-      ...((!process.env.DID_ED25519_PUBLIC_KEY) && {
+      ...(!isCredentialSigned && {
         demo: true,
-        warning: 'This credential is unsigned — DID key not configured'
+        warning: 'This credential is unsigned — Verifiable Credential signing not yet implemented'
       })
     };
 

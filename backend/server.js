@@ -105,8 +105,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health check route
 app.get('/health', async (req, res) => {
-  // Detailed health check requires secret header
-  const showDetail = req.headers['x-health-detail'] === process.env.JWT_SECRET?.substring(0, 8);
+  // Detailed health check requires secret header (constant-time compare)
+  const HEALTH_SECRET = process.env.HEALTH_DETAIL_SECRET;
+  const provided = req.headers['x-health-detail'];
+  const showDetail = HEALTH_SECRET && provided &&
+    Buffer.byteLength(provided) === Buffer.byteLength(HEALTH_SECRET) &&
+    crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(HEALTH_SECRET));
 
   if (!showDetail) {
     return res.json({ status: 'ok' });

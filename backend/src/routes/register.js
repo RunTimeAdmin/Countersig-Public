@@ -156,7 +156,13 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
         });
       }
 
-      // 5. Per-pubkey throttling: max 5 registrations per pubkey per 24 hours (atomic INCR+EXPIRE)
+      // 5. Validate demo permission BEFORE incurring rate limit
+      const isDemo = req.body.isDemo === true;
+      if (isDemo && req.user?.role !== 'admin') {
+        return res.status(403).json({ error: 'Only admins can create demo agents' });
+      }
+
+      // 6. Per-pubkey throttling: max 5 registrations per pubkey per 24 hours (atomic INCR+EXPIRE)
       const orgId = req.orgId || req.user?.orgId || 'default';
       const pubkeyThrottleKey = `reg:pubkey:${orgId}:${pubkey}`;
       const luaScript = `
@@ -196,12 +202,6 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
             console.warn('SAID binding failed during registration:', saidError.message);
             saidStatus = { registered: false, error: saidError.message };
           }
-        }
-
-        // 6. Check if this is a demo agent
-        const isDemo = req.body.isDemo === true; // explicit boolean, not name-based
-        if (isDemo && req.user.role !== 'admin') {
-          return res.status(403).json({ error: 'Only admins can create demo agents' });
         }
 
         // 7. Store agent record
