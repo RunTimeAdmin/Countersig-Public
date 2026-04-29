@@ -30,6 +30,20 @@ const router = express.Router();
 const TIMESTAMP_WINDOW_MS = 5 * 60 * 1000;
 
 /**
+ * Compute real-time health status based on last heartbeat time
+ * @param {Object} agent - Agent row from database
+ * @returns {string} - 'healthy', 'stale', 'offline', or 'unknown'
+ */
+function computeHealthStatus(agent) {
+  if (!agent.last_heartbeat && !agent.lastHeartbeat) return 'unknown';
+  const heartbeat = agent.last_heartbeat || agent.lastHeartbeat;
+  const elapsed = Date.now() - new Date(heartbeat).getTime();
+  if (elapsed < 2 * 60 * 1000) return 'healthy';    // < 2 minutes
+  if (elapsed < 10 * 60 * 1000) return 'stale';     // 2-10 minutes
+  return 'offline';                                    // > 10 minutes
+}
+
+/**
  * GET /chains
  * List all supported chain types and their metadata
  */
@@ -74,7 +88,10 @@ router.get('/agents', authenticate, requireScope('read'), defaultLimiter, async 
     const total = await countAgents({ status, capability, includeDemo: includeDemo === 'true', orgId });
 
     return res.status(200).json({
-      agents: transformAgents(agents),
+      agents: transformAgents(agents).map(a => ({
+        ...a,
+        healthStatus: computeHealthStatus(a)
+      })),
       total,
       limit: parsedLimit,
       offset: parsedOffset
@@ -120,7 +137,9 @@ router.get('/public/agents', defaultLimiter, async (req, res, next) => {
       capabilities: a.capabilities,
       registeredAt: a.registeredAt,
       chainType: a.chainType,
-      totalActions: a.totalActions
+      totalActions: a.totalActions,
+      healthStatus: computeHealthStatus(a),
+      lastHeartbeat: a.lastHeartbeat
     }));
 
     return res.status(200).json({
@@ -366,8 +385,14 @@ router.get('/agents/:agentId', defaultLimiter, async (req, res, next) => {
     // Fetch reputation score
     const reputation = await computeBagsScore(agentId);
 
+    const transformed = transformAgent(agent);
+
     return res.status(200).json({
-      agent: transformAgent(agent),
+      agent: {
+        ...transformed,
+        healthStatus: computeHealthStatus(agent),
+        lastHeartbeat: agent.last_heartbeat
+      },
       reputation: {
         score: reputation.score,
         label: reputation.label,
@@ -397,7 +422,10 @@ router.get('/discover', authenticate, requireScope('read'), defaultLimiter, asyn
     const agents = await discoverAgents({ capability });
 
     return res.status(200).json({
-      agents: transformAgents(agents),
+      agents: transformAgents(agents).map(a => ({
+        ...a,
+        healthStatus: computeHealthStatus(a)
+      })),
       capability,
       count: agents.length
     });

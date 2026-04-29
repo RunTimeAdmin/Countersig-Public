@@ -49,6 +49,7 @@ const orgRoutes = require('./src/routes/orgs');
 const auditRoutes = require('./src/routes/audit');
 const policyRoutes = require('./src/routes/policies');
 const webhookRoutes = require('./src/routes/webhooks');
+const heartbeatRoutes = require('./src/routes/heartbeat');
 
 const app = express();
 
@@ -351,6 +352,7 @@ app.use('/', policyRoutes);         // GET/POST/PUT/DELETE /orgs/:orgId/policies
 // Webhook ingestion may receive larger payloads
 app.use('/webhooks', express.json({ limit: '1mb' }));
 app.use('/', webhookRoutes);        // GET/POST/PUT/DELETE /orgs/:orgId/webhooks
+app.use('/', heartbeatRoutes);      // POST /agents/:agentId/heartbeat
 
 // ── API v1 — Canonical versioned prefix ────────────────────
 // All routes are also available under /v1/ as the canonical versioned endpoint.
@@ -370,6 +372,7 @@ v1Router.use('/', auditRoutes);
 v1Router.use('/', policyRoutes);
 v1Router.use('/webhooks', express.json({ limit: '1mb' }));
 v1Router.use('/', webhookRoutes);
+v1Router.use('/', heartbeatRoutes);
 app.use('/v1', v1Router);
 
 // 404 handler for undefined routes
@@ -415,6 +418,30 @@ if (require.main === module) {
 
     setInterval(cleanupDemoAgentsWithLock, CLEANUP_INTERVAL_MS);
     logger.info('Demo agent cleanup scheduled (every hour, distributed lock enabled)');
+
+    // Health status background job — mark stale/offline agents every 60s
+    const { query: dbQuery } = require('./src/models/db');
+    setInterval(async () => {
+      try {
+        await dbQuery(`
+          UPDATE agent_identities 
+          SET health_status = 'stale' 
+          WHERE last_heartbeat < NOW() - INTERVAL '2 minutes' 
+            AND health_status = 'healthy' 
+            AND deleted_at IS NULL
+        `);
+        await dbQuery(`
+          UPDATE agent_identities 
+          SET health_status = 'offline' 
+          WHERE last_heartbeat < NOW() - INTERVAL '10 minutes' 
+            AND health_status IN ('healthy', 'stale') 
+            AND deleted_at IS NULL
+        `);
+      } catch (err) {
+        logger.error({ err }, 'Health status update failed');
+      }
+    }, 60000);
+    logger.info('Agent health status reconciliation scheduled (every 60s)');
 
     // Initialize real-time event listeners
     const { init: initCacheInvalidation } = require('./src/services/cacheInvalidation');
