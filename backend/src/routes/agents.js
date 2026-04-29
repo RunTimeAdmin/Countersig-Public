@@ -380,6 +380,16 @@ router.post('/agents/:agentId/issue-token', authenticate, requireScope('write'),
   }
 });
 
+// Explicit /agents/chains route — must come before /:agentId catch-all
+router.get('/agents/chains', defaultLimiter, async (req, res, next) => {
+  try {
+    const chains = getSupportedChains();
+    return res.status(200).json({ chains, count: chains.length });
+  } catch (error) {
+    next(error);
+  }
+});
+
 /**
  * GET /agents/:agentId
  * Get single agent detail with reputation score
@@ -387,6 +397,11 @@ router.post('/agents/:agentId/issue-token', authenticate, requireScope('write'),
 router.get('/agents/:agentId', defaultLimiter, async (req, res, next) => {
   try {
     const { agentId } = req.params;
+
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(agentId)) {
+      return res.status(400).json({ error: 'Invalid agent ID format' });
+    }
 
     const agent = await getAgent(agentId);
     if (!agent) {
