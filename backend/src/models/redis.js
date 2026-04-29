@@ -14,7 +14,9 @@ function getRedisOptions() {
       return delay;
     },
     maxRetriesPerRequest: 3,
-    enableOfflineQueue: true
+    enableOfflineQueue: true,
+    connectTimeout: 5000,
+    commandTimeout: 10000
   };
 
   // Prefer explicit host/port/password if available
@@ -117,9 +119,68 @@ async function deleteCache(key) {
   }
 }
 
+/**
+ * Delete multiple keys from cache using a Redis pipeline
+ * @param {string[]} keys - Cache keys to delete
+ * @returns {Promise<boolean>} - Success status
+ */
+async function deleteCacheMulti(keys) {
+  if (!keys || keys.length === 0) return true;
+  try {
+    const pipeline = redis.pipeline();
+    for (const key of keys) {
+      pipeline.del(key);
+    }
+    await pipeline.exec();
+    return true;
+  } catch (err) {
+    console.error('Redis multi-delete error:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Set multiple keys in cache using a Redis pipeline
+ * @param {Array<{key: string, value: any, ttl?: number}>} entries - Cache entries
+ * @returns {Promise<boolean>} - Success status
+ */
+async function setCacheMulti(entries) {
+  if (!entries || entries.length === 0) return true;
+  try {
+    const pipeline = redis.pipeline();
+    for (const { key, value, ttl } of entries) {
+      const strValue = JSON.stringify(value);
+      if (ttl) {
+        pipeline.setex(key, ttl, strValue);
+      } else {
+        pipeline.set(key, strValue);
+      }
+    }
+    await pipeline.exec();
+    return true;
+  } catch (err) {
+    console.error('Redis multi-set error:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Get Redis connection health metrics
+ * @returns {Object} Redis status info
+ */
+function getRedisMetrics() {
+  return {
+    status: redis.status,
+    connected: redis.status === 'ready',
+  };
+}
+
 module.exports = {
   redis,
   getCache,
   setCache,
-  deleteCache
+  deleteCache,
+  deleteCacheMulti,
+  setCacheMulti,
+  getRedisMetrics
 };

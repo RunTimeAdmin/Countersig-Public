@@ -27,8 +27,9 @@ function getPool() {
     pool = new Pool({
       connectionString: config.databaseUrl,
       max: parseInt(process.env.DB_POOL_MAX, 10) || 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS, 10) || 30000,
+      connectionTimeoutMillis: parseInt(process.env.DB_CONN_TIMEOUT_MS, 10) || 5000,
+      statement_timeout: parseInt(process.env.DB_STATEMENT_TIMEOUT_MS, 10) || 30000,
       // Enable SSL only when explicitly requested via DB_SSL=true env var
       // Docker PostgreSQL typically doesn't support SSL; hosted databases (e.g. Supabase, RDS) do
       ...(process.env.DB_SSL === 'true' && {
@@ -60,7 +61,16 @@ async function query(text, params) {
   }
   
   try {
-    const result = await getPool().query(text, params);
+    const p = getPool();
+    if (p.waitingCount > 5) {
+      console.warn('DB pool pressure:', {
+        waiting: p.waitingCount,
+        idle: p.idleCount,
+        total: p.totalCount,
+        max: p.options.max
+      });
+    }
+    const result = await p.query(text, params);
     return result;
   } catch (err) {
     console.error('Database query error:', err.message);
@@ -68,8 +78,22 @@ async function query(text, params) {
   }
 }
 
+/**
+ * Get pool health metrics
+ * @returns {Object|null} Pool metrics or null if pool not initialized
+ */
+function getPoolMetrics() {
+  if (!pool) return null;
+  return {
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount,
+  };
+}
+
 module.exports = {
   get pool() { return getPool(); },
   query,
-  setMockQuery
+  setMockQuery,
+  getPoolMetrics
 };

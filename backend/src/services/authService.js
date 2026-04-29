@@ -178,10 +178,12 @@ function verifyApiKey(rawKey) {
 async function storeRefreshToken(tokenId, userId) {
   try {
     const ttl = expiryToSeconds(JWT_REFRESH_EXPIRY);
-    await redis.setex(`refresh:${tokenId}`, ttl, userId);
+    const pipeline = redis.pipeline();
+    pipeline.setex(`refresh:${tokenId}`, ttl, userId);
     // Track session for "logout all" support
-    await redis.sadd(`sessions:${userId}`, tokenId);
-    await redis.expire(`sessions:${userId}`, ttl);
+    pipeline.sadd(`sessions:${userId}`, tokenId);
+    pipeline.expire(`sessions:${userId}`, ttl);
+    await pipeline.exec();
     return true;
   } catch (err) {
     console.error('Redis storeRefreshToken error:', err.message);
@@ -197,9 +199,13 @@ async function storeRefreshToken(tokenId, userId) {
  */
 async function revokeRefreshToken(tokenId, userId) {
   try {
-    await redis.del(`refresh:${tokenId}`);
     if (userId) {
-      await redis.srem(`sessions:${userId}`, tokenId);
+      const pipeline = redis.pipeline();
+      pipeline.del(`refresh:${tokenId}`);
+      pipeline.srem(`sessions:${userId}`, tokenId);
+      await pipeline.exec();
+    } else {
+      await redis.del(`refresh:${tokenId}`);
     }
     return true;
   } catch (err) {

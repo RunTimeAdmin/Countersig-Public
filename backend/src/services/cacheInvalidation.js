@@ -5,7 +5,7 @@
  * Extracted from badgeBuilder to break circular dependency with queries.js
  */
 
-const { deleteCache } = require('../models/redis');
+const { deleteCache, deleteCacheMulti } = require('../models/redis');
 
 /**
  * Invalidate all agent caches (badge and reputation)
@@ -14,8 +14,10 @@ const { deleteCache } = require('../models/redis');
  */
 async function invalidateAgentCaches(agentId) {
   try {
-    await deleteCache(`badge:${agentId}`);
-    await deleteCache(`reputation:${agentId}`);
+    await deleteCacheMulti([
+      `badge:${agentId}`,
+      `reputation:${agentId}`
+    ]);
     return true;
   } catch (err) {
     console.error('Agent cache invalidation error:', err.message);

@@ -15,6 +15,10 @@ const config = {
 
   // Database configuration
   databaseUrl: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/agentid',
+  dbPoolMax: parseInt(process.env.DB_POOL_MAX, 10) || 20,
+  dbIdleTimeoutMs: parseInt(process.env.DB_IDLE_TIMEOUT_MS, 10) || 30000,
+  dbConnTimeoutMs: parseInt(process.env.DB_CONN_TIMEOUT_MS, 10) || 5000,
+  dbStatementTimeoutMs: parseInt(process.env.DB_STATEMENT_TIMEOUT_MS, 10) || 30000,
 
   // Redis configuration
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
