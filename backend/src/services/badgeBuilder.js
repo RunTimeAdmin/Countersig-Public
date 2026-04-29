@@ -9,6 +9,12 @@ const { getCache, setCache, deleteCache } = require('../models/redis');
 const config = require('../config');
 const { escapeHtml, escapeXml } = require('../utils/transform');
 
+const SCORING_MODELS = {
+  'solana-bags': 'bags-v1',
+  'solana': 'solana-generic-v1'
+  // add others as needed
+};
+
 /**
  * Get badge data as JSON with caching
  * @param {string} agentId - Agent UUID
@@ -34,6 +40,7 @@ async function getBadgeJSON(agentId) {
 
     // Compute reputation score with prefetched data
     const reputation = await computeBagsScore(agentId, { agent, actions });
+    const scoringModel = SCORING_MODELS[reputation.chainType] || 'default-v1';
 
     // Get action stats
     const actionStats = actions || { total: 0, successful: 0, failed: 0 };
@@ -84,6 +91,7 @@ async function getBadgeJSON(agentId) {
       bags_score: reputation.score,
       saidTrustScore: reputation.saidScore || 0,
       saidLabel: reputation.label,
+      scoringModel,
       registeredAt: agent.registered_at,
       lastVerified: agent.last_verified,
       revokedAt: agent.revoked_at,

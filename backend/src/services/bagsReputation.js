@@ -125,6 +125,7 @@ async function computeBagsScore(agentId, prefetched = {}) {
     const result = {
       score: totalScore,
       label: label,
+      chainType: 'solana-bags',
       breakdown: {
         feeActivity: { score: feeActivityScore, max: 30 },
         successRate: { score: successRateScore, max: 25 },
