@@ -1,6 +1,26 @@
 import axios from 'axios';
+import { URL } from 'url';
+import dns from 'dns/promises';
 import { getClient, getAgentId } from '../client.js';
 import type { ToolDefinition } from '../server.js';
+
+function isPrivateIP(ip: string): boolean {
+  if (/^127\./.test(ip)) return true;
+  if (/^10\./.test(ip)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return true;
+  if (/^192\.168\./.test(ip)) return true;
+  if (/^169\.254\./.test(ip)) return true;
+  if (/^0\./.test(ip)) return true;
+  if (ip === '::1') return true;
+  if (ip === '0:0:0:0:0:0:0:1') return true;
+  if (/^f[cd]/i.test(ip)) return true;
+  if (/^fe80:/i.test(ip)) return true;
+  if (/^::ffff:/i.test(ip)) {
+    const v4 = ip.replace(/^::ffff:/i, '');
+    return isPrivateIP(v4);
+  }
+  return false;
+}
 
 export function registerFetchTool(): ToolDefinition[] {
   return [
@@ -67,6 +87,30 @@ export function registerFetchTool(): ToolDefinition[] {
             };
           }
 
+          // DNS pre-resolve to catch decimal/hex/octal IP bypasses
+          let parsedUrl: URL;
+          try {
+            parsedUrl = new URL(url);
+          } catch {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: 'Invalid URL format' }) }], isError: true };
+          }
+
+          if (parsedUrl.protocol === 'file:') {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: 'file:// protocol is not allowed' }) }], isError: true };
+          }
+
+          try {
+            const { address } = await dns.lookup(parsedUrl.hostname);
+            if (isPrivateIP(address)) {
+              return {
+                content: [{ type: 'text', text: JSON.stringify({ error: 'URL blocked: resolves to a private/internal address' }) }],
+                isError: true,
+              };
+            }
+          } catch {
+            // DNS resolution failed — allow the request to proceed (axios will handle the error)
+          }
+
           const method = (args.method as string) || 'GET';
           const body = args.body as string | undefined;
           const userHeaders = (args.headers as Record<string, string>) || {};
@@ -101,7 +145,6 @@ export function registerFetchTool(): ToolDefinition[] {
                     statusText: response.statusText,
                     headers: response.headers,
                     body: typeof response.data === 'string' ? response.data : JSON.stringify(response.data),
-                    tokenUsed: token.token,
                   },
                   null,
                   2,

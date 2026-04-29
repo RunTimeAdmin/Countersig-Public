@@ -1,5 +1,7 @@
 node_modules/
 dist/
+!packages/sdk/dist/
+!packages/mcp/dist/
 .env
 *.log
 .DS_Store

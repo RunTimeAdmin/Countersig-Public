@@ -1,3 +1,4 @@
+import { URL } from 'url';
 import { loadConfig, saveConfig, getConfigPath } from '../config.js';
 import type { ToolDefinition } from '../server.js';
 
@@ -45,6 +46,25 @@ export function registerConfigureTool(): ToolDefinition[] {
               ],
               isError: true,
             };
+          }
+
+          // Validate apiUrl format and block private addresses
+          if (apiUrl) {
+            let parsed: URL;
+            try {
+              parsed = new URL(apiUrl as string);
+            } catch {
+              return { content: [{ type: 'text', text: JSON.stringify({ error: 'Invalid apiUrl format' }) }], isError: true };
+            }
+            if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+              return { content: [{ type: 'text', text: JSON.stringify({ error: 'apiUrl must use https:// (or http:// for local development)' }) }], isError: true };
+            }
+            if (parsed.protocol === 'https:') {
+              const host = parsed.hostname;
+              if (/^(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|0\.|169\.254\.|\[::1\])/.test(host)) {
+                return { content: [{ type: 'text', text: JSON.stringify({ error: 'apiUrl cannot target private/internal addresses over HTTPS' }) }], isError: true };
+              }
+            }
           }
 
           const updates: Record<string, string> = {};
