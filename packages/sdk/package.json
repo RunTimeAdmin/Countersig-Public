@@ -1,5 +1,5 @@
 {
-  "name": "@agentid/sdk",
+  "name": "@agentidapp/sdk",
   "version": "1.0.0",
   "description": "AgentID SDK - TypeScript client for the AgentID NHI platform",
   "main": "dist/index.js",

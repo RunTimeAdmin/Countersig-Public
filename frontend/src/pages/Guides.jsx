@@ -214,7 +214,7 @@ Response:
 
         <div className="space-y-3">
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">Using the Verify Package</h3>
-          <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`import { AgentIDVerifier } from '@agentid/verify';
+          <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`import { AgentIDVerifier } from '@agentidapp/verify';
 
 const verifier = new AgentIDVerifier({
   baseURL: 'https://agentidapp.com'

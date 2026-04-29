@@ -185,9 +185,9 @@ See [docs/API_REFERENCE.md](docs/API_REFERENCE.md) for the complete API referenc
 
 | Package | Description | Install |
 |---------|-------------|---------|
-| [@agentid/sdk](./packages/sdk) | Core JavaScript/TypeScript SDK | `npm install @agentid/sdk` |
-| [@agentid/react](./packages/react) | React hooks and components | `npm install @agentid/react` |
-| [@agentid/verify](./packages/verify) | Credential verification utilities | `npm install @agentid/verify` |
+| [@agentidapp/sdk](./packages/sdk) | Core JavaScript/TypeScript SDK | `npm install @agentidapp/sdk` |
+| [@agentidapp/react](./packages/react) | React hooks and components | `npm install @agentidapp/react` |
+| [@agentidapp/verify](./packages/verify) | Credential verification utilities | `npm install @agentidapp/verify` |
 
 > **Note:** These packages are in active development and not yet published to npm. See each package's README for current status.
 

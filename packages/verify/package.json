@@ -1,5 +1,5 @@
 {
-  "name": "@agentid/verify",
+  "name": "@agentidapp/verify",
   "version": "1.0.0",
   "description": "AgentID A2A token verification library",
   "main": "index.js",

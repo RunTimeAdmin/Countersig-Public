@@ -1,11 +1,11 @@
-# @agentid/verify
+# @agentidapp/verify
 
 AgentID A2A token verification library. Verify agent-to-agent authentication tokens issued by the AgentID platform.
 
 ## Installation
 
 ```bash
-npm install @agentid/verify
+npm install @agentidapp/verify
 ```
 
 For remote verification (no shared secret), also install axios:
@@ -21,7 +21,7 @@ npm install axios
 Fastest method — no network call required.
 
 ```javascript
-const { AgentIDVerifier } = require('@agentid/verify');
+const { AgentIDVerifier } = require('@agentidapp/verify');
 
 const verifier = new AgentIDVerifier({
   secret: process.env.A2A_TOKEN_SECRET
@@ -38,7 +38,7 @@ console.log(payload.score);  // BAGS reputation score
 No shared secret needed — the AgentID API verifies the token server-side.
 
 ```javascript
-const { AgentIDVerifier } = require('@agentid/verify');
+const { AgentIDVerifier } = require('@agentidapp/verify');
 
 const verifier = new AgentIDVerifier({
   apiUrl: 'https://api.agentidapp.com'

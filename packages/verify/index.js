@@ -1,5 +1,5 @@
 /**
- * @agentid/verify — A2A Token Verification SDK
+ * @agentidapp/verify — A2A Token Verification SDK
  * 
  * Verifies AgentID A2A tokens using Ed25519 asymmetric cryptography.
  * No shared secret required — only the public key or JWKS endpoint.
@@ -11,7 +11,7 @@ function getJose() {
     try {
       jose = require('jose');
     } catch {
-      throw new Error('@agentid/verify requires the jose library. Run: npm install jose');
+      throw new Error('@agentidapp/verify requires the jose library. Run: npm install jose');
     }
   }
   return jose;

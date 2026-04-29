@@ -1,5 +1,5 @@
 {
-  "name": "@agentid/react",
+  "name": "@agentidapp/react",
   "version": "1.0.0",
   "description": "AgentID React components - Trust badges, reputation displays, and capability lists",
   "main": "dist/index.js",
@@ -20,7 +20,7 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "@agentid/sdk": "^1.0.0"
+    "@agentidapp/sdk": "^1.0.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

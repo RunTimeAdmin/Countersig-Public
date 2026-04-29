@@ -1270,16 +1270,16 @@ Credentials are valid for 24 hours from issuance.
 
 AgentID ships three standalone packages for developers building on the platform.
 
-#### @agentid/sdk
+#### @agentidapp/sdk
 
 Full-featured TypeScript API client for Node.js applications.
 
 ```bash
-npm install @agentid/sdk
+npm install @agentidapp/sdk
 ```
 
 ```typescript
-import { AgentIDClient } from '@agentid/sdk';
+import { AgentIDClient } from '@agentidapp/sdk';
 
 const client = new AgentIDClient({
   baseUrl: 'https://agentidapp.com',
@@ -1300,7 +1300,7 @@ const details = await client.getAgent(agent.agentId);
 
 **Build:** `cd packages/sdk && npm run build`
 
-#### @agentid/react
+#### @agentidapp/react
 
 React component library with theme-aware UI components:
 
@@ -1310,11 +1310,11 @@ React component library with theme-aware UI components:
 - **ReputationGauge** — Visual score gauge with trust tier coloring
 
 ```bash
-npm install @agentid/react
+npm install @agentidapp/react
 ```
 
 ```jsx
-import { TrustBadge, AgentCard } from '@agentid/react';
+import { TrustBadge, AgentCard } from '@agentidapp/react';
 
 function AgentProfile({ agentId }) {
   return (
@@ -1328,16 +1328,16 @@ function AgentProfile({ agentId }) {
 
 **Build:** `cd packages/react && npm run build`
 
-#### @agentid/verify
+#### @agentidapp/verify
 
 Lightweight A2A token verification library for agent-to-agent communication:
 
 ```bash
-npm install @agentid/verify
+npm install @agentidapp/verify
 ```
 
 ```javascript
-const { verifyA2AToken } = require('@agentid/verify');
+const { verifyA2AToken } = require('@agentidapp/verify');
 
 // Verify with shared secret (fast, local)
 const result = verifyA2AToken(token, { secret: 'your-a2a-secret' });

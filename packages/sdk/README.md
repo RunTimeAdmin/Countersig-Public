@@ -1,4 +1,4 @@
-# @agentid/sdk
+# @agentidapp/sdk
 
 > **Status: In Development** — This package is not yet published to npm.
 
@@ -11,13 +11,13 @@ TypeScript client library for the [AgentID](https://agentidapp.com) Non-Human Id
 ## Installation
 
 ```bash
-npm install @agentid/sdk
+npm install @agentidapp/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { AgentIDClient } from '@agentid/sdk';
+import { AgentIDClient } from '@agentidapp/sdk';
 
 const client = new AgentIDClient({
   apiUrl: 'https://api.agentidapp.com',
@@ -208,7 +208,7 @@ const flags = await client.attestations.getFlags('agent-id');
 This package is written in TypeScript and ships with full type definitions. No `@types/` package needed.
 
 ```typescript
-import type { Agent, Badge, ReputationScore, A2AToken, VerifiableCredential } from '@agentid/sdk';
+import type { Agent, Badge, ReputationScore, A2AToken, VerifiableCredential } from '@agentidapp/sdk';
 ```
 
 ## Configuration

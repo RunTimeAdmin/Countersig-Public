@@ -1,4 +1,4 @@
-# @agentid/react
+# @agentidapp/react
 
 > **Status: In Development** — This package is not yet published to npm.
 
@@ -11,7 +11,7 @@ React components for displaying [AgentID](https://agentidapp.com) trust badges, 
 ## Installation
 
 ```bash
-npm install @agentid/react react react-dom
+npm install @agentidapp/react react react-dom
 ```
 
 ## Peer Dependencies
@@ -26,7 +26,7 @@ npm install @agentid/react react react-dom
 Displays an agent's trust status, verification tier, and score. Fetches badge data from the AgentID API.
 
 ```tsx
-import { TrustBadge } from '@agentid/react';
+import { TrustBadge } from '@agentidapp/react';
 
 <TrustBadge
   agentId="your-agent-id"
@@ -63,7 +63,7 @@ import { TrustBadge } from '@agentid/react';
 Displays the 5-factor reputation score breakdown with animated progress bars. Can fetch from the API or accept pre-fetched data.
 
 ```tsx
-import { ReputationBreakdown } from '@agentid/react';
+import { ReputationBreakdown } from '@agentidapp/react';
 
 // Fetch from API
 <ReputationBreakdown
@@ -105,7 +105,7 @@ import { ReputationBreakdown } from '@agentid/react';
 Displays agent capabilities as styled tags/pills with category-specific colors and icons. Can fetch from the API or accept pre-provided data.
 
 ```tsx
-import { CapabilityList } from '@agentid/react';
+import { CapabilityList } from '@agentidapp/react';
 
 // Fetch from API
 <CapabilityList
@@ -142,7 +142,7 @@ import { CapabilityList } from '@agentid/react';
 Displays the blockchain/chain type as a compact colored badge.
 
 ```tsx
-import { ChainBadge } from '@agentid/react';
+import { ChainBadge } from '@agentidapp/react';
 
 <ChainBadge chainType="solana-bags" size="md" theme="dark" />
 <ChainBadge chainType="ethereum" size="sm" theme="light" />
@@ -183,13 +183,13 @@ All components use inline CSS styles with no external CSS imports, Tailwind depe
 Full TypeScript type definitions are included. Import component and prop types:
 
 ```typescript
-import type { TrustBadgeProps, ReputationBreakdownProps, CapabilityListProps, ChainBadgeProps } from '@agentid/react';
+import type { TrustBadgeProps, ReputationBreakdownProps, CapabilityListProps, ChainBadgeProps } from '@agentidapp/react';
 ```
 
 ## Links
 
 - [AgentID Platform](https://agentidapp.com)
-- [SDK Package](https://www.npmjs.com/package/@agentid/sdk)
+- [SDK Package](https://www.npmjs.com/package/@agentidapp/sdk)
 - [GitHub Repository](https://github.com/RunTimeAdmin/AgentID-2.0)
 
 ## License
