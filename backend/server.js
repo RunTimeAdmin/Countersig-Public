@@ -180,8 +180,8 @@ app.use((req, res, next) => {
     // - /health   : health check (never mutates state)
     // - /verify-token : A2A token verification (unauthenticated, called by external agents
     //                    that do not send the X-Requested-With header)
-    const csrfSkipExact = ['/health', '/verify-token', '/.well-known/jwks.json'];
-    const csrfSkipPrefix = ['/public/', '/badge/', '/widget/'];
+    const csrfSkipExact = ['/health', '/verify-token', '/.well-known/jwks.json', '/v1/verify-token'];
+    const csrfSkipPrefix = ['/public/', '/badge/', '/widget/', '/v1/public/', '/v1/badge/', '/v1/widget/'];
     if (csrfSkipExact.includes(req.path) || csrfSkipPrefix.some(p => req.path.startsWith(p))) {
       return next();
     }
@@ -275,6 +275,24 @@ app.get('/.well-known/did.json', (req, res) => {
   });
 });
 
+// Deprecation headers for unversioned API routes
+app.use((req, res, next) => {
+  // Skip non-API paths: v1-prefixed, health, well-known, static assets
+  if (req.path.startsWith('/v1/') ||
+      req.path.startsWith('/.well-known/') ||
+      req.path === '/health' ||
+      req.path.startsWith('/public/') ||
+      req.path.startsWith('/badge/') ||
+      req.path.startsWith('/widget/')) {
+    return next();
+  }
+  // Add deprecation headers to unversioned API calls
+  res.set('Deprecation', 'true');
+  res.set('Sunset', '2026-10-01');
+  res.set('Link', `</v1${req.path}>; rel="successor-version"`);
+  next();
+});
+
 // API routes
 app.use('/', registerRoutes);       // POST /register
 app.use('/verify', verifyRoutes);   // POST /verify/challenge, /verify/response
@@ -291,6 +309,26 @@ app.use('/', policyRoutes);         // GET/POST/PUT/DELETE /orgs/:orgId/policies
 // Webhook ingestion may receive larger payloads
 app.use('/webhooks', express.json({ limit: '1mb' }));
 app.use('/', webhookRoutes);        // GET/POST/PUT/DELETE /orgs/:orgId/webhooks
+
+// ── API v1 — Canonical versioned prefix ────────────────────
+// All routes are also available under /v1/ as the canonical versioned endpoint.
+// Root-mounted routes will be deprecated in a future release.
+const v1Router = express.Router();
+v1Router.use('/', registerRoutes);
+v1Router.use('/verify', verifyRoutes);
+v1Router.use('/', badgeRoutes);
+v1Router.use('/', reputationRoutes);
+v1Router.use('/', agentsRoutes);
+v1Router.use('/', attestationRoutes);
+v1Router.use('/', widgetRoutes);
+v1Router.use('/', authRoutes);
+v1Router.use('/', apiKeyRoutes);
+v1Router.use('/', orgRoutes);
+v1Router.use('/', auditRoutes);
+v1Router.use('/', policyRoutes);
+v1Router.use('/webhooks', express.json({ limit: '1mb' }));
+v1Router.use('/', webhookRoutes);
+app.use('/v1', v1Router);
 
 // 404 handler for undefined routes
 app.use((req, res) => {
