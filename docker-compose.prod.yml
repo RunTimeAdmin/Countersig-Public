@@ -90,12 +90,17 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY: 15m
       JWT_REFRESH_EXPIRY: 7d
-      CORS_ORIGIN: https://agentidapp.com
+      CORS_ORIGIN: https://agentidapp.com,https://www.agentidapp.com
       AGENTID_BASE_URL: https://api.agentidapp.com
       BAGS_API_KEY: ${BAGS_API_KEY}
       SAID_GATEWAY_URL: ${SAID_GATEWAY_URL:-https://said-identity-gateway.up.railway.app}
       BADGE_CACHE_TTL: 300
       VERIFIED_THRESHOLD: 70
+      HEALTH_DETAIL_SECRET: ${HEALTH_DETAIL_SECRET}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.agentidapp.com}
+      A2A_SIGNING_KEY: ${A2A_SIGNING_KEY}
+      A2A_VERIFY_KEY: ${A2A_VERIFY_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       postgres:
         condition: service_healthy
