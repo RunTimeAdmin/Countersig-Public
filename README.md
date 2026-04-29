@@ -172,10 +172,31 @@ Open [http://localhost:5173](http://localhost:5173) to view the app.
 4. Start the API server: `node server.js`
 5. Configure reverse proxy (Caddy or nginx) for HTTPS — reference `Caddyfile` in repo root
 
+The production stack uses **Caddy** for automatic TLS termination and reverse proxying (see `Caddyfile` in repo root). Caddy handles HTTPS certificates automatically via Let's Encrypt and proxies API requests to the Node.js backend. To deploy the full stack:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
 ### Secret Rotation
 
 - **JWT_SECRET**: Rotation requires invalidating active sessions.
 - **BAGS_API_KEY**: Can be rotated independently.
+
+## Billing & Plans
+
+AgentID 2.0 includes integrated billing and plan management via **Stripe**:
+
+| Tier | Price | Included |
+|------|-------|----------|
+| **Free** | $0/mo | Basic agent registration and verification |
+| **Starter** | $29/mo | Higher quotas, API key access, audit logs |
+| **Professional** | $99/mo | Full platform access, advanced policies, priority support |
+| **Enterprise** | Custom | Dedicated infrastructure, SLAs, custom integrations |
+
+**Usage-based metering** tracks attestations, verifications, badge calls, and token issuances against plan quotas. Stripe handles payment processing, and users can manage their plan via the **/settings** page in the frontend.
+
+Required environment variables for billing: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_STARTER_ID`, `STRIPE_PRICE_PROFESSIONAL_ID`.
 
 ## API Documentation
 

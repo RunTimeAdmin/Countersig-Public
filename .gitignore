@@ -9,3 +9,6 @@ dist/
 .idea/
 _workspace_*
 frontend/dist.zip
+*.tar
+frontend-dist.tar
+debug.log
