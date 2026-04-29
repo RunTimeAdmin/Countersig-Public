@@ -352,32 +352,33 @@ async function revokeAgent(agentId) {
 }
 
 async function countAgents({ status, capability, includeDemo = false, orgId = null } = {}) {
-  let queryStr = 'SELECT COUNT(*) FROM agent_identities WHERE 1=1';
+  const conditions = [];
   const params = [];
   let paramIndex = 1;
 
   if (status) {
-    queryStr += ` AND status = $${paramIndex++}`;
+    conditions.push(`status = $${paramIndex++}`);
     params.push(status);
   }
   if (capability) {
-    queryStr += ` AND capability_set @> $${paramIndex++}::jsonb`;
+    conditions.push(`capability_set @> $${paramIndex++}::jsonb`);
     params.push(JSON.stringify([capability]));
   }
   if (orgId) {
-    queryStr += ` AND org_id = $${paramIndex++}`;
+    conditions.push(`org_id = $${paramIndex++}`);
     params.push(orgId);
   }
 
   // Filter out demo agents by default
   if (!includeDemo) {
-    queryStr += ` AND is_demo = false`;
+    conditions.push(`is_demo = false`);
   }
 
   // Filter out revoked agents
-  queryStr += ` AND revoked_at IS NULL`;
+  conditions.push(`revoked_at IS NULL`);
 
-  const result = await query(queryStr, params);
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const result = await query(`SELECT COUNT(*) FROM agent_identities ${whereClause}`, params);
   return parseInt(result.rows[0].count, 10);
 }
 

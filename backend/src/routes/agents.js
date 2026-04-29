@@ -90,7 +90,7 @@ router.get('/agents', authenticate, requireScope('read'), defaultLimiter, async 
  */
 router.get('/public/agents', defaultLimiter, async (req, res, next) => {
   try {
-    const { status, capability, chain, limit, offset } = req.query;
+    const { status, capability, limit, offset } = req.query;
 
     let parsedLimit = parseInt(limit, 10) || 50;
     let parsedOffset = parseInt(offset, 10) || 0;
@@ -102,14 +102,13 @@ router.get('/public/agents', defaultLimiter, async (req, res, next) => {
     const agents = await listAgents({
       status: status || undefined,
       capability,
-      chain,
       limit: parsedLimit,
       offset: parsedOffset,
       includeDemo: false,
       orgId: null
     });
 
-    const total = await countAgents({ status: status || undefined, capability, chain, includeDemo: false, orgId: null });
+    const total = await countAgents({ status: status || undefined, capability, includeDemo: false, orgId: null });
 
     // Transform to camelCase and return public-safe fields
     const publicAgents = transformAgents(agents).map(a => ({
