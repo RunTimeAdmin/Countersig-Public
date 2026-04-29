@@ -16,10 +16,8 @@ const { webhookSchema, webhookUpdateSchema } = require('../schemas');
 const router = express.Router();
 
 function maskSecret(secret) {
-  if (!secret || secret.length <= 8) {
-    return '...';
-  }
-  return secret.slice(0, 8) + '...';
+  if (!secret || secret.length < 8) return '****';
+  return '****' + secret.slice(-4);
 }
 
 /**
@@ -33,12 +31,17 @@ router.get('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.MA
       [req.orgId]
     );
 
-    const webhooks = result.rows.map((webhook) => ({
-      ...webhook,
-      secret: maskSecret(webhook.secret)
+    const sanitized = result.rows.map(w => ({
+      id: w.id,
+      url: w.url,
+      events: w.events,
+      enabled: w.enabled,
+      secretLastFour: maskSecret(w.secret),
+      createdAt: w.created_at,
+      updatedAt: w.updated_at,
     }));
 
-    return res.status(200).json(webhooks);
+    return res.status(200).json(sanitized);
   } catch (error) {
     next(error);
   }
@@ -71,8 +74,14 @@ router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.A
     const webhook = result.rows[0];
 
     return res.status(201).json({
-      ...webhook,
-      secret: webhookSecret
+      id: webhook.id,
+      url: webhook.url,
+      events: webhook.events,
+      enabled: webhook.enabled,
+      secret: webhookSecret,
+      secretWarning: 'Store this secret securely. It will not be shown again.',
+      secretLastFour: webhookSecret.slice(-4),
+      createdAt: webhook.created_at,
     });
   } catch (error) {
     next(error);
@@ -131,8 +140,13 @@ router.put('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authori
 
     const webhook = result.rows[0];
     return res.status(200).json({
-      ...webhook,
-      secret: maskSecret(webhook.secret)
+      id: webhook.id,
+      url: webhook.url,
+      events: webhook.events,
+      enabled: webhook.enabled,
+      secretLastFour: maskSecret(webhook.secret),
+      createdAt: webhook.created_at,
+      updatedAt: webhook.updated_at,
     });
   } catch (error) {
     next(error);
