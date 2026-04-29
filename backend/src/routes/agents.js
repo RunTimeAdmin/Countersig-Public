@@ -166,7 +166,7 @@ router.post('/verify-token', defaultLimiter, async (req, res) => {
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: 'Token required' });
 
-    const decoded = verifyA2AToken(token);
+    const decoded = await verifyA2AToken(token);
     res.json({ valid: true, payload: decoded });
   } catch (err) {
     res.status(401).json({ valid: false, error: 'Invalid or expired token' });
@@ -332,7 +332,7 @@ router.post('/agents/:agentId/issue-token', authenticate, requireScope('write'),
       tokenPayload.provider = agent.idp_provider;
     }
 
-    const token = generateA2AToken(tokenPayload);
+    const token = await generateA2AToken(tokenPayload);
 
     // 5. Log the token issuance
     logAction({

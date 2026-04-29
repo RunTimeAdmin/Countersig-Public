@@ -180,7 +180,7 @@ app.use((req, res, next) => {
     // - /health   : health check (never mutates state)
     // - /verify-token : A2A token verification (unauthenticated, called by external agents
     //                    that do not send the X-Requested-With header)
-    const csrfSkipExact = ['/health', '/verify-token'];
+    const csrfSkipExact = ['/health', '/verify-token', '/.well-known/jwks.json'];
     const csrfSkipPrefix = ['/public/', '/badge/', '/widget/'];
     if (csrfSkipExact.includes(req.path) || csrfSkipPrefix.some(p => req.path.startsWith(p))) {
       return next();
@@ -195,26 +195,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// JWKS endpoint — public, no auth required
-// Exposes key metadata so receiving agents can verify A2A tokens
-app.get('/.well-known/jwks.json', (req, res) => {
-  res.json({
-    keys: [
-      {
-        kty: 'oct',
-        kid: 'agentid-a2a-v1',
-        use: 'sig',
-        alg: 'HS256'
-        // Note: HMAC secrets are symmetric — the actual key is NOT exposed.
-        // Verifiers must obtain the shared secret via secure channel.
-        // This endpoint documents the key metadata and algorithm.
-      }
-    ],
-    issuer: new URL(config.agentIdBaseUrl).hostname,
-    documentation: `${config.agentIdBaseUrl}/docs/a2a-auth`,
-    // Provide the verification endpoint for agents that can't use shared secrets
-    verify_endpoint: '/verify-token'
-  });
+// JWKS endpoint for A2A token Ed25519 public key verification
+app.get('/.well-known/jwks.json', async (req, res) => {
+  try {
+    const { getA2APublicKeyJWK } = require('./src/services/authService');
+    const jwk = await getA2APublicKeyJWK();
+    if (!jwk) {
+      return res.status(503).json({ error: 'A2A signing keys not configured' });
+    }
+    res.json({ keys: [jwk] });
+  } catch (err) {
+    console.error('[JWKS] Error exporting public key:', err.message);
+    res.status(500).json({ error: 'Failed to export JWKS' });
+  }
 });
 
 // DID Document endpoint — public, no auth required

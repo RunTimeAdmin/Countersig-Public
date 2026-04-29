@@ -1,3 +1,14 @@
+export interface AgentIDVerifierOptions {
+  /** PEM-encoded Ed25519 public key (SPKI format) for local verification */
+  publicKey?: string;
+  /** JWK-formatted Ed25519 public key for local verification */
+  jwk?: JsonWebKey;
+  /** AgentID API URL (default: https://api.agentidapp.com) */
+  apiUrl?: string;
+  /** @deprecated HMAC secret — migrate to Ed25519 public key or JWKS */
+  secret?: string;
+}
+
 export interface A2ATokenPayload {
   sub: string;
   type: 'a2a';
@@ -12,25 +23,21 @@ export interface A2ATokenPayload {
   exp: number;
 }
 
-export interface VerifierOptions {
-  /** Shared A2A secret for local HMAC verification */
-  secret?: string;
-  /** AgentID API base URL for remote verification. Default: https://api.agentidapp.com */
-  apiUrl?: string;
-}
-
-export class AgentIDVerifier {
-  constructor(options?: VerifierOptions);
-
-  /** Verify token locally using shared secret */
-  verifyLocal(token: string): A2ATokenPayload;
-
-  /** Verify token via AgentID API */
+export declare class AgentIDVerifier {
+  constructor(options?: AgentIDVerifierOptions);
+  
+  /** Verify token locally using Ed25519 public key */
+  verifyLocal(token: string): Promise<A2ATokenPayload>;
+  
+  /** Verify token using JWKS fetched from AgentID API */
+  verifyWithJWKS(token: string): Promise<A2ATokenPayload>;
+  
+  /** Verify token via AgentID HTTP API */
   verifyRemote(token: string): Promise<A2ATokenPayload>;
-
-  /** Verify using best available method */
+  
+  /** Auto-select best verification method */
   verify(token: string): Promise<A2ATokenPayload>;
-
-  /** Decode without verification */
-  decode(token: string): A2ATokenPayload | null;
+  
+  /** Decode token without verification */
+  decode(token: string): A2ATokenPayload;
 }

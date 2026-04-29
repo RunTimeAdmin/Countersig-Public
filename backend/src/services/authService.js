@@ -11,6 +11,7 @@ try {
   console.warn('[AuthService] Using bcryptjs fallback — native bcrypt not available');
 }
 const jwt = require('jsonwebtoken');
+const jose = require('jose');
 const crypto = require('crypto');
 const { redis } = require('../models/redis');
 
@@ -25,6 +26,42 @@ const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || JWT_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || JWT_SECRET;
 const A2A_TOKEN_SECRET = process.env.A2A_TOKEN_SECRET || JWT_SECRET;
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '15m';
+
+// --- A2A Token Ed25519 Key Pair ---
+// In production, Ed25519 keys are REQUIRED for A2A token signing.
+// Generate with: node -e "require('jose').generateKeyPair('EdDSA').then(async ({publicKey,privateKey})=>{const j=require('jose');console.log('A2A_SIGNING_KEY='+Buffer.from(await j.exportPKCS8(privateKey)).toString('base64'));console.log('A2A_VERIFY_KEY='+Buffer.from(await j.exportSPKI(publicKey)).toString('base64'))})"
+let a2aPrivateKey = null;
+let a2aPublicKey = null;
+let a2aUseHMAC = true; // fallback flag
+
+async function initA2AKeys() {
+  const signingKeyB64 = process.env.A2A_SIGNING_KEY;
+  const verifyKeyB64 = process.env.A2A_VERIFY_KEY;
+  
+  if (signingKeyB64 && verifyKeyB64) {
+    try {
+      const signingPem = Buffer.from(signingKeyB64, 'base64').toString('utf8');
+      const verifyPem = Buffer.from(verifyKeyB64, 'base64').toString('utf8');
+      a2aPrivateKey = await jose.importPKCS8(signingPem, 'EdDSA');
+      a2aPublicKey = await jose.importSPKI(verifyPem, 'EdDSA');
+      a2aUseHMAC = false;
+      console.log('[AuthService] A2A tokens: Ed25519 asymmetric signing enabled');
+    } catch (err) {
+      console.error('[AuthService] Failed to load A2A Ed25519 keys:', err.message);
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('FATAL: Invalid A2A Ed25519 keys in production');
+      }
+      console.warn('[AuthService] Falling back to HMAC signing for A2A tokens (development only)');
+    }
+  } else if (process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL: A2A_SIGNING_KEY and A2A_VERIFY_KEY are required in production');
+  } else {
+    console.warn('[AuthService] A2A Ed25519 keys not configured — using HMAC fallback (development only)');
+  }
+}
+
+// Initialize keys at module load
+const a2aKeysReady = initA2AKeys();
 const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
 
 /**
@@ -216,9 +253,23 @@ async function isRefreshTokenValid(tokenId, userId) {
 /**
  * Generate a short-lived A2A (agent-to-agent) authentication token
  * @param {Object} payload - Token payload (sub, name, pubkey, chain, caps, score)
- * @returns {string} Signed JWT
+ * @returns {Promise<string>} Signed JWT
  */
-function generateA2AToken(payload) {
+async function generateA2AToken(payload) {
+  await a2aKeysReady;
+  
+  if (!a2aUseHMAC) {
+    // Ed25519 asymmetric signing (production)
+    return new jose.SignJWT(payload)
+      .setProtectedHeader({ alg: 'EdDSA', kid: 'a2a-ed25519-1' })
+      .setIssuer('agentidapp.com')
+      .setAudience('agentid-a2a')
+      .setExpirationTime('60s')
+      .setIssuedAt()
+      .sign(a2aPrivateKey);
+  }
+  
+  // HMAC fallback (development only)
   return jwt.sign(payload, A2A_TOKEN_SECRET, {
     expiresIn: '60s',
     issuer: 'agentidapp.com',
@@ -229,13 +280,39 @@ function generateA2AToken(payload) {
 /**
  * Verify an A2A authentication token
  * @param {string} token - A2A JWT string
- * @returns {Object} Decoded payload
+ * @returns {Promise<Object>} Decoded payload
  */
-function verifyA2AToken(token) {
+async function verifyA2AToken(token) {
+  await a2aKeysReady;
+  
+  if (!a2aUseHMAC) {
+    // Ed25519 asymmetric verification (production)
+    const { payload } = await jose.jwtVerify(token, a2aPublicKey, {
+      issuer: 'agentidapp.com',
+      audience: 'agentid-a2a',
+    });
+    return payload;
+  }
+  
+  // HMAC fallback (development only)
   return jwt.verify(token, A2A_TOKEN_SECRET, {
     issuer: 'agentidapp.com',
     audience: 'agentid-a2a'
   });
+}
+
+/**
+ * Export the A2A public key as JWK (for the JWKS endpoint)
+ * @returns {Promise<Object|null>} JWK object or null if not configured
+ */
+async function getA2APublicKeyJWK() {
+  await a2aKeysReady;
+  if (!a2aPublicKey) return null;
+  const jwk = await jose.exportJWK(a2aPublicKey);
+  jwk.kid = 'a2a-ed25519-1';
+  jwk.use = 'sig';
+  jwk.alg = 'EdDSA';
+  return jwk;
 }
 
 module.exports = {
@@ -252,5 +329,6 @@ module.exports = {
   isRefreshTokenValid,
   expiryToSeconds,
   generateA2AToken,
-  verifyA2AToken
+  verifyA2AToken,
+  getA2APublicKeyJWK
 };
