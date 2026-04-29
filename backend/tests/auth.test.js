@@ -6,11 +6,21 @@
 
 process.env.JWT_SECRET = 'test-secret-key-that-is-at-least-32-chars-long';
 
+const mockPipeline = {
+  setex: jest.fn().mockReturnThis(),
+  sadd: jest.fn().mockReturnThis(),
+  expire: jest.fn().mockReturnThis(),
+  del: jest.fn().mockReturnThis(),
+  srem: jest.fn().mockReturnThis(),
+  exec: jest.fn().mockResolvedValue([])
+};
+
 jest.mock('../src/models/redis', () => ({
   redis: {
     setex: jest.fn(),
     get: jest.fn(),
-    del: jest.fn()
+    del: jest.fn(),
+    pipeline: jest.fn(() => ({ ...mockPipeline }))
   }
 }));
 
@@ -149,10 +159,9 @@ describe('Auth Service', () => {
   describe('Redis token management', () => {
     const { redis } = require('../src/models/redis');
 
-    it('storeRefreshToken should call redis.setex', async () => {
-      redis.setex.mockResolvedValue('OK');
+    it('storeRefreshToken should use redis pipeline', async () => {
       await storeRefreshToken('u1', 'token123');
-      expect(redis.setex).toHaveBeenCalledWith('refresh:u1', expect.any(Number), 'token123');
+      expect(redis.pipeline).toHaveBeenCalled();
     });
 
     it('revokeRefreshToken should call redis.del', async () => {

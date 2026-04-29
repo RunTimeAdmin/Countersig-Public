@@ -26,6 +26,10 @@ jest.mock('axios');
 
 jest.mock('../src/models/redis', () => ({ getCache: jest.fn(), setCache: jest.fn() }));
 
+jest.mock('../src/models/db', () => ({
+  query: jest.fn().mockResolvedValue({ rows: [] })
+}));
+
 const { getAgent, getAgentActions, updateBagsScore } = require('../src/models/agentQueries');
 const { getUnresolvedFlagCount } = require('../src/models/flagQueries');
 const { getSAIDTrustScore } = require('../src/services/saidBinding');
@@ -163,7 +167,7 @@ describe('BAGS Reputation Service', () => {
         agent_id: TEST_AGENT_ID,
         pubkey: TEST_PUBKEY,
         token_mint: 'token123',
-        registered_at: new Date(Date.now() - 10 * 86400000) // 10 days ago
+        registered_at: new Date(Date.now() - 20 * 86400000) // 20 days ago
       });
 
       // Low fee activity (1 SOL = 10 points)

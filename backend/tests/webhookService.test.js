@@ -65,7 +65,7 @@ describe('webhookService', () => {
 
       await deliverWebhook(url, payload, headers);
 
-      expect(mockQueueAdd).toHaveBeenCalledWith('deliver', { url, payload, headers });
+      expect(mockQueueAdd).toHaveBeenCalledWith('deliver', { url, payload, headers, transformTemplate: null });
     });
 
     it('should default headers to empty object', async () => {
@@ -74,7 +74,8 @@ describe('webhookService', () => {
       expect(mockQueueAdd).toHaveBeenCalledWith('deliver', {
         url: 'https://example.com/hook',
         payload: { test: true },
-        headers: {}
+        headers: {},
+        transformTemplate: null
       });
     });
   });
