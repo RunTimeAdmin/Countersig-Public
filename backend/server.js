@@ -118,11 +118,11 @@ app.get('/health', async (req, res) => {
 
   // Check PostgreSQL (with timeout to prevent hanging)
   try {
-    const { query, getPoolMetrics } = require('./src/models/db');
+    const { query, getPoolMetrics, getCircuitState } = require('./src/models/db');
     const dbCheck = await Promise.race([
       (async () => {
         await query('SELECT 1');
-        return { status: 'ok', ...getPoolMetrics() };
+        return { status: 'ok', ...getPoolMetrics(), circuit: getCircuitState() };
       })(),
       new Promise((_, reject) => setTimeout(() => reject(new Error('DB health check timeout')), 5000))
     ]);
