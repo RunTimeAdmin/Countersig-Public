@@ -17,7 +17,7 @@ const {
   isRefreshTokenValid,
   expiryToSeconds
 } = require('../services/authService');
-const { authLimiter } = require('../middleware/rateLimit');
+const { authLimiter, registrationLimiter } = require('../middleware/rateLimit');
 const { authenticate } = require('../middleware/authenticate');
 const authManager = require('../auth/authManager');
 const authConfig = require('../auth/authConfig');
@@ -66,7 +66,7 @@ function slugify(name) {
  * POST /auth/register
  * Register a new user and organization
  */
-router.post('/auth/register', authLimiter, async (req, res, next) => {
+router.post('/auth/register', registrationLimiter, async (req, res, next) => {
   try {
     const { email, password, name, orgName } = req.body;
 

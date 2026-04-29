@@ -14,6 +14,7 @@ const jwt = require('jsonwebtoken');
 const jose = require('jose');
 const crypto = require('crypto');
 const { redis } = require('../models/redis');
+const { timingSafeEqual } = require('../utils/crypto');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -273,10 +274,7 @@ async function isRefreshTokenValid(tokenId, userId) {
   try {
     const stored = await redis.get(`refresh:${tokenId}`);
     if (!stored || !userId) return false;
-    const storedBuf = Buffer.from(stored, 'utf8');
-    const userBuf = Buffer.from(userId, 'utf8');
-    if (storedBuf.length !== userBuf.length) return false;
-    return crypto.timingSafeEqual(storedBuf, userBuf);
+    return timingSafeEqual(stored, String(userId));
   } catch (err) {
     console.error('Redis isRefreshTokenValid error:', err.message);
     return false;

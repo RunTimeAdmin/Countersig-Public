@@ -31,6 +31,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const crypto = require('crypto');
 const config = require('./src/config');
+const { timingSafeEqual } = require('./src/utils/crypto');
 const errorHandler = require('./src/middleware/errorHandler');
 const { defaultLimiter } = require('./src/middleware/rateLimit');
 const { auditMiddleware } = require('./src/middleware/auditMiddleware');
@@ -108,9 +109,7 @@ app.get('/health', async (req, res) => {
   // Detailed health check requires secret header (constant-time compare)
   const HEALTH_SECRET = process.env.HEALTH_DETAIL_SECRET;
   const provided = req.headers['x-health-detail'];
-  const showDetail = HEALTH_SECRET && provided &&
-    Buffer.byteLength(provided) === Buffer.byteLength(HEALTH_SECRET) &&
-    crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(HEALTH_SECRET));
+  const showDetail = HEALTH_SECRET && provided && timingSafeEqual(provided, HEALTH_SECRET);
 
   if (!showDetail) {
     return res.json({ status: 'ok' });
