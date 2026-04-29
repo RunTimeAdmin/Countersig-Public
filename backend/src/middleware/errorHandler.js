@@ -3,7 +3,10 @@
  * Catches errors, logs them, and returns appropriate JSON responses
  */
 
+'use strict';
+
 const config = require('../config');
+const { AppError } = require('../utils/errors');
 
 /**
  * Global error handler middleware
@@ -16,22 +19,37 @@ function errorHandler(err, req, res, next) {
   // Log the error
   console.error('Error:', {
     message: err.message,
+    code: err.code || 'UNKNOWN',
     stack: err.stack,
     path: req.path,
     method: req.method,
     timestamp: new Date().toISOString()
   });
 
-  // Determine status code
-  const status = err.status || err.statusCode || 500;
+  // If it's an operational AppError, use its properties
+  if (err instanceof AppError) {
+    const response = {
+      error: err.message,
+      code: err.code,
+      status: err.statusCode
+    };
+    if (err.details) response.details = err.details;
+    if (err.resource) response.resource = err.resource;
+    if (err.retryAfter) response.retryAfter = err.retryAfter;
+    if (config.nodeEnv === 'development') {
+      response.stack = err.stack;
+    }
+    return res.status(err.statusCode).json(response);
+  }
 
-  // Build error response
+  // For non-operational errors (programming bugs, unknown errors)
+  const status = err.status || err.statusCode || 500;
   const errorResponse = {
-    error: err.message || 'Internal Server Error',
+    error: status === 500 ? 'Internal Server Error' : (err.message || 'Internal Server Error'),
+    code: 'INTERNAL_ERROR',
     status: status
   };
 
-  // Include stack trace in development mode
   if (config.nodeEnv === 'development') {
     errorResponse.stack = err.stack;
     errorResponse.details = err.details || null;

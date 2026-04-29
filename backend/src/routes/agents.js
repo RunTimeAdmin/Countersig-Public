@@ -22,6 +22,7 @@ const eventBus = require('../services/eventBus');
 const config = require('../config');
 const { validate } = require('../middleware/validate');
 const { agentUpdateSchema } = require('../schemas');
+const { NotFoundError, AuthorizationError, GoneError } = require('../utils/errors');
 
 const router = express.Router();
 
@@ -294,26 +295,17 @@ router.post('/agents/:agentId/issue-token', authenticate, requireScope('write'),
     // 1. Verify agent exists
     const agent = await getAgent(agentId);
     if (!agent) {
-      return res.status(404).json({
-        error: 'Agent not found',
-        agentId
-      });
+      return next(new NotFoundError('Agent', agentId));
     }
 
     // 2. Verify the agent belongs to the requesting user's org (or is public)
     if (agent.org_id && agent.org_id !== req.user.orgId) {
-      return res.status(403).json({
-        error: 'Access denied: agent does not belong to your organization'
-      });
+      return next(new AuthorizationError('Access denied: agent does not belong to your organization'));
     }
 
     // 3. Verify the agent's status is active/verified (not revoked or flagged)
     if (agent.status === 'revoked' || agent.status === 'flagged') {
-      return res.status(403).json({
-        error: `Cannot issue token for agent with status: ${agent.status}`,
-        agentId,
-        status: agent.status
-      });
+      return next(new AuthorizationError(`Cannot issue token for agent with status: ${agent.status}`));
     }
 
     // 4. Generate short-lived A2A token (60 seconds)
@@ -369,10 +361,7 @@ router.get('/agents/:agentId', defaultLimiter, async (req, res, next) => {
 
     const agent = await getAgent(agentId);
     if (!agent) {
-      return res.status(404).json({
-        error: 'Agent not found',
-        agentId
-      });
+      return next(new NotFoundError('Agent', agentId));
     }
 
     // Fetch reputation score
@@ -467,17 +456,12 @@ router.put('/agents/:agentId/update', authenticate, requireScope('write'), authL
     // 2. Check agent exists and get pubkey for verification
     const agent = await getAgent(agentId);
     if (!agent) {
-      return res.status(404).json({
-        error: 'Agent not found',
-        agentId
-      });
+      return next(new NotFoundError('Agent', agentId));
     }
 
     // 2.5 Verify org ownership
     if (agent.org_id !== req.user.orgId) {
-      return res.status(403).json({
-        error: 'Access denied: agent does not belong to your organization'
-      });
+      return next(new AuthorizationError('Access denied: agent does not belong to your organization'));
     }
 
     const pubkey = agent.pubkey;
@@ -653,31 +637,22 @@ router.post('/agents/:agentId/revoke', authenticate, requireScope('write'), auth
     // 2. Check agent exists and get pubkey for verification
     const agent = await getAgent(agentId);
     if (!agent) {
-      return res.status(404).json({
-        error: 'Agent not found',
-        agentId
-      });
+      return next(new NotFoundError('Agent', agentId));
     }
 
     // 2.5 Verify org ownership
     if (req.user.orgId && agent.org_id && agent.org_id !== req.user.orgId) {
-      return res.status(403).json({ error: 'Access denied: agent does not belong to your organization' });
+      return next(new AuthorizationError('Access denied: agent does not belong to your organization'));
     }
 
     // 3. Check if agent is already revoked
     if (agent.revoked_at) {
-      return res.status(410).json({
-        error: 'Agent has already been revoked',
-        agentId,
-        revokedAt: agent.revoked_at
-      });
+      return next(new GoneError('Agent has already been revoked'));
     }
 
     // 4. Verify ownership: pubkey must match agent's registered owner
     if (agent.pubkey !== pubkey) {
-      return res.status(403).json({
-        error: 'Only the agent owner can revoke this agent'
-      });
+      return next(new AuthorizationError('Only the agent owner can revoke this agent'));
     }
 
     // 5. Parse message to extract timestamp

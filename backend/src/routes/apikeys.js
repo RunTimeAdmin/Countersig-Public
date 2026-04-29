@@ -10,6 +10,7 @@ const { authorize, requireScope, ROLES } = require('../middleware/authorize');
 const { generateApiKey } = require('../services/authService');
 const { validate } = require('../middleware/validate');
 const { apiKeySchema } = require('../schemas');
+const { NotFoundError } = require('../utils/errors');
 
 const router = express.Router();
 
@@ -109,7 +110,7 @@ router.delete('/api-keys/:id', authorize(ROLES.ADMIN), requireScope('admin'), as
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'API key not found' });
+      return next(new NotFoundError('API key', id));
     }
 
     return res.status(200).json({ success: true });

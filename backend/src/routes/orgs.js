@@ -9,6 +9,7 @@ const { authorize, requireScope, ROLES } = require('../middleware/authorize');
 const { orgContext } = require('../middleware/orgContext');
 const { validate } = require('../middleware/validate');
 const { identityProviderSchema } = require('../schemas');
+const { NotFoundError, AuthorizationError, ConflictError } = require('../utils/errors');
 const {
   getOrganization,
   updateOrganization,
@@ -41,7 +42,7 @@ router.get('/orgs/:orgId', authenticate, orgContext, requireScope('read'), async
   try {
     const org = await getOrganization(req.orgId);
     if (!org) {
-      return res.status(404).json({ error: 'Organization not found' });
+      return next(new NotFoundError('Organization'));
     }
     return res.json(org);
   } catch (error) {
@@ -58,7 +59,7 @@ router.put('/orgs/:orgId', authenticate, orgContext, authorize(ROLES.ADMIN), req
     const { name, description, settings } = req.body;
     const org = await updateOrganization(req.orgId, { name, description, settings });
     if (!org) {
-      return res.status(404).json({ error: 'Organization not found' });
+      return next(new NotFoundError('Organization'));
     }
     return res.json(org);
   } catch (error) {
@@ -98,7 +99,7 @@ router.put('/orgs/:orgId/members/:userId', authenticate, orgContext, authorize(R
 
     const member = await updateMemberRole(req.orgId, userId, role);
     if (!member) {
-      return res.status(404).json({ error: 'Member not found' });
+      return next(new NotFoundError('Member', userId));
     }
 
     return res.json(member);
@@ -121,7 +122,7 @@ router.delete('/orgs/:orgId/members/:userId', authenticate, orgContext, authoriz
 
     const removed = await removeMember(req.orgId, userId);
     if (!removed) {
-      return res.status(404).json({ error: 'Member not found' });
+      return next(new NotFoundError('Member', userId));
     }
 
     return res.json({ success: true });
@@ -147,7 +148,7 @@ router.post('/orgs/:orgId/invite', authenticate, orgContext, authorize(ROLES.MAN
     const inviteeLevel = ROLE_HIERARCHY[normalizedRole] || 0;
 
     if (inviteeLevel > inviterLevel) {
-      return res.status(403).json({ error: 'Cannot invite a user with higher privileges than your own' });
+      return next(new AuthorizationError('Cannot invite a user with higher privileges than your own'));
     }
 
     await createInvite(req.orgId, email, normalizedRole, req.user.userId);
@@ -207,7 +208,7 @@ router.post('/orgs/:orgId/identity-providers', authenticate, orgContext, authori
     return res.status(201).json({ identityProvider: idp });
   } catch (error) {
     if (error.code === '23505') {
-      return res.status(409).json({ error: 'Identity provider with this issuer URL already configured for this organization' });
+      return next(new ConflictError('Identity provider with this issuer URL already configured for this organization'));
     }
     next(error);
   }
@@ -233,7 +234,7 @@ router.put('/orgs/:orgId/identity-providers/:idpId', authenticate, orgContext, a
     });
 
     if (!idp) {
-      return res.status(404).json({ error: 'Identity provider not found' });
+      return next(new NotFoundError('Identity provider', idpId));
     }
 
     return res.json({ identityProvider: idp });
@@ -252,7 +253,7 @@ router.delete('/orgs/:orgId/identity-providers/:idpId', authenticate, orgContext
     const deleted = await deleteOrgIdP(idpId, req.orgId);
 
     if (!deleted) {
-      return res.status(404).json({ error: 'Identity provider not found' });
+      return next(new NotFoundError('Identity provider', idpId));
     }
 
     return res.json({ deleted: true, identityProvider: deleted });

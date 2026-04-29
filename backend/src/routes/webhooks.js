@@ -12,6 +12,7 @@ const { orgContext } = require('../middleware/orgContext');
 const { assertPublicHttpsUrl } = require('../utils/urlValidator');
 const { validate } = require('../middleware/validate');
 const { webhookSchema, webhookUpdateSchema } = require('../schemas');
+const { NotFoundError } = require('../utils/errors');
 
 const router = express.Router();
 
@@ -135,7 +136,7 @@ router.put('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authori
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Webhook not found' });
+      return next(new NotFoundError('Webhook', webhookId));
     }
 
     const webhook = result.rows[0];
@@ -167,7 +168,7 @@ router.delete('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, auth
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Webhook not found' });
+      return next(new NotFoundError('Webhook', webhookId));
     }
 
     return res.status(200).json({ success: true });
