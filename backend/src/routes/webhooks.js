@@ -37,6 +37,8 @@ router.get('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.MA
       url: w.url,
       events: w.events,
       enabled: w.enabled,
+      event_filters: w.event_filters || null,
+      transform_template: w.transform_template || null,
       secretLastFour: maskSecret(w.secret),
       createdAt: w.created_at,
       updatedAt: w.updated_at,
@@ -54,7 +56,7 @@ router.get('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.MA
  */
 router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), validate(webhookSchema), async (req, res, next) => {
   try {
-    const { url, events, secret } = req.body;
+    const { url, events, secret, event_filters, transform_template } = req.body;
 
     try {
       await assertPublicHttpsUrl(url);
@@ -66,10 +68,12 @@ router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.A
     const parsedEvents = Array.isArray(events) ? events : null;
 
     const result = await query(
-      `INSERT INTO webhooks (org_id, url, events, secret)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO webhooks (org_id, url, events, secret, event_filters, transform_template)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [req.orgId, url.trim(), parsedEvents ? JSON.stringify(parsedEvents) : null, webhookSecret]
+      [req.orgId, url.trim(), parsedEvents ? JSON.stringify(parsedEvents) : null, webhookSecret,
+       event_filters ? JSON.stringify(event_filters) : null,
+       transform_template ? JSON.stringify(transform_template) : null]
     );
 
     const webhook = result.rows[0];
@@ -79,6 +83,8 @@ router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.A
       url: webhook.url,
       events: webhook.events,
       enabled: webhook.enabled,
+      event_filters: webhook.event_filters || null,
+      transform_template: webhook.transform_template || null,
       secret: webhookSecret,
       secretWarning: 'Store this secret securely. It will not be shown again.',
       secretLastFour: webhookSecret.slice(-4),
@@ -96,7 +102,7 @@ router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.A
 router.put('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), validate(webhookUpdateSchema), async (req, res, next) => {
   try {
     const { webhookId } = req.params;
-    const { url, events, enabled } = req.body;
+    const { url, events, enabled, event_filters, transform_template } = req.body;
 
     const updates = [];
     const values = [];
@@ -122,6 +128,14 @@ router.put('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authori
       updates.push(`enabled = $${paramIndex++}`);
       values.push(enabled);
     }
+    if (event_filters !== undefined) {
+      updates.push(`event_filters = $${paramIndex++}`);
+      values.push(event_filters ? JSON.stringify(event_filters) : null);
+    }
+    if (transform_template !== undefined) {
+      updates.push(`transform_template = $${paramIndex++}`);
+      values.push(transform_template ? JSON.stringify(transform_template) : null);
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
@@ -145,6 +159,8 @@ router.put('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authori
       url: webhook.url,
       events: webhook.events,
       enabled: webhook.enabled,
+      event_filters: webhook.event_filters || null,
+      transform_template: webhook.transform_template || null,
       secretLastFour: maskSecret(webhook.secret),
       createdAt: webhook.created_at,
       updatedAt: webhook.updated_at,

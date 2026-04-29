@@ -15,6 +15,51 @@ const { assertPublicHttpsUrl } = require('../utils/urlValidator');
 const config = require('../config');
 const { getLogger, logger: baseLogger } = require('../utils/logger');
 
+/**
+ * Check if an event matches a webhook's advanced filters (AND logic).
+ * Filters JSONB structure: { agentId: "uuid", minScore: 50, actions: ["revoke","flag"], eventPattern: "agent.*" }
+ */
+function matchesFilters(filters, event) {
+  if (!filters || Object.keys(filters).length === 0) return true;
+
+  const data = event.data || {};
+
+  // Filter by specific agentId
+  if (filters.agentId && data.agentId !== filters.agentId) return false;
+
+  // Filter by minimum reputation score
+  if (filters.minScore != null && (data.score == null || data.score < filters.minScore)) return false;
+
+  // Filter by allowed actions list
+  if (filters.actions && Array.isArray(filters.actions)) {
+    if (!filters.actions.includes(event.type?.split('.').pop())) return false;
+  }
+
+  // Filter by event pattern (e.g., "agent.*")
+  if (filters.eventPattern) {
+    const pattern = filters.eventPattern.replace(/\*/g, '.*');
+    if (!new RegExp(`^${pattern}$`).test(event.type)) return false;
+  }
+
+  return true;
+}
+
+/**
+ * Apply transform template to event payload.
+ * Template is a JSONB object mapping output keys to dot-notation paths in the event.
+ * Example: { "agent": "data.agentId", "event_name": "type", "time": "timestamp" }
+ */
+function applyTransform(template, event) {
+  if (!template || Object.keys(template).length === 0) return null;
+
+  const result = {};
+  for (const [outputKey, path] of Object.entries(template)) {
+    const value = path.split('.').reduce((obj, key) => obj?.[key], event);
+    result[outputKey] = value;
+  }
+  return result;
+}
+
 // BullMQ Redis connection configuration
 const redisConnection = {
   host: config.redisHost || 'localhost',
@@ -35,7 +80,11 @@ const webhookQueue = new Queue('webhook-delivery', {
 
 // Create a worker that processes deliveries
 const webhookWorker = new Worker('webhook-delivery', async (job) => {
-  const { url, payload, headers } = job.data;
+  const { url, headers, transformTemplate } = job.data;
+  const rawPayload = job.data.payload;
+  const payload = transformTemplate
+    ? applyTransform(transformTemplate, { event: rawPayload.event, data: rawPayload.data, timestamp: rawPayload.timestamp, id: rawPayload.id }) || rawPayload
+    : rawPayload;
 
   // Re-validate URL at delivery time to prevent SSRF and pin DNS to prevent rebinding
   let pinnedAddress;
@@ -108,9 +157,10 @@ async function recordDelivery(webhookId, eventId, eventType, attempt, success, s
  * @param {string} url - Webhook URL
  * @param {Object} payload - Event payload
  * @param {Object} headers - Additional headers
+ * @param {Object|null} transformTemplate - Optional transform template
  */
-async function deliverWebhook(url, payload, headers = {}) {
-  await webhookQueue.add('deliver', { url, payload, headers });
+async function deliverWebhook(url, payload, headers = {}, transformTemplate = null) {
+  await webhookQueue.add('deliver', { url, payload, headers, transformTemplate });
 }
 
 /**
@@ -136,7 +186,7 @@ async function deliverWithRetry(webhook, event) {
   await deliverWebhook(webhook.url, body, {
     'X-AgentID-Signature': signature,
     'X-AgentID-Event': event.type
-  });
+  }, webhook.transform_template || null);
 
   return { success: true, statusCode: null, error: null };
 }
@@ -162,7 +212,10 @@ async function processEventWebhooks(event) {
       if (!webhook.events || (Array.isArray(webhook.events) && webhook.events.length === 0)) {
         return false;
       }
-      return webhook.events.includes(event.type);
+      if (!webhook.events.includes(event.type)) return false;
+      // Apply advanced event filters (AND with event type match)
+      if (!matchesFilters(webhook.event_filters, event)) return false;
+      return true;
     });
 
     // Enqueue each matching webhook for delivery

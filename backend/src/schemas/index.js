@@ -94,16 +94,30 @@ const VALID_EVENTS = [
   'policy.triggered',
 ];
 
+const eventFiltersSchema = z.object({
+  agentId: z.string().uuid().optional(),
+  minScore: z.number().int().min(0).max(100).optional(),
+  actions: z.array(z.string().max(50)).max(10).optional(),
+  eventPattern: z.string().max(100).optional(),
+}).optional().nullable();
+
+const transformTemplateSchema = z.record(z.string().max(50), z.string().max(200))
+  .optional().nullable();
+
 const webhookSchema = z.object({
   url: z.string().max(2000).url('Webhook URL must be a valid URL'),
   events: z.array(z.enum(VALID_EVENTS)).min(1, 'At least one event type is required').max(20),
   secret: z.string().min(32, 'Custom webhook secret must be at least 32 characters').max(255).optional(),
+  event_filters: eventFiltersSchema,
+  transform_template: transformTemplateSchema,
 }).passthrough();
 
 const webhookUpdateSchema = z.object({
   url: z.string().max(2000).url('Webhook URL must be a valid URL').optional(),
   events: z.array(z.enum(VALID_EVENTS)).min(1).max(20).optional(),
   enabled: z.boolean().optional(),
+  event_filters: eventFiltersSchema,
+  transform_template: transformTemplateSchema,
 }).passthrough();
 
 // ── API Key ───────────────────────────────────────────────
