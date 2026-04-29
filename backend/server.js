@@ -31,6 +31,8 @@ const errorHandler = require('./src/middleware/errorHandler');
 const { metricsMiddleware, register } = require('./src/middleware/metricsMiddleware');
 const { defaultLimiter } = require('./src/middleware/rateLimit');
 const { auditMiddleware } = require('./src/middleware/auditMiddleware');
+const { usageMiddleware } = require('./src/middleware/usageMiddleware');
+const { planEnforcement } = require('./src/middleware/planEnforcement');
 const { cleanupDemoAgents } = require('./src/models/agentQueries');
 const { redis } = require('./src/models/redis');
 const axios = require('axios');
@@ -51,6 +53,7 @@ const policyRoutes = require('./src/routes/policies');
 const webhookRoutes = require('./src/routes/webhooks');
 const heartbeatRoutes = require('./src/routes/heartbeat');
 const credentialRoutes = require('./src/routes/credentials');
+const usageRoutes = require('./src/routes/usage');
 
 const app = express();
 
@@ -182,6 +185,9 @@ app.use(defaultLimiter);
 
 // Audit middleware (logs mutating requests after response is sent)
 app.use(auditMiddleware);
+
+// Usage tracking middleware (fire-and-forget Redis counter on res.finish)
+app.use(usageMiddleware);
 
 // CSRF protection - require custom header on mutating requests
 app.use((req, res, next) => {
@@ -355,6 +361,7 @@ app.use('/webhooks', express.json({ limit: '1mb' }));
 app.use('/', webhookRoutes);        // GET/POST/PUT/DELETE /orgs/:orgId/webhooks
 app.use('/', heartbeatRoutes);      // POST /agents/:agentId/heartbeat
 app.use('/', credentialRoutes);     // POST /credentials/verify
+app.use('/', usageRoutes);          // GET /orgs/:orgId/usage, /orgs/:orgId/usage/history
 
 // ── API v1 — Canonical versioned prefix ────────────────────
 // All routes are also available under /v1/ as the canonical versioned endpoint.
@@ -376,6 +383,7 @@ v1Router.use('/webhooks', express.json({ limit: '1mb' }));
 v1Router.use('/', webhookRoutes);
 v1Router.use('/', heartbeatRoutes);
 v1Router.use('/', credentialRoutes);
+v1Router.use('/', usageRoutes);
 app.use('/v1', v1Router);
 
 // 404 handler for undefined routes

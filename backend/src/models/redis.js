@@ -180,8 +180,18 @@ function getRedisMetrics() {
   };
 }
 
+/**
+ * Get the raw ioredis client instance.
+ * Returns the client when ready, or null if unavailable.
+ * @returns {Redis|null}
+ */
+function getRedisClient() {
+  return redis && redis.status === 'ready' ? redis : null;
+}
+
 module.exports = {
   redis,
+  getRedisClient,
   getCache,
   setCache,
   deleteCache,
