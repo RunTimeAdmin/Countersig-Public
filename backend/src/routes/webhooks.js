@@ -10,6 +10,8 @@ const { authenticate } = require('../middleware/authenticate');
 const { authorize, requireScope, ROLES } = require('../middleware/authorize');
 const { orgContext } = require('../middleware/orgContext');
 const { assertPublicHttpsUrl } = require('../utils/urlValidator');
+const { validate } = require('../middleware/validate');
+const { webhookSchema, webhookUpdateSchema } = require('../schemas');
 
 const router = express.Router();
 
@@ -46,7 +48,7 @@ router.get('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.MA
  * POST /orgs/:orgId/webhooks
  * Create a new webhook
  */
-router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
+router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), validate(webhookSchema), async (req, res, next) => {
   try {
     const { url, events, secret } = req.body;
 
@@ -57,13 +59,7 @@ router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.A
     }
 
     const webhookSecret = secret || crypto.randomBytes(32).toString('hex');
-    if (secret && secret.length < 32) {
-      return res.status(400).json({ error: 'Custom webhook secret must be at least 32 characters' });
-    }
     const parsedEvents = Array.isArray(events) ? events : null;
-    if (!Array.isArray(events) || events.length === 0) {
-      return res.status(400).json({ error: 'events array is required and must contain at least one event type' });
-    }
 
     const result = await query(
       `INSERT INTO webhooks (org_id, url, events, secret)
@@ -87,7 +83,7 @@ router.post('/orgs/:orgId/webhooks', authenticate, orgContext, authorize(ROLES.A
  * PUT /orgs/:orgId/webhooks/:webhookId
  * Update a webhook
  */
-router.put('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
+router.put('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), validate(webhookUpdateSchema), async (req, res, next) => {
   try {
     const { webhookId } = req.params;
     const { url, events, enabled } = req.body;

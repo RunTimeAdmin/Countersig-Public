@@ -14,6 +14,7 @@ const { registrationLimiter } = require('../middleware/rateLimit');
 const { redis } = require('../models/redis');
 const { transformAgent, isValidSolanaAddress } = require('../utils/transform');
 const eventBus = require('../services/eventBus');
+const { cryptoRegistrationSchema, oauthRegistrationSchema } = require('../schemas');
 
 const router = express.Router();
 
@@ -25,64 +26,6 @@ const luaScript = `
 `;
 
 /**
- * Validate registration input
- * @param {Object} body - Request body
- * @returns {Object|null} - Validation error or null if valid
- */
-function validateRegistrationInput(body) {
-  const { pubkey, name, signature, message, nonce } = body;
-
-  // Check required fields
-  if (!pubkey || typeof pubkey !== 'string' || pubkey.length === 0) {
-    return { error: 'pubkey is required and must be a non-empty string', status: 400 };
-  }
-
-  if (pubkey.length < 32 || pubkey.length > 130) {
-    return { error: 'pubkey must be between 32 and 130 characters', status: 400 };
-  }
-
-  if (!name || typeof name !== 'string' || name.length === 0) {
-    return { error: 'name is required and must be a non-empty string', status: 400 };
-  }
-
-  if (name.length > 255) {
-    return { error: 'name must not exceed 255 characters', status: 400 };
-  }
-
-  if (!signature || typeof signature !== 'string') {
-    return { error: 'signature is required', status: 400 };
-  }
-
-  if (!message || typeof message !== 'string') {
-    return { error: 'message is required', status: 400 };
-  }
-
-  if (!nonce || typeof nonce !== 'string') {
-    return { error: 'nonce is required', status: 400 };
-  }
-
-  // Validate capabilities if provided
-  if (body.capabilities !== undefined) {
-    if (!Array.isArray(body.capabilities)) {
-      return { error: 'capabilities must be an array', status: 400 };
-    }
-    if (body.capabilities.length > 50) {
-      return { error: 'capabilities must not exceed 50 items', status: 400 };
-    }
-    for (const cap of body.capabilities) {
-      if (typeof cap !== 'string') {
-        return { error: 'all capabilities must be strings', status: 400 };
-      }
-      if (cap.length > 64) {
-        return { error: 'each capability must not exceed 64 characters', status: 400 };
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
  * POST /register
  * Full agent registration flow
  */
@@ -91,13 +34,15 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
     const { credential_type = 'crypto' } = req.body;
 
     if (credential_type === 'crypto') {
-      // 1. Validate request body
-      const validationError = validateRegistrationInput(req.body);
-      if (validationError) {
-        return res.status(validationError.status).json({
-          error: validationError.error
+      // Zod validation
+      const parsed = cryptoRegistrationSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: parsed.error.errors.map(e => ({ path: e.path.join('.'), message: e.message })),
         });
       }
+      req.body = parsed.data;
 
       const {
         pubkey,
@@ -247,19 +192,17 @@ router.post('/register', authenticate, registrationLimiter, async (req, res, nex
       }
 
     } else if (credential_type === 'oauth2' || credential_type === 'entra_id') {
+      // Zod validation
+      const parsed = oauthRegistrationSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: parsed.error.errors.map(e => ({ path: e.path.join('.'), message: e.message })),
+        });
+      }
+      req.body = parsed.data;
+
       const { token, name: agentName, description, capabilities = [] } = req.body;
-
-      if (!token) {
-        return res.status(400).json({ error: 'Token is required for OAuth2 registration' });
-      }
-      if (!agentName || agentName.length < 1 || agentName.length > 255) {
-        return res.status(400).json({ error: 'Agent name is required (1-255 characters)' });
-      }
-
-      // Validate capabilities
-      if (!Array.isArray(capabilities) || capabilities.length > 50) {
-        return res.status(400).json({ error: 'Capabilities must be an array of max 50 items' });
-      }
 
       const authConfig = require('../auth/authConfig');
       const strategyConfig = authConfig.getStrategyConfig(credential_type);

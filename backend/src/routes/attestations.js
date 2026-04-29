@@ -20,6 +20,8 @@ const { transformAgent, isValidSolanaAddress } = require('../utils/transform');
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');
 const eventBus = require('../services/eventBus');
+const { validate } = require('../middleware/validate');
+const { attestationSchema } = require('../schemas');
 
 const router = express.Router();
 
@@ -27,17 +29,10 @@ const router = express.Router();
  * POST /agents/:agentId/attest
  * Record a successful/failed action
  */
-router.post('/agents/:agentId/attest', authenticate, requireScope('write'), authLimiter, async (req, res, next) => {
+router.post('/agents/:agentId/attest', authenticate, requireScope('write'), authLimiter, validate(attestationSchema), async (req, res, next) => {
   try {
     const { agentId } = req.params;
     const { success, action } = req.body;
-
-    // Validate success is boolean
-    if (typeof success !== 'boolean') {
-      return res.status(400).json({
-        error: 'success is required and must be a boolean'
-      });
-    }
 
     // Check agent exists
     const agent = await getAgent(agentId);

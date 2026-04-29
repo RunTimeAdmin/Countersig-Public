@@ -8,15 +8,8 @@ const { query } = require('../models/db');
 const { authenticate } = require('../middleware/authenticate');
 const { authorize, requireScope, ROLES } = require('../middleware/authorize');
 const { generateApiKey } = require('../services/authService');
-
-const VALID_SCOPES = new Set([
-  'read', 'write',
-  'agents:read', 'agents:write',
-  'audit:read', 'audit:export',
-  'webhooks:read', 'webhooks:write',
-  'policies:read', 'policies:write',
-  'org:read', 'org:write'
-]);
+const { validate } = require('../middleware/validate');
+const { apiKeySchema } = require('../schemas');
 
 const router = express.Router();
 
@@ -27,20 +20,12 @@ router.use(authenticate);
  * POST /api-keys
  * Create a new API key
  */
-router.post('/api-keys', authorize(ROLES.ADMIN), requireScope('admin'), async (req, res, next) => {
+router.post('/api-keys', authorize(ROLES.ADMIN), requireScope('admin'), validate(apiKeySchema), async (req, res, next) => {
   try {
     const { name, scopes, expiresAt } = req.body;
 
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return res.status(400).json({ error: 'API key name is required' });
-    }
-
     const { rawKey, keyHash, keyPrefix } = generateApiKey();
     const parsedScopes = Array.isArray(scopes) && scopes.length > 0 ? scopes : ['read'];
-    const invalid = parsedScopes.filter(s => !VALID_SCOPES.has(s));
-    if (invalid.length) {
-      return res.status(400).json({ error: `Invalid scopes: ${invalid.join(', ')}. Valid: ${[...VALID_SCOPES].join(', ')}` });
-    }
 
     if (expiresAt) {
       const expDate = new Date(expiresAt);

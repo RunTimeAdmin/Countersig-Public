@@ -7,6 +7,8 @@ const express = require('express');
 const { authenticate } = require('../middleware/authenticate');
 const { authorize, requireScope, ROLES } = require('../middleware/authorize');
 const { orgContext } = require('../middleware/orgContext');
+const { validate } = require('../middleware/validate');
+const { identityProviderSchema } = require('../schemas');
 const {
   getOrganization,
   updateOrganization,
@@ -188,22 +190,9 @@ router.get('/orgs/:orgId/identity-providers', authenticate, orgContext, authoriz
  * POST /orgs/:orgId/identity-providers
  * Add a new identity provider configuration
  */
-router.post('/orgs/:orgId/identity-providers', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
+router.post('/orgs/:orgId/identity-providers', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), validate(identityProviderSchema), async (req, res, next) => {
   try {
     const { providerType, issuerUrl, clientId, allowedAudiences, claimMappings, enabled } = req.body;
-
-    if (!providerType || !issuerUrl) {
-      return res.status(400).json({ error: 'providerType and issuerUrl are required' });
-    }
-
-    const validTypes = ['oauth2', 'entra_id', 'okta', 'auth0'];
-    if (!validTypes.includes(providerType)) {
-      return res.status(400).json({ error: `providerType must be one of: ${validTypes.join(', ')}` });
-    }
-
-    try { new URL(issuerUrl); } catch {
-      return res.status(400).json({ error: 'issuerUrl must be a valid URL' });
-    }
 
     const idp = await createOrgIdP({
       orgId: req.orgId,

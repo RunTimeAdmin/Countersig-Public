@@ -20,6 +20,8 @@ const { transformAgent, transformAgents, isValidSolanaAddress } = require('../ut
 const { generateA2AToken, verifyA2AToken } = require('../services/authService');
 const eventBus = require('../services/eventBus');
 const config = require('../config');
+const { validate } = require('../middleware/validate');
+const { agentUpdateSchema } = require('../schemas');
 
 const router = express.Router();
 
@@ -457,23 +459,10 @@ router.get('/orgs/:orgId/agents', authenticate, orgContext, requireScope('read')
  * PUT /agents/:agentId/update
  * Update agent metadata with signature verification
  */
-router.put('/agents/:agentId/update', authenticate, requireScope('write'), authLimiter, async (req, res, next) => {
+router.put('/agents/:agentId/update', authenticate, requireScope('write'), authLimiter, validate(agentUpdateSchema), async (req, res, next) => {
   try {
     const { agentId } = req.params;
     const { signature, timestamp, name, tokenMint, capabilities, creatorX, description } = req.body;
-
-    // 1. Validate required fields
-    if (!signature || typeof signature !== 'string') {
-      return res.status(400).json({
-        error: 'signature is required'
-      });
-    }
-
-    if (!timestamp || typeof timestamp !== 'number') {
-      return res.status(400).json({
-        error: 'timestamp is required and must be a number'
-      });
-    }
 
     // 2. Check agent exists and get pubkey for verification
     const agent = await getAgent(agentId);
@@ -582,16 +571,6 @@ router.put('/agents/:agentId/update', authenticate, requireScope('write'), authL
     const updateFields = {};
 
     if (name !== undefined) {
-      if (typeof name !== 'string' || name.length === 0) {
-        return res.status(400).json({
-          error: 'name must be a non-empty string'
-        });
-      }
-      if (name.length > 255) {
-        return res.status(400).json({
-          error: 'name must not exceed 255 characters'
-        });
-      }
       updateFields.name = name;
     }
 
@@ -600,28 +579,6 @@ router.put('/agents/:agentId/update', authenticate, requireScope('write'), authL
     }
 
     if (capabilities !== undefined) {
-      if (!Array.isArray(capabilities)) {
-        return res.status(400).json({
-          error: 'capabilities must be an array'
-        });
-      }
-      if (capabilities.length > 50) {
-        return res.status(400).json({
-          error: 'capabilities must not exceed 50 items'
-        });
-      }
-      for (const cap of capabilities) {
-        if (typeof cap !== 'string') {
-          return res.status(400).json({
-            error: 'all capabilities must be strings'
-          });
-        }
-        if (cap.length > 64) {
-          return res.status(400).json({
-            error: 'each capability must not exceed 64 characters'
-          });
-        }
-      }
       updateFields.capabilitySet = capabilities;
     }
 

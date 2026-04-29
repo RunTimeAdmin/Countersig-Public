@@ -8,11 +8,10 @@ const { query } = require('../models/db');
 const { authenticate } = require('../middleware/authenticate');
 const { authorize, requireScope, ROLES } = require('../middleware/authorize');
 const { orgContext } = require('../middleware/orgContext');
+const { validate } = require('../middleware/validate');
+const { policySchema, VALID_OPERATORS, VALID_ACTIONS } = require('../schemas');
 
 const router = express.Router();
-
-const VALID_ACTIONS = ['revoke', 'flag', 'notify', 'disable'];
-const VALID_OPERATORS = ['<', '>', '<=', '>=', '==', '!=', 'contains'];
 
 /**
  * GET /orgs/:orgId/policies
@@ -35,29 +34,9 @@ router.get('/orgs/:orgId/policies', authenticate, orgContext, authorize(ROLES.MA
  * POST /orgs/:orgId/policies
  * Create a new policy rule
  */
-router.post('/orgs/:orgId/policies', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
+router.post('/orgs/:orgId/policies', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), validate(policySchema), async (req, res, next) => {
   try {
     const { name, condition, action, enabled } = req.body;
-
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return res.status(400).json({ error: 'Policy name is required' });
-    }
-
-    if (!condition || typeof condition !== 'object') {
-      return res.status(400).json({ error: 'Condition must be an object' });
-    }
-
-    if (!condition.field && !condition.event_type) {
-      return res.status(400).json({ error: "Condition must have 'field' or 'event_type'" });
-    }
-
-    if (condition.field && !VALID_OPERATORS.includes(condition.op)) {
-      return res.status(400).json({ error: `Condition operator must be one of: ${VALID_OPERATORS.join(', ')}` });
-    }
-
-    if (!VALID_ACTIONS.includes(action)) {
-      return res.status(400).json({ error: `Action must be one of: ${VALID_ACTIONS.join(', ')}` });
-    }
 
     const result = await query(
       `INSERT INTO policy_rules (org_id, name, condition, action, enabled)
