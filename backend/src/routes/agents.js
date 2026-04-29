@@ -17,7 +17,7 @@ const { optionalAuth, authenticate } = require('../middleware/authenticate');
 const { requireScope } = require('../middleware/authorize');
 const { orgContext } = require('../middleware/orgContext');
 const { transformAgent, transformAgents, isValidSolanaAddress } = require('../utils/transform');
-const { generateA2AToken, verifyA2AToken } = require('../services/authService');
+const { generateA2AToken, verifyA2AToken, signCredential } = require('../services/authService');
 const eventBus = require('../services/eventBus');
 const config = require('../config');
 const { validate } = require('../middleware/validate');
@@ -230,8 +230,6 @@ router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
     let reputationLabel = reputationScore >= 80 ? 'HIGH' : reputationScore >= 50 ? 'MEDIUM' : reputationScore >= 20 ? 'LOW' : 'NEW AGENT';
 
     const now = new Date().toISOString();
-    
-    const isCredentialSigned = false; // TODO: flip to true once Data Integrity Proof signing is implemented
 
     const credential = {
       '@context': [
@@ -275,22 +273,35 @@ router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
         id: `${config.agentIdBaseUrl}/agents/${agentId}`,
         type: 'AgentIDStatusCheck2024',
         statusPurpose: 'revocation'
-      },
-      proof: {
+      }
+    };
+
+    // Attempt to sign the credential with Ed25519
+    const proofValue = await signCredential(credential);
+    const isCredentialSigned = !!proofValue;
+
+    if (isCredentialSigned) {
+      credential.proof = {
+        type: 'DataIntegrityProof',
+        cryptosuite: 'eddsa-jcs-2022',
+        created: now,
+        verificationMethod: 'did:web:agentidapp.com#a2a-ed25519-1',
+        proofPurpose: 'assertionMethod',
+        proofValue
+      };
+    } else {
+      // Fallback: unsigned credential in development mode
+      credential.proof = {
         type: 'DataIntegrityProof',
         cryptosuite: chainType.startsWith('solana') ? 'eddsa-rdfc-2022' : 'ecdsa-rdfc-2019',
         created: now,
         verificationMethod: verificationMethod,
         proofPurpose: 'assertionMethod',
-        // Note: In production, this would contain an actual cryptographic signature
-        // For now, we include a placeholder indicating server-side signing is needed
         proofValue: 'UNSIGNED_CREDENTIAL_REQUIRES_DID_KEY_CONFIGURATION'
-      },
-      ...(!isCredentialSigned && {
-        demo: true,
-        warning: 'This credential is unsigned — Verifiable Credential signing not yet implemented'
-      })
-    };
+      };
+      credential.demo = true;
+      credential.warning = 'This credential is unsigned — A2A_SIGNING_KEY not configured';
+    }
 
     // Set appropriate content type for W3C VC
     res.setHeader('Content-Type', 'application/vc+ld+json');

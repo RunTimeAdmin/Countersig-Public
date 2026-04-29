@@ -50,6 +50,7 @@ const auditRoutes = require('./src/routes/audit');
 const policyRoutes = require('./src/routes/policies');
 const webhookRoutes = require('./src/routes/webhooks');
 const heartbeatRoutes = require('./src/routes/heartbeat');
+const credentialRoutes = require('./src/routes/credentials');
 
 const app = express();
 
@@ -192,7 +193,7 @@ app.use((req, res, next) => {
     // - /health   : health check (never mutates state)
     // - /verify-token : A2A token verification (unauthenticated, called by external agents
     //                    that do not send the X-Requested-With header)
-    const csrfSkipExact = ['/health', '/verify-token', '/.well-known/jwks.json', '/v1/verify-token'];
+    const csrfSkipExact = ['/health', '/verify-token', '/.well-known/jwks.json', '/v1/verify-token', '/credentials/verify', '/v1/credentials/verify'];
     const csrfSkipPrefix = ['/public/', '/badge/', '/widget/', '/v1/public/', '/v1/badge/', '/v1/widget/'];
     if (csrfSkipExact.includes(req.path) || csrfSkipPrefix.some(p => req.path.startsWith(p))) {
       return next();
@@ -353,6 +354,7 @@ app.use('/', policyRoutes);         // GET/POST/PUT/DELETE /orgs/:orgId/policies
 app.use('/webhooks', express.json({ limit: '1mb' }));
 app.use('/', webhookRoutes);        // GET/POST/PUT/DELETE /orgs/:orgId/webhooks
 app.use('/', heartbeatRoutes);      // POST /agents/:agentId/heartbeat
+app.use('/', credentialRoutes);     // POST /credentials/verify
 
 // ── API v1 — Canonical versioned prefix ────────────────────
 // All routes are also available under /v1/ as the canonical versioned endpoint.
@@ -373,6 +375,7 @@ v1Router.use('/', policyRoutes);
 v1Router.use('/webhooks', express.json({ limit: '1mb' }));
 v1Router.use('/', webhookRoutes);
 v1Router.use('/', heartbeatRoutes);
+v1Router.use('/', credentialRoutes);
 app.use('/v1', v1Router);
 
 // 404 handler for undefined routes

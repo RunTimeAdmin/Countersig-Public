@@ -352,6 +352,43 @@ async function getA2APublicKeyJWK() {
   return jwk;
 }
 
+/**
+ * Sign a W3C Verifiable Credential using the A2A Ed25519 private key.
+ * Returns the JWS compact serialization, or null if keys are not configured.
+ * @param {Object} credentialWithoutProof - The credential object (no proof field)
+ * @returns {Promise<string|null>} JWS compact string or null
+ */
+async function signCredential(credentialWithoutProof) {
+  await a2aKeysReady;
+  if (a2aUseHMAC || !a2aPrivateKey) return null;
+
+  const encoder = new TextEncoder();
+  const payload = encoder.encode(JSON.stringify(credentialWithoutProof));
+  const jws = await new jose.CompactSign(payload)
+    .setProtectedHeader({ alg: 'EdDSA', kid: 'a2a-ed25519-1' })
+    .sign(a2aPrivateKey);
+  return jws;
+}
+
+/**
+ * Verify a credential JWS signature using the A2A Ed25519 public key.
+ * @param {string} jws - JWS compact serialization
+ * @param {Object} credentialWithoutProof - The credential object to verify against
+ * @returns {Promise<boolean>} Whether the signature is valid
+ */
+async function verifyCredentialSignature(jws, credentialWithoutProof) {
+  await a2aKeysReady;
+  if (!a2aPublicKey) return false;
+
+  try {
+    const { payload } = await jose.compactVerify(jws, a2aPublicKey);
+    const payloadStr = new TextDecoder().decode(payload);
+    return payloadStr === JSON.stringify(credentialWithoutProof);
+  } catch {
+    return false;
+  }
+}
+
 module.exports = {
   hashPassword,
   comparePassword,
@@ -369,5 +406,7 @@ module.exports = {
   isUserRevoked,
   generateA2AToken,
   verifyA2AToken,
-  getA2APublicKeyJWK
+  getA2APublicKeyJWK,
+  signCredential,
+  verifyCredentialSignature
 };
