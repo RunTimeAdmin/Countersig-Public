@@ -5,7 +5,9 @@
 
 const express = require('express');
 const { authenticate } = require('../middleware/authenticate');
-const { requireScope } = require('../middleware/authorize');
+const { authorize, requireScope, ROLES } = require('../middleware/authorize');
+const { orgContext } = require('../middleware/orgContext');
+const { AuthorizationError } = require('../utils/errors');
 const {
   getAuditLogs,
   exportAuditLogs,
@@ -18,14 +20,9 @@ const router = express.Router();
  * GET /orgs/:orgId/audit
  * List audit logs with pagination and filtering
  */
-router.get('/orgs/:orgId/audit', authenticate, requireScope('read'), async (req, res, next) => {
+router.get('/orgs/:orgId/audit', authenticate, orgContext, requireScope('read'), async (req, res, next) => {
   try {
-    const { orgId } = req.params;
-
-    // Verify user belongs to this organization
-    if (!req.user || req.user.orgId !== orgId) {
-      return res.status(403).json({ error: 'Access denied to this organization' });
-    }
+    const orgId = req.orgId;
 
     // Parse and validate pagination
     let page = parseInt(req.query.page, 10) || 1;
@@ -63,14 +60,9 @@ router.get('/orgs/:orgId/audit', authenticate, requireScope('read'), async (req,
  * GET /orgs/:orgId/audit/export
  * Export audit logs as JSON or CSV
  */
-router.get('/orgs/:orgId/audit/export', authenticate, requireScope('read'), async (req, res, next) => {
+router.get('/orgs/:orgId/audit/export', authenticate, orgContext, requireScope('read'), async (req, res, next) => {
   try {
-    const { orgId } = req.params;
-
-    // Verify user belongs to this organization
-    if (!req.user || req.user.orgId !== orgId) {
-      return res.status(403).json({ error: 'Access denied to this organization' });
-    }
+    const orgId = req.orgId;
 
     const format = req.query.format === 'csv' ? 'csv' : 'json';
 
@@ -94,19 +86,9 @@ router.get('/orgs/:orgId/audit/export', authenticate, requireScope('read'), asyn
  * GET /orgs/:orgId/audit/verify
  * Verify the integrity of the audit hash chain (admin only)
  */
-router.get('/orgs/:orgId/audit/verify', authenticate, requireScope('read'), async (req, res, next) => {
+router.get('/orgs/:orgId/audit/verify', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('read'), async (req, res, next) => {
   try {
-    const { orgId } = req.params;
-
-    // Verify user belongs to this organization
-    if (!req.user || req.user.orgId !== orgId) {
-      return res.status(403).json({ error: 'Access denied to this organization' });
-    }
-
-    // Admin role check
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    const orgId = req.orgId;
 
     const result = await verifyAuditChain(orgId);
 

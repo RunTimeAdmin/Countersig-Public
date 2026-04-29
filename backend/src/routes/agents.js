@@ -297,9 +297,9 @@ router.post('/agents/:agentId/issue-token', authenticate, requireScope('write'),
       return next(new NotFoundError('Agent', agentId));
     }
 
-    // 2. Verify the agent belongs to the requesting user's org (or is public)
-    if (agent.org_id && agent.org_id !== req.user.orgId) {
-      return next(new AuthorizationError('Access denied: agent does not belong to your organization'));
+    // 2. Verify the agent belongs to the requesting user's org (only when both have org context)
+    if (agent.org_id && req.user.orgId && agent.org_id !== req.user.orgId) {
+      return next(new AuthorizationError('Agent does not belong to your organization'));
     }
 
     // 3. Verify the agent's status is active/verified (not revoked or flagged)
@@ -458,9 +458,9 @@ router.put('/agents/:agentId/update', authenticate, requireScope('write'), authL
       return next(new NotFoundError('Agent', agentId));
     }
 
-    // 2.5 Verify org ownership
-    if (agent.org_id !== req.user.orgId) {
-      return next(new AuthorizationError('Access denied: agent does not belong to your organization'));
+    // 2.5 Verify org ownership (only when both user and agent have org context)
+    if (agent.org_id && req.user.orgId && agent.org_id !== req.user.orgId) {
+      return next(new AuthorizationError('Agent does not belong to your organization'));
     }
 
     const pubkey = agent.pubkey;
