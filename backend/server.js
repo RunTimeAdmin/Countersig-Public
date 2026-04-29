@@ -32,6 +32,7 @@ const { metricsMiddleware, register } = require('./src/middleware/metricsMiddlew
 const { defaultLimiter } = require('./src/middleware/rateLimit');
 const { auditMiddleware } = require('./src/middleware/auditMiddleware');
 const { usageMiddleware } = require('./src/middleware/usageMiddleware');
+const { dataResidencyMiddleware } = require('./src/middleware/dataResidency');
 const { planEnforcement } = require('./src/middleware/planEnforcement');
 const { cleanupDemoAgents } = require('./src/models/agentQueries');
 const { redis } = require('./src/models/redis');
@@ -188,6 +189,9 @@ app.use(auditMiddleware);
 
 // Usage tracking middleware (fire-and-forget Redis counter on res.finish)
 app.use(usageMiddleware);
+
+// Data residency headers and compliance audit trail
+app.use(dataResidencyMiddleware);
 
 // CSRF protection - require custom header on mutating requests
 app.use((req, res, next) => {

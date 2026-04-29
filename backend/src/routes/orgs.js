@@ -25,7 +25,11 @@ const {
   deleteOrgIdP
 } = require('../models/orgQueries');
 
+const { query } = require('../models/db');
+
 const router = express.Router();
+
+const ALLOWED_REGIONS = ['us-east-1', 'eu-west-1', 'ap-southeast-1'];
 
 const ROLE_HIERARCHY = {
   admin: 4,
@@ -259,6 +263,63 @@ router.delete('/orgs/:orgId/identity-providers/:idpId', authenticate, orgContext
     return res.json({ deleted: true, identityProvider: deleted });
   } catch (error) {
     next(error);
+  }
+});
+
+// ── Data Residency & Compliance ──
+
+/**
+ * PUT /orgs/:orgId/compliance
+ * Update compliance flags and data region (admin only)
+ */
+router.put('/orgs/:orgId/compliance', authenticate, orgContext, authorize(ROLES.ADMIN), requireScope('write'), async (req, res, next) => {
+  try {
+    const { compliance_flags, data_region } = req.body;
+
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (compliance_flags !== undefined) {
+      updates.push(`compliance_flags = $${paramIndex++}`);
+      values.push(JSON.stringify(compliance_flags));
+    }
+
+    if (data_region !== undefined) {
+      if (!ALLOWED_REGIONS.includes(data_region)) {
+        return res.status(400).json({
+          error: 'Invalid data region',
+          allowed: ALLOWED_REGIONS
+        });
+      }
+      updates.push(`data_region = $${paramIndex++}`);
+      values.push(data_region);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    updates.push(`updated_at = NOW()`);
+    values.push(req.orgId);
+
+    const result = await query(
+      `UPDATE organizations SET ${updates.join(', ')} WHERE id = $${paramIndex} AND deleted_at IS NULL RETURNING *`,
+      values
+    );
+
+    if (!result.rows.length) {
+      return next(new NotFoundError('Organization'));
+    }
+
+    res.json({
+      id: result.rows[0].id,
+      data_region: result.rows[0].data_region,
+      compliance_flags: result.rows[0].compliance_flags,
+      updated_at: result.rows[0].updated_at
+    });
+  } catch (err) {
+    next(err);
   }
 });
 

@@ -51,9 +51,10 @@ async function resolveIdentity(req) {
       const keyHash = verifyApiKey(rawKey);
       // When looking up API key, also get the user's role
       const result = await query(
-        `SELECT ak.id, ak.org_id, ak.user_id, ak.scopes, u.role
+        `SELECT ak.id, ak.org_id, ak.user_id, ak.scopes, u.role, o.data_region
          FROM api_keys ak
          JOIN users u ON ak.user_id = u.id
+         LEFT JOIN organizations o ON ak.org_id = o.id
          WHERE ak.key_hash = $1
            AND ak.revoked_at IS NULL
            AND (ak.expires_at IS NULL OR ak.expires_at > NOW())
@@ -74,7 +75,8 @@ async function resolveIdentity(req) {
           role: apiKey.role,
           isApiKey: true,
           scopes: apiKey.scopes,
-          apiKeyId: apiKey.id
+          apiKeyId: apiKey.id,
+          dataRegion: apiKey.data_region || 'us-east-1'
         };
       }
     }
