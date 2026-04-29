@@ -111,6 +111,10 @@ export interface VerifiableCredential {
     statusPurpose: string;
   };
   proof: Record<string, any>;
+  /** True when the credential is unsigned (signing not yet implemented). Consumers MUST check this field. */
+  demo?: boolean;
+  /** Human-readable warning when credential is unsigned. */
+  warning?: string;
 }
 
 export interface Chain {
