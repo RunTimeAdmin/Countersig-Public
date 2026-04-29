@@ -4,9 +4,7 @@
  */
 
 const crypto = require('crypto');
-const { getAgent, getAgentActions } = require('../../models/agentQueries');
-const { getUnresolvedFlagCount } = require('../../models/flagQueries');
-const { getCache, setCache } = require('../../models/redis');
+const { computeReputation, calcSuccessRate, calcAgeFactor, calcFlagFactor } = require('../reputationScorer');
 
 // Dynamic import for ethers (installed but may not be available yet)
 let ethers;
@@ -81,77 +79,62 @@ function createEVMAdapter(chainKey) {
 
     async getReputationData(agentId, prefetched = {}) {
       // EVM reputation: based on local DB data + optional block explorer data
-      const agent = prefetched.agent || await getAgent(agentId);
-      if (!agent) return { score: 0, label: 'UNKNOWN', breakdown: {} };
+      return computeReputation(agentId, prefetched, {
+        scoringModel: 'evm-v1',
+        chainType: chainConfig.name.toLowerCase(),
+        cacheTTL: 300,
+        async computeFactors(agent, actions, flagCount) {
+          let score = 0;
+          const breakdown = {};
 
-      // Check cache
-      const cacheKey = `reputation:${agentId}`;
-      const cached = await getCache(cacheKey);
-      if (cached) return cached;
+          // Factor 1: Action success rate (30 pts max)
+          const sr = calcSuccessRate(actions, 30);
+          breakdown.successRate = { score: sr.score, max: 30 };
+          score += sr.score;
 
-      const actions = prefetched.actions || await getAgentActions(agentId);
-      const flagCount = await getUnresolvedFlagCount(agentId);
+          // Factor 2: Registration age (20 pts max)
+          const age = calcAgeFactor(agent.registered_at, 20);
+          breakdown.age = { score: age.score, max: 20 };
+          score += age.score;
 
-      let score = 0;
-      const breakdown = {};
-
-      // Factor 1: Action success rate (30 pts max)
-      const totalActions = (actions?.successful || 0) + (actions?.failed || 0);
-      if (totalActions > 0) {
-        const successRate = actions.successful / totalActions;
-        breakdown.successRate = { score: Math.min(30, Math.floor(successRate * 30)), max: 30 };
-      } else {
-        breakdown.successRate = { score: 0, max: 30 };
-      }
-      score += breakdown.successRate.score;
-
-      // Factor 2: Registration age (20 pts max)
-      const ageInDays = Math.floor((Date.now() - new Date(agent.registered_at).getTime()) / (1000 * 60 * 60 * 24));
-      breakdown.age = { score: Math.min(20, ageInDays), max: 20 };
-      score += breakdown.age.score;
-
-      // Factor 3: On-chain activity via block explorer (30 pts max)
-      breakdown.onChainActivity = { score: 0, max: 30 };
-      try {
-        const apiKey = process.env[chainConfig.explorerKeyEnv];
-        if (apiKey && agent.pubkey) {
-          const axios = require('axios');
-          const resp = await axios.get(chainConfig.explorerApi, {
-            params: {
-              module: 'account',
-              action: 'txlist',
-              address: agent.pubkey,
-              startblock: 0,
-              endblock: 99999999,
-              page: 1,
-              offset: 100,
-              sort: 'desc',
-              apikey: apiKey
-            },
-            timeout: 5000
-          });
-          if (resp.data?.status === '1' && Array.isArray(resp.data.result)) {
-            const txCount = resp.data.result.length;
-            breakdown.onChainActivity.score = Math.min(30, Math.floor(txCount * 0.3));
+          // Factor 3: On-chain activity via block explorer (30 pts max)
+          breakdown.onChainActivity = { score: 0, max: 30 };
+          try {
+            const apiKey = process.env[chainConfig.explorerKeyEnv];
+            if (apiKey && agent.pubkey) {
+              const axios = require('axios');
+              const resp = await axios.get(chainConfig.explorerApi, {
+                params: {
+                  module: 'account',
+                  action: 'txlist',
+                  address: agent.pubkey,
+                  startblock: 0,
+                  endblock: 99999999,
+                  page: 1,
+                  offset: 100,
+                  sort: 'desc',
+                  apikey: apiKey
+                },
+                timeout: 5000
+              });
+              if (resp.data?.status === '1' && Array.isArray(resp.data.result)) {
+                const txCount = resp.data.result.length;
+                breakdown.onChainActivity.score = Math.min(30, Math.floor(txCount * 0.3));
+              }
+            }
+          } catch (err) {
+            console.warn(`[${chainConfig.name}] Block explorer API error:`, err.message);
           }
+          score += breakdown.onChainActivity.score;
+
+          // Factor 4: Community trust (20 pts max, zeroed at 2+ unresolved flags)
+          const flags = calcFlagFactor(flagCount, 20, 2);
+          breakdown.communityTrust = { score: flags.score, max: 20 };
+          score += flags.score;
+
+          return { score, breakdown };
         }
-      } catch (err) {
-        console.warn(`[${chainConfig.name}] Block explorer API error:`, err.message);
-      }
-      score += breakdown.onChainActivity.score;
-
-      // Factor 4: Community trust (20 pts max, zeroed at 2+ unresolved flags)
-      breakdown.communityTrust = { score: flagCount >= 2 ? 0 : 20, max: 20 };
-      score += breakdown.communityTrust.score;
-
-      const label = score >= 80 ? 'HIGH' : score >= 50 ? 'MEDIUM' : score >= 20 ? 'LOW' : 'NEW AGENT';
-
-      const result = { score, label, breakdown };
-
-      // Cache with 300-second TTL
-      await setCache(cacheKey, result, 300);
-
-      return result;
+      });
     }
   };
 }
