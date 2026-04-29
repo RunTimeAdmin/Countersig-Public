@@ -44,7 +44,7 @@ export const getOrgAgents = (orgId, params) => authClient.get(`/orgs/${orgId}/ag
 // Chain support
 export const getChains = async () => {
   const res = await authClient.get('/agents/chains');
-  return res.data;
+  return res.data.chains || res.data || [];
 };
 
 // Identity Provider management

@@ -131,7 +131,7 @@ export const getAgentsByOwner = async (pubkey) => {
 // Chain support
 export const getChains = async () => {
   const response = await api.get('/agents/chains');
-  return response.data;
+  return response.data.chains || response.data || [];
 };
 
 // W3C Verifiable Credential
