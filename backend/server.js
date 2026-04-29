@@ -4,8 +4,14 @@ const { logger, getLogger } = require('./src/utils/logger');
 const requestLogger = require('./src/middleware/requestLogger');
 
 // Required environment variables - server will not start without these
-const required = ['DATABASE_URL', 'BAGS_API_KEY', 'REDIS_URL', 'JWT_SECRET'];
+const required = ['DATABASE_URL', 'BAGS_API_KEY', 'JWT_SECRET'];
 const missing = required.filter(key => !process.env[key]);
+
+// Redis: accept either REDIS_URL or REDIS_HOST (redis.js handles both formats)
+if (!process.env.REDIS_URL && !process.env.REDIS_HOST) {
+  missing.push('REDIS_URL or REDIS_HOST');
+}
+
 if (missing.length > 0) {
   logger.fatal({ missing }, 'Missing required environment variables. Copy .env.example to .env and configure.');
   process.exit(1);
