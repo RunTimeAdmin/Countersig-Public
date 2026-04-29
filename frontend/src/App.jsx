@@ -17,6 +17,7 @@ import Settings from './pages/Settings';
 import AuditLog from './pages/AuditLog';
 import AgentGroups from './pages/AgentGroups';
 import Policies from './pages/Policies';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -290,20 +291,20 @@ function App() {
           <main className="flex-1">
             <ErrorBoundary>
               <Routes>
-                <Route path="/" element={<Registry />} />
-                <Route path="/agents/:agentId" element={<AgentDetail />} />
-                <Route path="/discover" element={<Discover />} />
-                <Route path="/demo" element={<Demo />} />
-                <Route path="/security" element={<Security />} />
-                <Route path="/guides" element={<Guides />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                <Route path="/register" element={<ProtectedRoute><Register /></ProtectedRoute>} />
-                <Route path="/audit" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
-                <Route path="/groups" element={<ProtectedRoute><AgentGroups /></ProtectedRoute>} />
-                <Route path="/policies" element={<ProtectedRoute><Policies /></ProtectedRoute>} />
+                <Route path="/" element={<RouteErrorBoundary><Registry /></RouteErrorBoundary>} />
+                <Route path="/agents/:agentId" element={<RouteErrorBoundary><AgentDetail /></RouteErrorBoundary>} />
+                <Route path="/discover" element={<RouteErrorBoundary><Discover /></RouteErrorBoundary>} />
+                <Route path="/demo" element={<RouteErrorBoundary><Demo /></RouteErrorBoundary>} />
+                <Route path="/security" element={<RouteErrorBoundary><Security /></RouteErrorBoundary>} />
+                <Route path="/guides" element={<RouteErrorBoundary><Guides /></RouteErrorBoundary>} />
+                <Route path="/login" element={<RouteErrorBoundary><Login /></RouteErrorBoundary>} />
+                <Route path="/signup" element={<RouteErrorBoundary><Signup /></RouteErrorBoundary>} />
+                <Route path="/dashboard" element={<RouteErrorBoundary><ProtectedRoute><Dashboard /></ProtectedRoute></RouteErrorBoundary>} />
+                <Route path="/settings" element={<RouteErrorBoundary><ProtectedRoute><Settings /></ProtectedRoute></RouteErrorBoundary>} />
+                <Route path="/register" element={<RouteErrorBoundary><ProtectedRoute><Register /></ProtectedRoute></RouteErrorBoundary>} />
+                <Route path="/audit" element={<RouteErrorBoundary><ProtectedRoute><AuditLog /></ProtectedRoute></RouteErrorBoundary>} />
+                <Route path="/groups" element={<RouteErrorBoundary><ProtectedRoute><AgentGroups /></ProtectedRoute></RouteErrorBoundary>} />
+                <Route path="/policies" element={<RouteErrorBoundary><ProtectedRoute><Policies /></ProtectedRoute></RouteErrorBoundary>} />
               </Routes>
             </ErrorBoundary>
           </main>
