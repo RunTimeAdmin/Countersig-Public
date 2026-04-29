@@ -10,6 +10,7 @@ import Discover from './pages/Discover';
 import Demo from './pages/Demo';
 import Security from './pages/Security';
 import Guides from './pages/Guides';
+import Pricing from './pages/Pricing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
@@ -91,6 +92,7 @@ function Navigation() {
             )}
             <NavLink to="/" active={isActive('/')}>Registry</NavLink>
             <NavLink to="/discover" active={isActive('/discover')}>Discover</NavLink>
+            <NavLink to="/pricing" active={isActive('/pricing')}>Pricing</NavLink>
             <NavLink to="/register" active={isActive('/register')}>Register</NavLink>
             <NavLink to="/security" active={isActive('/security')}>Security</NavLink>
             <NavLink to="/guides" active={isActive('/guides')}>Guides</NavLink>
@@ -157,6 +159,7 @@ function Navigation() {
               )}
               <MobileNavLink to="/" active={isActive('/')} onClick={handleNavClick}>Registry</MobileNavLink>
               <MobileNavLink to="/discover" active={isActive('/discover')} onClick={handleNavClick}>Discover</MobileNavLink>
+              <MobileNavLink to="/pricing" active={isActive('/pricing')} onClick={handleNavClick}>Pricing</MobileNavLink>
               <MobileNavLink to="/register" active={isActive('/register')} onClick={handleNavClick}>Register</MobileNavLink>
               <MobileNavLink to="/security" active={isActive('/security')} onClick={handleNavClick}>Security</MobileNavLink>
               <MobileNavLink to="/guides" active={isActive('/guides')} onClick={handleNavClick}>Guides</MobileNavLink>
@@ -297,6 +300,7 @@ function App() {
                 <Route path="/demo" element={<RouteErrorBoundary><Demo /></RouteErrorBoundary>} />
                 <Route path="/security" element={<RouteErrorBoundary><Security /></RouteErrorBoundary>} />
                 <Route path="/guides" element={<RouteErrorBoundary><Guides /></RouteErrorBoundary>} />
+                <Route path="/pricing" element={<RouteErrorBoundary><Pricing /></RouteErrorBoundary>} />
                 <Route path="/login" element={<RouteErrorBoundary><Login /></RouteErrorBoundary>} />
                 <Route path="/signup" element={<RouteErrorBoundary><Signup /></RouteErrorBoundary>} />
                 <Route path="/dashboard" element={<RouteErrorBoundary><ProtectedRoute><Dashboard /></ProtectedRoute></RouteErrorBoundary>} />

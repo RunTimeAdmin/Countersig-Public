@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { getAgents, getChains } from '../lib/api';
 import { getOrgAgents } from '../lib/authApi';
 import { useAuth } from '../components/AuthProvider';
-import TrustBadge from '../components/TrustBadge';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Status' },
@@ -13,6 +12,53 @@ const STATUS_OPTIONS = [
 ];
 
 const ITEMS_PER_PAGE = 12;
+
+const REGISTRY_TABS = [
+  { key: 'all', label: 'All Agents' },
+  { key: 'capability', label: 'By Capability' },
+  { key: 'chain', label: 'By Chain' },
+  { key: 'verified', label: 'Verified Only' },
+];
+
+const CAPABILITY_CATEGORIES = {
+  'DeFi & Finance': ['defi.', 'bags.', 'swap.', 'lend.', 'stake.'],
+  'AI & ML': ['text-generation', 'code-review', 'image-', 'nlp.', 'ml.'],
+  'NFT & Digital Assets': ['nft.', 'mint.', 'token.'],
+  'Data & Analytics': ['data.', 'analytics.', 'monitor.'],
+  'Infrastructure': ['infra.', 'deploy.', 'ci.', 'devops.'],
+  'Other': [],
+};
+
+const AUTH_BADGE_CONFIG = {
+  crypto: { label: 'Ed25519', color: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
+  oauth: { label: 'OAuth2', color: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
+  api_key: { label: 'API Key', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+  entra_id: { label: 'Entra ID', color: 'bg-teal-500/15 text-teal-400 border-teal-500/30' },
+};
+
+function getAuthBadge(credentialType) {
+  if (!credentialType) return AUTH_BADGE_CONFIG.crypto;
+  return AUTH_BADGE_CONFIG[credentialType] || { label: credentialType, color: 'bg-gray-500/15 text-gray-400 border-gray-500/30' };
+}
+
+function getScoreColor(score) {
+  if (score == null || score === undefined) return 'bg-gray-500/20 text-gray-400';
+  if (score >= 70) return 'bg-emerald-500/20 text-emerald-400';
+  if (score >= 40) return 'bg-yellow-500/20 text-yellow-400';
+  return 'bg-red-500/20 text-red-400';
+}
+
+function categorizeAgent(agent) {
+  const caps = agent.capabilities || agent.capabilitySet || [];
+  if (!Array.isArray(caps) || caps.length === 0) return 'Other';
+  for (const [category, prefixes] of Object.entries(CAPABILITY_CATEGORIES)) {
+    if (category === 'Other') continue;
+    for (const cap of caps) {
+      if (prefixes.some(p => String(cap).toLowerCase().startsWith(p))) return category;
+    }
+  }
+  return 'Other';
+}
 
 // Skeleton loader for agent cards
 function AgentCardSkeleton() {
@@ -50,6 +96,122 @@ function EmptyState({ message, submessage }) {
   );
 }
 
+// Enriched Agent Card
+function AgentCard({ agent }) {
+  const agentId = agent.agentId || agent.agent_id || agent.id;
+  const capabilities = agent.capabilities || agent.capabilitySet || [];
+  const capsArray = Array.isArray(capabilities) ? capabilities : [];
+  const description = agent.description || '';
+  const truncatedDesc = description.length > 100 ? description.slice(0, 100) + '...' : description;
+  const authBadge = getAuthBadge(agent.credentialType || agent.credential_type);
+  const score = agent.bagsScore ?? agent.bags_score ?? null;
+  const scoreColor = getScoreColor(score);
+
+  const CHAIN_CONFIG = {
+    'solana-bags': { label: 'BAGS', color: '#9945FF' },
+    'solana': { label: 'SOL', color: '#14F195' },
+    'ethereum': { label: 'ETH', color: '#627EEA' },
+    'base': { label: 'BASE', color: '#0052FF' },
+    'polygon': { label: 'MATIC', color: '#8247E5' },
+  };
+  const chain = agent.chainType || agent.chain_type;
+  const chainCfg = chain ? CHAIN_CONFIG[chain] : null;
+
+  return (
+    <Link
+      to={`/agents/${agentId}`}
+      className="block glass rounded-xl border border-[var(--border-subtle)] hover:border-emerald-500/40 transition-all duration-300 hover:-translate-y-1 group"
+    >
+      <div className="p-5">
+        {/* Row 1: Name + Status */}
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-bold text-[var(--text-primary)] truncate group-hover:text-emerald-400 transition-colors">
+              {agent.name || 'Unnamed Agent'}
+            </h3>
+          </div>
+          {/* Verified / Flagged badge */}
+          {agent.status === 'verified' ? (
+            <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+              Verified
+            </span>
+          ) : agent.status === 'flagged' ? (
+            <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-500/15 text-red-400 border border-red-500/30">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01" /></svg>
+              Flagged
+            </span>
+          ) : null}
+        </div>
+
+        {/* Description */}
+        {truncatedDesc && (
+          <p className="text-sm text-[var(--text-muted)] leading-relaxed mb-3 line-clamp-2">
+            {truncatedDesc}
+          </p>
+        )}
+
+        {/* Row 2: Auth method + Chain badge */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border ${authBadge.color}`}>
+            {authBadge.label}
+          </span>
+          {chainCfg && (
+            <span
+              className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider"
+              style={{
+                backgroundColor: `${chainCfg.color}20`,
+                color: chainCfg.color,
+                border: `1px solid ${chainCfg.color}40`,
+              }}
+            >
+              {chainCfg.label}
+            </span>
+          )}
+          {/* Reputation score */}
+          {score != null && (
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${scoreColor}`}>
+              {score}/100
+            </span>
+          )}
+        </div>
+
+        {/* Capability tags */}
+        {capsArray.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 mb-3">
+            {capsArray.slice(0, 3).map((cap) => (
+              <span key={cap} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
+                {cap}
+              </span>
+            ))}
+            {capsArray.length > 3 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium text-[var(--text-muted)]">
+                +{capsArray.length - 3} more
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className="h-px bg-gradient-to-r from-transparent via-[var(--border-subtle)] to-transparent my-2" />
+
+        {/* Footer */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[var(--text-muted)]">
+            {agent.registeredAt || agent.registered_at
+              ? new Date(agent.registeredAt || agent.registered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : ''}
+          </span>
+          <span className="text-xs font-semibold text-emerald-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+            View Details
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function Registry() {
   const { user, isAuthenticated } = useAuth();
   const [agents, setAgents] = useState([]);
@@ -63,6 +225,7 @@ export default function Registry() {
   const [scope, setScope] = useState('public');
   const [chains, setChains] = useState([]);
   const [chainFilter, setChainFilter] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
 
   const fetchAgents = useCallback(async () => {
     setLoading(true);
@@ -124,6 +287,25 @@ export default function Registry() {
   const currentPage = Math.floor(offset / ITEMS_PER_PAGE) + 1;
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
+  // Derive filtered agents based on active tab (client-side filtering on fetched page)
+  const filteredAgents = (() => {
+    if (activeTab === 'verified') return agents.filter(a => a.status === 'verified');
+    return agents;
+  })();
+
+  // Group agents by capability category when "By Capability" tab is active
+  const groupedAgents = (() => {
+    if (activeTab !== 'capability') return null;
+    const groups = {};
+    for (const cat of Object.keys(CAPABILITY_CATEGORIES)) groups[cat] = [];
+    for (const agent of filteredAgents) {
+      const cat = categorizeAgent(agent);
+      groups[cat].push(agent);
+    }
+    // Filter out empty categories
+    return Object.fromEntries(Object.entries(groups).filter(([, arr]) => arr.length > 0));
+  })();
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Hero Section */}
@@ -134,9 +316,15 @@ export default function Registry() {
         <p className="text-[var(--text-secondary)] text-xl max-w-3xl mx-auto leading-relaxed mb-4">
           AgentID 2.0 is the only identity platform built from the ground up with a pluggable, multi-provider authentication architecture. Prove who you are — by wallet, by enterprise SSO, by API key, or by direct agent-to-agent trust.
         </p>
-        <p className="text-[var(--text-muted)] text-sm max-w-2xl mx-auto">
+        <p className="text-[var(--text-muted)] text-sm max-w-2xl mx-auto mb-8">
           Not crypto-only. Not enterprise-only. Every identity. One platform.
         </p>
+        <a href="/signup" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-lg transition-all duration-300 shadow-lg shadow-emerald-600/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5">
+          Get Started Free
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </a>
       </div>
 
       {/* Authentication Methods Grid */}
@@ -261,6 +449,130 @@ export default function Registry() {
         </div>
       </div>
 
+      {/* Pricing Section */}
+      <div className="mb-16 animate-fade-in">
+        <h2 className="text-3xl font-bold text-center mb-3">
+          <span className="gradient-text">Simple, Transparent Pricing</span>
+        </h2>
+        <p className="text-[var(--text-secondary)] text-center mb-10 text-lg">Start free. Scale as you grow.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Free Tier */}
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] flex flex-col hover:border-[var(--accent-cyan)]/40 transition-all duration-300 hover:-translate-y-1">
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Free</h3>
+            <div className="mb-5">
+              <span className="text-3xl font-extrabold text-[var(--text-primary)]">$0</span>
+              <span className="text-[var(--text-muted)] text-sm">/mo</span>
+            </div>
+            <ul className="space-y-3 mb-6 flex-1">
+              {['100 attestations', '50 verifications', '500 badge/reputation calls', '100 A2A tokens', 'Community support'].map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+                  <svg className="w-4 h-4 mt-0.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <a href="/signup" className="block text-center px-5 py-2.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-primary)] font-semibold hover:bg-[var(--bg-tertiary)] transition-colors">Get Started</a>
+          </div>
+
+          {/* Starter Tier — Popular */}
+          <div className="glass rounded-2xl p-6 border-2 border-emerald-500 flex flex-col relative hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-emerald-500/10">
+            <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-emerald-600 text-white text-xs font-bold tracking-wide">Popular</span>
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Starter</h3>
+            <div className="mb-5">
+              <span className="text-3xl font-extrabold text-[var(--text-primary)]">$29</span>
+              <span className="text-[var(--text-muted)] text-sm">/mo</span>
+            </div>
+            <ul className="space-y-3 mb-6 flex-1">
+              {['5,000 attestations', '1,000 verifications', '10,000 badge/reputation calls', '1,000 A2A tokens', 'Email support'].map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+                  <svg className="w-4 h-4 mt-0.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <a href="/settings" className="block text-center px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors">Subscribe</a>
+          </div>
+
+          {/* Professional Tier */}
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] flex flex-col hover:border-[var(--accent-purple)]/40 transition-all duration-300 hover:-translate-y-1">
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Professional</h3>
+            <div className="mb-5">
+              <span className="text-3xl font-extrabold text-[var(--text-primary)]">$99</span>
+              <span className="text-[var(--text-muted)] text-sm">/mo</span>
+            </div>
+            <ul className="space-y-3 mb-6 flex-1">
+              {['50,000 attestations', '10,000 verifications', '100,000 badge/reputation calls', '10,000 A2A tokens', 'Priority support'].map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+                  <svg className="w-4 h-4 mt-0.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <a href="/settings" className="block text-center px-5 py-2.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-primary)] font-semibold hover:bg-[var(--bg-tertiary)] transition-colors">Subscribe</a>
+          </div>
+
+          {/* Enterprise Tier */}
+          <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] flex flex-col hover:border-[var(--accent-cyan)]/40 transition-all duration-300 hover:-translate-y-1">
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Enterprise</h3>
+            <div className="mb-5">
+              <span className="text-3xl font-extrabold text-[var(--text-primary)]">Custom</span>
+            </div>
+            <ul className="space-y-3 mb-6 flex-1">
+              {['Unlimited everything', 'Dedicated account manager', 'Custom SLA', 'SSO & SAML'].map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+                  <svg className="w-4 h-4 mt-0.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <a href="mailto:enterprise@agentidapp.com" className="block text-center px-5 py-2.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-primary)] font-semibold hover:bg-[var(--bg-tertiary)] transition-colors">Contact Us</a>
+          </div>
+        </div>
+      </div>
+
+      {/* Developer Quick Start */}
+      <div className="mb-16 animate-fade-in rounded-2xl bg-[var(--bg-tertiary)]/60 border border-[var(--border-subtle)] p-8 md:p-10">
+        <h2 className="text-2xl font-bold text-center mb-8">
+          <span className="gradient-text">Get Started in Seconds</span>
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* TypeScript SDK */}
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">TypeScript SDK</h3>
+            <div className="relative group">
+              <pre className="rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)] p-4 overflow-x-auto text-sm text-emerald-400 font-mono">npm install @agentidapp/sdk</pre>
+              <button
+                onClick={() => { navigator.clipboard.writeText('npm install @agentidapp/sdk'); }}
+                className="absolute top-3 right-3 p-1.5 rounded-md bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 transition-all"
+                title="Copy"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              </button>
+            </div>
+          </div>
+          {/* Claude MCP Integration */}
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Claude MCP Integration</h3>
+            <div className="relative group">
+              <pre className="rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)] p-4 overflow-x-auto text-sm text-emerald-400 font-mono">claude mcp add agentid -- npx -y @agentidapp/mcp</pre>
+              <button
+                onClick={() => { navigator.clipboard.writeText('claude mcp add agentid -- npx -y @agentidapp/mcp'); }}
+                className="absolute top-3 right-3 p-1.5 rounded-md bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 transition-all"
+                title="Copy"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="text-center">
+          <Link to="/guides" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-primary)] font-semibold hover:bg-[var(--bg-tertiary)] transition-colors">
+            View All Guides
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+          </Link>
+        </div>
+      </div>
+
       {/* Divider */}
       <div className="flex items-center gap-4 mb-16">
         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--border-subtle)] to-transparent" />
@@ -274,8 +586,27 @@ export default function Registry() {
           <span className="gradient-text">Agent Registry</span>
         </h1>
         <p className="text-[var(--text-secondary)] text-lg max-w-2xl mx-auto">
-          Browse verified AI agents across supported chains. Trust scores are computed from on-chain activity and community attestations.
+          Browse verified AI agents across all identity providers and chains. Trust scores are computed from on-chain activity and community attestations.
         </p>
+      </div>
+
+      {/* Registry Tab Bar */}
+      <div className="flex justify-center mb-6 animate-fade-in">
+        <div className="inline-flex p-1 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-subtle)] gap-1">
+          {REGISTRY_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 relative ${
+                activeTab === tab.key
+                  ? 'text-white bg-emerald-600 shadow-md shadow-emerald-600/20'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Scope Toggle */}
@@ -319,28 +650,30 @@ export default function Registry() {
       {/* Filter Bar */}
       <div className="glass rounded-xl p-4 mb-8 animate-fade-in">
         <div className="flex flex-col sm:flex-row gap-4">
-          {/* Status Dropdown */}
-          <div className="flex-1 sm:flex-none">
-            <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2">
-              Status
-            </label>
-            <div className="relative">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full sm:w-48 px-4 py-2.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)] transition-colors appearance-none cursor-pointer"
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+          {/* Status Dropdown — hidden on "Verified Only" tab since it's redundant */}
+          {activeTab !== 'verified' && (
+            <div className="flex-1 sm:flex-none">
+              <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2">
+                Status
+              </label>
+              <div className="relative">
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full sm:w-48 px-4 py-2.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)] transition-colors appearance-none cursor-pointer"
+                >
+                  {STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Capability Search */}
           <div className="flex-1">
@@ -355,7 +688,7 @@ export default function Registry() {
                 type="text"
                 value={capability}
                 onChange={(e) => setCapability(e.target.value)}
-                placeholder="e.g., bags.swap.v1"
+                placeholder="e.g., defi.swap, text-generation"
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)] transition-colors"
               />
               {capability && (
@@ -371,7 +704,7 @@ export default function Registry() {
             </div>
           </div>
 
-          {/* Chain Dropdown */}
+          {/* Chain Dropdown — prominent on "By Chain" tab, available on others */}
           <div className="flex-1 sm:flex-none">
             <label className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2">
               Chain
@@ -380,7 +713,9 @@ export default function Registry() {
               <select
                 value={chainFilter}
                 onChange={(e) => setChainFilter(e.target.value)}
-                className="w-full sm:w-48 px-4 py-2.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)] transition-colors appearance-none cursor-pointer"
+                className={`w-full sm:w-48 px-4 py-2.5 rounded-lg bg-[var(--bg-tertiary)] border text-[var(--text-primary)] focus:border-[var(--accent-cyan)] focus:ring-1 focus:ring-[var(--accent-cyan)] transition-colors appearance-none cursor-pointer ${
+                  activeTab === 'chain' ? 'border-emerald-500/50 ring-1 ring-emerald-500/20' : 'border-[var(--border-default)]'
+                }`}
               >
                 <option value="">All Chains</option>
                 {chains.map(c => (
@@ -400,7 +735,7 @@ export default function Registry() {
                 <span>Loading...</span>
               ) : (
                 <span>
-                  <span className="text-[var(--text-primary)] font-semibold">{total}</span> agent{total !== 1 ? 's' : ''} found
+                  <span className="text-[var(--text-primary)] font-semibold">{activeTab === 'verified' ? filteredAgents.length : total}</span> agent{(activeTab === 'verified' ? filteredAgents.length : total) !== 1 ? 's' : ''} found
                 </span>
               )}
             </div>
@@ -433,7 +768,7 @@ export default function Registry() {
       )}
 
       {/* Empty State */}
-      {!loading && !error && agents.length === 0 && (
+      {!loading && !error && filteredAgents.length === 0 && (
         <EmptyState
           message="No agents registered yet"
           submessage="Be the first to register your agent in the ecosystem."
@@ -441,27 +776,34 @@ export default function Registry() {
       )}
 
       {/* Agent Grid */}
-      {!loading && !error && agents.length > 0 && (
+      {!loading && !error && filteredAgents.length > 0 && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-fade-in">
-            {agents.map((agent) => (
-              <Link
-                key={agent.agentId || agent.agent_id || agent.id}
-                to={`/agents/${agent.agentId || agent.agent_id || agent.id}`}
-                className="block transition-transform duration-200 hover:scale-[1.02]"
-              >
-                <TrustBadge
-                  status={agent.status}
-                  name={agent.name}
-                  score={agent.bagsScore}
-                  registeredAt={agent.registeredAt}
-                  totalActions={agent.totalActions}
-                  agent={agent}
-                  className="h-full"
-                />
-              </Link>
-            ))}
-          </div>
+          {activeTab === 'capability' && groupedAgents ? (
+            // Grouped by capability category
+            <div className="space-y-10 animate-fade-in">
+              {Object.entries(groupedAgents).map(([category, catAgents]) => (
+                <div key={category}>
+                  <h3 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-3">
+                    <span className="w-1.5 h-6 rounded-full bg-emerald-500" />
+                    {category}
+                    <span className="text-sm font-normal text-[var(--text-muted)]">({catAgents.length})</span>
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {catAgents.map((agent) => (
+                      <AgentCard key={agent.agentId || agent.agent_id || agent.id} agent={agent} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Flat grid for other tabs
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
+              {filteredAgents.map((agent) => (
+                <AgentCard key={agent.agentId || agent.agent_id || agent.id} agent={agent} />
+              ))}
+            </div>
+          )}
 
           {/* Pagination */}
           {total > ITEMS_PER_PAGE && (
