@@ -22,6 +22,8 @@ if (process.env.NODE_ENV === 'production' && !process.env.DID_ED25519_PUBLIC_KEY
   logger.warn('DID_ED25519_PUBLIC_KEY not set — /.well-known/did.json will return 503');
 }
 
+const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -115,6 +117,28 @@ app.get('/metrics', async (req, res) => {
   res.end(await register.metrics());
 });
 
+// Serve OpenAPI spec
+app.get('/openapi.yaml', (req, res) => {
+  const specPath = path.join(__dirname, 'openapi.yaml');
+  if (fs.existsSync(specPath)) {
+    res.type('text/yaml').sendFile(specPath);
+  } else {
+    res.status(404).json({ error: 'OpenAPI spec not found' });
+  }
+});
+
+// Swagger UI (CDN-based, zero dependencies)
+app.get('/docs', (req, res) => {
+  res.send(`<!DOCTYPE html>
+<html><head><title>AgentID API Docs</title>
+<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+</head><body>
+<div id="swagger-ui"></div>
+<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<script>SwaggerUIBundle({ url: '/openapi.yaml', dom_id: '#swagger-ui' });</script>
+</body></html>`);
+});
+
 // Health check route
 app.get('/health', async (req, res) => {
   // Detailed health check requires secret header (constant-time compare)
@@ -203,7 +227,7 @@ app.use((req, res, next) => {
     // - /health   : health check (never mutates state)
     // - /verify-token : A2A token verification (unauthenticated, called by external agents
     //                    that do not send the X-Requested-With header)
-    const csrfSkipExact = ['/health', '/verify-token', '/.well-known/jwks.json', '/v1/verify-token', '/credentials/verify', '/v1/credentials/verify'];
+    const csrfSkipExact = ['/health', '/verify-token', '/.well-known/jwks.json', '/v1/verify-token', '/credentials/verify', '/v1/credentials/verify', '/openapi.yaml', '/docs'];
     const csrfSkipPrefix = ['/public/', '/badge/', '/widget/', '/v1/public/', '/v1/badge/', '/v1/widget/'];
     if (csrfSkipExact.includes(req.path) || csrfSkipPrefix.some(p => req.path.startsWith(p))) {
       return next();
