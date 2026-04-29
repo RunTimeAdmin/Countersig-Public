@@ -19,6 +19,7 @@ const { orgContext } = require('../middleware/orgContext');
 const { transformAgent, transformAgents, isValidSolanaAddress } = require('../utils/transform');
 const { generateA2AToken, verifyA2AToken } = require('../services/authService');
 const eventBus = require('../services/eventBus');
+const config = require('../config');
 
 const router = express.Router();
 
@@ -250,7 +251,7 @@ router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
         lastVerified: agent.last_verified || null
       },
       credentialStatus: {
-        id: `https://api.agentidapp.com/agents/${agentId}`,
+        id: `${config.agentIdBaseUrl}/agents/${agentId}`,
         type: 'AgentIDStatusCheck2024',
         statusPurpose: 'revocation'
       },

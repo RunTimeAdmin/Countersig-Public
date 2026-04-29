@@ -40,7 +40,7 @@ async function getBadgeJSON(agentId) {
 
     // Compute reputation score with prefetched data
     const reputation = await computeBagsScore(agentId, { agent, actions });
-    const scoringModel = SCORING_MODELS[reputation.chainType] || 'default-v1';
+    const scoringModel = SCORING_MODELS[agent.chain_type] || 'default-v1';
 
     // Get action stats
     const actionStats = actions || { total: 0, successful: 0, failed: 0 };
