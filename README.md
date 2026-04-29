@@ -183,13 +183,22 @@ See [docs/API_REFERENCE.md](docs/API_REFERENCE.md) for the complete API referenc
 
 ## Client Libraries
 
-| Package | Description | Install |
-|---------|-------------|---------|
-| [@agentidapp/sdk](./packages/sdk) | Core JavaScript/TypeScript SDK | `npm install @agentidapp/sdk` |
-| [@agentidapp/react](./packages/react) | React hooks and components | `npm install @agentidapp/react` |
-| [@agentidapp/verify](./packages/verify) | Credential verification utilities | `npm install @agentidapp/verify` |
+Now live on npm:
 
-> **Note:** These packages are in active development and not yet published to npm. See each package's README for current status.
+| Package | Version | Install | Description |
+|---------|---------|---------|-------------|
+| [@agentidapp/sdk](https://www.npmjs.com/package/@agentidapp/sdk) | 1.0.0 | `npm install @agentidapp/sdk` | TypeScript SDK for all AgentID operations |
+| [@agentidapp/mcp](https://www.npmjs.com/package/@agentidapp/mcp) | 1.0.0 | `npx -y @agentidapp/mcp` | MCP server for Claude Code / Claude Desktop |
+| @agentidapp/verify | 1.0.0 | `npm install @agentidapp/verify` | Lightweight A2A token verification |
+| @agentidapp/react | Coming soon | — | React hooks and components |
+
+### Quick Start with Claude
+
+```bash
+claude mcp add agentid -- npx -y @agentidapp/mcp
+```
+
+Then ask Claude: "Register a new agent called my-assistant with text-generation capabilities"
 
 ## Developer Guide
 

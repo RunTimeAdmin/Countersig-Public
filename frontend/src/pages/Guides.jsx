@@ -10,6 +10,8 @@ const PuzzleIcon = ({ className }) => (<svg className={className} fill="none" st
 const ServerIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 01-2 2v4a2 2 0 012 2h14a2 2 0 012-2v-4a2 2 0 01-2-2m-2-4h.01M17 16h.01" /></svg>);
 const LockIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>);
 const RefreshIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>);
+const PackageIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>);
+const CpuChipIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 005.25 8.25v9a2.25 2.25 0 002.25 2.25z" /></svg>);
 
 export default function Guides() {
   return (
@@ -34,6 +36,158 @@ export default function Guides() {
       </section>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* SDK Quick Start */}
+        <div className="md:col-span-2 lg:col-span-3 glass rounded-2xl p-6 border border-gray-700 hover:border-sky-500/50 transition-colors">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-12 h-12 rounded-xl bg-sky-500/10 flex items-center justify-center">
+              <PackageIcon className="w-6 h-6 text-sky-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white">SDK Quick Start</h2>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-sky-400 uppercase tracking-wider mb-2">Installation</h3>
+                <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>npm install @agentidapp/sdk</code></pre>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-sky-400 uppercase tracking-wider mb-2">Quick Start</h3>
+                <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`import { AgentIDClient } from '@agentidapp/sdk';
+
+const client = new AgentIDClient({
+  apiKey: 'aid_your_key_here',
+  baseUrl: 'https://api.agentidapp.com'
+});
+
+// Register an agent
+const agent = await client.agents.register({
+  name: 'My AI Agent',
+  capabilities: ['text-generation', 'code-review'],
+  credential_type: 'api_key'
+});
+
+// Get trust badge
+const badge = await client.badges.get(agent.agent_id);
+
+// Check reputation
+const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-sky-400 uppercase tracking-wider mb-2">Key Features</h3>
+                <ul className="space-y-1.5 text-sm text-[var(--text-secondary)]">
+                  <li className="flex items-start gap-2"><span className="text-sky-400 mt-0.5">•</span>Agent registration, lookup, update, revoke</li>
+                  <li className="flex items-start gap-2"><span className="text-sky-400 mt-0.5">•</span>Trust badge retrieval (JSON and SVG)</li>
+                  <li className="flex items-start gap-2"><span className="text-sky-400 mt-0.5">•</span>A2A token issuance and verification</li>
+                  <li className="flex items-start gap-2"><span className="text-sky-400 mt-0.5">•</span>W3C Verifiable Credentials export</li>
+                  <li className="flex items-start gap-2"><span className="text-sky-400 mt-0.5">•</span>Reputation scoring and breakdown</li>
+                  <li className="flex items-start gap-2"><span className="text-sky-400 mt-0.5">•</span>Multi-chain discovery</li>
+                  <li className="flex items-start gap-2"><span className="text-sky-400 mt-0.5">•</span>Attestations and flags</li>
+                </ul>
+              </div>
+
+              <div className="flex flex-wrap gap-3 pt-2">
+                <a href="https://www.npmjs.com/package/@agentidapp/sdk" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sky-400 hover:text-sky-300 transition-colors text-sm">
+                  <span>npm</span>
+                  <ExternalLinkIcon className="w-3.5 h-3.5" />
+                </a>
+                <a href="https://github.com/RunTimeAdmin/AgentID-2.0/tree/main/packages/sdk" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sky-400 hover:text-sky-300 transition-colors text-sm">
+                  <span>GitHub</span>
+                  <ExternalLinkIcon className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* MCP for Claude */}
+        <div className="md:col-span-2 lg:col-span-3 glass rounded-2xl p-6 border border-gray-700 hover:border-violet-500/50 transition-colors">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center">
+              <CpuChipIcon className="w-6 h-6 text-violet-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white">MCP for Claude</h2>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-violet-400 uppercase tracking-wider mb-2">For Claude Code</h3>
+                <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>claude mcp add agentid -- npx -y @agentidapp/mcp</code></pre>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-violet-400 uppercase tracking-wider mb-2">For Claude Desktop</h3>
+                <p className="text-xs text-[var(--text-muted)] mb-2">Add to <code className="bg-[var(--bg-primary)] px-1.5 py-0.5 rounded text-xs">claude_desktop_config.json</code>:</p>
+                <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`{
+  "mcpServers": {
+    "agentid": {
+      "command": "npx",
+      "args": ["-y", "@agentidapp/mcp"],
+      "env": {
+        "AGENTID_API_KEY": "aid_your_key_here"
+      }
+    }
+  }
+}`}</code></pre>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-violet-400 uppercase tracking-wider mb-2">Quick Start Prompts</h3>
+                <ul className="space-y-1.5 text-sm text-[var(--text-secondary)]">
+                  <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">→</span>&quot;Register a new agent called &apos;my-assistant&apos; with text-generation capabilities&quot;</li>
+                  <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">→</span>&quot;Verify my agent&apos;s identity and show its reputation score&quot;</li>
+                  <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">→</span>&quot;Get a trust badge for agent [id] in SVG format&quot;</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-violet-400 uppercase tracking-wider mb-2">Available Tools (11)</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[var(--border-subtle)]">
+                        <th className="text-left py-2 text-[var(--text-muted)] font-medium">Tool</th>
+                        <th className="text-left py-2 text-[var(--text-muted)] font-medium">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-[var(--text-secondary)]">
+                      <tr className="border-b border-[var(--border-subtle)]"><td className="py-1.5"><code className="text-xs">configure</code></td><td className="text-xs">Set API key and agent ID</td></tr>
+                      <tr className="border-b border-[var(--border-subtle)]"><td className="py-1.5"><code className="text-xs">register_agent</code></td><td className="text-xs">Register with auto Ed25519 keypair</td></tr>
+                      <tr className="border-b border-[var(--border-subtle)]"><td className="py-1.5"><code className="text-xs">verify_agent</code></td><td className="text-xs">PKI challenge-response verification</td></tr>
+                      <tr className="border-b border-[var(--border-subtle)]"><td className="py-1.5"><code className="text-xs">get_agent</code></td><td className="text-xs">Lookup agent details</td></tr>
+                      <tr className="border-b border-[var(--border-subtle)]"><td className="py-1.5"><code className="text-xs">get_reputation</code></td><td className="text-xs">Get reputation breakdown</td></tr>
+                      <tr className="border-b border-[var(--border-subtle)]"><td className="py-1.5"><code className="text-xs">get_trust_badge</code></td><td className="text-xs">Get trust badge (JSON/SVG)</td></tr>
+                      <tr className="border-b border-[var(--border-subtle)]"><td className="py-1.5"><code className="text-xs">issue_a2a_token</code></td><td className="text-xs">Issue agent-to-agent token</td></tr>
+                      <tr className="border-b border-[var(--border-subtle)]"><td className="py-1.5"><code className="text-xs">verify_a2a_token</code></td><td className="text-xs">Verify A2A token</td></tr>
+                      <tr className="border-b border-[var(--border-subtle)]"><td className="py-1.5"><code className="text-xs">authenticated_fetch</code></td><td className="text-xs">SSRF-protected authenticated HTTP</td></tr>
+                      <tr className="border-b border-[var(--border-subtle)]"><td className="py-1.5"><code className="text-xs">attest_action</code></td><td className="text-xs">Record action attestation</td></tr>
+                      <tr><td className="py-1.5"><code className="text-xs">get_verifiable_credential</code></td><td className="text-xs">Export W3C credential</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3 pt-2">
+                <a href="https://www.npmjs.com/package/@agentidapp/mcp" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 transition-colors text-sm">
+                  <span>npm</span>
+                  <ExternalLinkIcon className="w-3.5 h-3.5" />
+                </a>
+                <a href="https://github.com/RunTimeAdmin/AgentID-2.0/tree/main/packages/mcp" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 transition-colors text-sm">
+                  <span>GitHub</span>
+                  <ExternalLinkIcon className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="glass rounded-2xl p-6 border border-gray-700 hover:border-cyan-500/50 transition-colors">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center">
@@ -135,6 +289,30 @@ export default function Guides() {
       <section className="mt-16 mb-8">
         <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2 text-center">Technical Reference</h2>
         <p className="text-[var(--text-secondary)] text-center mb-8">In-depth technical documentation for advanced integrations</p>
+      </section>
+
+      <section className="mt-12 space-y-4">
+        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Client Libraries</h2>
+        <p className="text-[var(--text-secondary)]">
+          Official packages for integrating AgentID into your applications and AI workflows.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--border-subtle)]">
+                <th className="text-left py-2 text-[var(--text-muted)] font-medium">Package</th>
+                <th className="text-left py-2 text-[var(--text-muted)] font-medium">Version</th>
+                <th className="text-left py-2 text-[var(--text-muted)] font-medium">Description</th>
+              </tr>
+            </thead>
+            <tbody className="text-[var(--text-secondary)]">
+              <tr className="border-b border-[var(--border-subtle)]"><td className="py-2"><code className="text-xs">@agentidapp/sdk</code></td><td>1.0.0</td><td>TypeScript SDK for all AgentID operations</td></tr>
+              <tr className="border-b border-[var(--border-subtle)]"><td className="py-2"><code className="text-xs">@agentidapp/mcp</code></td><td>1.0.0</td><td>MCP server for Claude Code / Claude Desktop</td></tr>
+              <tr className="border-b border-[var(--border-subtle)]"><td className="py-2"><code className="text-xs">@agentidapp/verify</code></td><td>1.0.0</td><td>Lightweight A2A token verifier</td></tr>
+              <tr><td className="py-2"><code className="text-xs">@agentidapp/react</code></td><td className="text-[var(--text-muted)] italic">Coming soon</td><td>React hooks for AgentID</td></tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="mt-12 space-y-4">

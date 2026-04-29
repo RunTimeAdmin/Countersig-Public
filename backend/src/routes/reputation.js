@@ -7,6 +7,7 @@ const express = require('express');
 const { computeBagsScore } = require('../services/bagsReputation');
 const { getAgent } = require('../models/agentQueries');
 const { defaultLimiter } = require('../middleware/rateLimit');
+const { meterEvent } = require('../middleware/billingMeter');
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ const router = express.Router();
  * GET /reputation/:agentId
  * Returns full reputation breakdown
  */
-router.get('/reputation/:agentId', defaultLimiter, async (req, res, next) => {
+router.get('/reputation/:agentId', defaultLimiter, meterEvent('credential_fetch'), async (req, res, next) => {
   try {
     const { agentId } = req.params;
 

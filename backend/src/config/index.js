@@ -48,7 +48,13 @@ const config = {
 
   // Microsoft Entra ID
   entraIdEnabled: process.env.ENTRA_ID_ENABLED === 'true',
-  entraTenantId: process.env.ENTRA_TENANT_ID || ''
+  entraTenantId: process.env.ENTRA_TENANT_ID || '',
+
+  // Stripe billing configuration
+  stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
+  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+  stripePriceStarterId: process.env.STRIPE_PRICE_STARTER_ID || '',
+  stripePriceProfessionalId: process.env.STRIPE_PRICE_PROFESSIONAL_ID || '',
 };
 
 module.exports = config;

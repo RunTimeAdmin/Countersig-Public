@@ -245,6 +245,38 @@ async function runV2Migration(pool) {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_auth_attempts_created ON auth_attempts(created_at)`);
     console.log('  - Created table: auth_attempts');
 
+    // billing_events — metered billable operations per org
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS billing_events (
+        id BIGSERIAL PRIMARY KEY,
+        org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+        api_key_id UUID,
+        user_id UUID,
+        operation_type VARCHAR(50) NOT NULL,
+        endpoint VARCHAR(255) NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_billing_events_org_period ON billing_events (org_id, created_at)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_billing_events_type ON billing_events (operation_type, created_at)`);
+    console.log('  - Created table: billing_events');
+
+    // org_plans — per-org subscription tier and Stripe references
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS org_plans (
+        id BIGSERIAL PRIMARY KEY,
+        org_id UUID UNIQUE REFERENCES organizations(id) ON DELETE CASCADE,
+        tier VARCHAR(20) NOT NULL DEFAULT 'free',
+        stripe_customer_id VARCHAR(255),
+        stripe_subscription_id VARCHAR(255),
+        current_period_start TIMESTAMPTZ,
+        current_period_end TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    console.log('  - Created table: org_plans');
+
     await client.query('COMMIT');
     console.log('✓ v2 database migration completed successfully');
   } catch (err) {

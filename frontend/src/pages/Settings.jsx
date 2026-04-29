@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../components/AuthProvider';
-import { getOrg, getOrgMembers, getApiKeys, createApiKey, deleteApiKey, getIdentityProviders, createIdentityProvider, updateIdentityProvider, deleteIdentityProvider } from '../lib/authApi';
+import { getOrg, getOrgMembers, getApiKeys, createApiKey, deleteApiKey, getIdentityProviders, createIdentityProvider, updateIdentityProvider, deleteIdentityProvider, getBillingUsage, getBillingPlan, createCheckoutSession, createPortalSession } from '../lib/authApi';
 
 const TABS = [
   { id: 'org', label: 'Organization' },
   { id: 'keys', label: 'API Keys' },
   { id: 'team', label: 'Team Members' },
   { id: 'identity-providers', label: 'Identity Providers' },
+  { id: 'billing', label: 'Plan & Billing' },
 ];
 
 function formatDate(dateString) {
@@ -557,6 +558,207 @@ function IdentityProvidersSection({ orgId }) {
   );
 }
 
+// ---- Plan & Billing Section ----
+const PLAN_TIERS = [
+  { tier: 'free', label: 'Free', price: '$0/mo', attestations: '100', verifications: '50', badge_rep: '500', tokens: '100' },
+  { tier: 'starter', label: 'Starter', price: '$29/mo', attestations: '5,000', verifications: '1,000', badge_rep: '10,000', tokens: '1,000' },
+  { tier: 'professional', label: 'Professional', price: '$99/mo', attestations: '50,000', verifications: '10,000', badge_rep: '100,000', tokens: '10,000' },
+  { tier: 'enterprise', label: 'Enterprise', price: 'Custom', attestations: 'Unlimited', verifications: 'Unlimited', badge_rep: 'Unlimited', tokens: 'Unlimited' },
+];
+
+function UsageBar({ label, current, limit }) {
+  const pct = limit > 0 ? Math.min((current / limit) * 100, 100) : 0;
+  const barColor = pct > 80 ? 'bg-red-500' : pct > 60 ? 'bg-amber-500' : 'bg-emerald-500';
+  const textColor = pct > 80 ? 'text-red-400' : pct > 60 ? 'text-amber-400' : 'text-emerald-400';
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-sm text-[var(--text-secondary)]">{label}</span>
+        <span className={`text-xs font-mono font-medium ${textColor}`}>
+          {current?.toLocaleString()}{limit > 0 ? ` / ${limit.toLocaleString()}` : ' / ∞'}
+        </span>
+      </div>
+      <div className="h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+        <div className={`h-full rounded-full ${barColor} transition-all duration-500`} style={{ width: `${limit > 0 ? pct : 0}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function BillingSection() {
+  const [plan, setPlan] = useState(null);
+  const [usage, setUsage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetch = async () => {
+      setLoading(true);
+      try {
+        const [planData, usageData] = await Promise.all([
+          getBillingPlan().catch(() => null),
+          getBillingUsage().catch(() => null),
+        ]);
+        setPlan(planData);
+        setUsage(usageData);
+      } catch {
+        setError('Failed to load billing data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, []);
+
+  const handleCheckout = async (tier) => {
+    setActionLoading(tier);
+    try {
+      const data = await createCheckoutSession(tier);
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to start checkout');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const handlePortal = async () => {
+    setActionLoading('portal');
+    try {
+      const data = await createPortalSession();
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to open billing portal');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="animate-pulse space-y-6">
+        <div className="h-32 bg-[var(--bg-tertiary)] rounded-xl" />
+        <div className="h-48 bg-[var(--bg-tertiary)] rounded-xl" />
+      </div>
+    );
+  }
+
+  const currentTier = plan?.tier || usage?.tier || 'free';
+
+  const tierBadgeColor = {
+    free: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
+    starter: 'bg-[var(--accent-cyan)]/15 text-[var(--accent-cyan)] border-[var(--accent-cyan)]/30',
+    professional: 'bg-[var(--accent-purple)]/15 text-[var(--accent-purple)] border-[var(--accent-purple)]/30',
+    enterprise: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  };
+
+  return (
+    <div className="space-y-6">
+      {error && (
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          {error}
+          <button onClick={() => setError('')} className="ml-3 underline text-xs">Dismiss</button>
+        </div>
+      )}
+
+      {/* Current Plan Card */}
+      <div className="glass rounded-xl p-6 border border-[var(--border-subtle)]">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Current Plan</h3>
+          <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${tierBadgeColor[currentTier] || tierBadgeColor.free}`}>
+            {currentTier}
+          </span>
+        </div>
+        {plan?.periodStart && (
+          <p className="text-xs text-[var(--text-muted)] mb-4">
+            Billing period: {formatDate(plan.periodStart)} — {formatDate(plan.periodEnd)}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-3">
+          {currentTier !== 'free' && (
+            <button
+              onClick={handlePortal}
+              disabled={!!actionLoading}
+              className="px-4 py-2 rounded-xl text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-tertiary)] border border-[var(--border-default)] hover:text-[var(--text-primary)] hover:border-[var(--accent-cyan)] transition-all disabled:opacity-50"
+            >
+              {actionLoading === 'portal' ? 'Opening...' : 'Manage Billing'}
+            </button>
+          )}
+          {currentTier === 'free' && (
+            <button
+              onClick={() => handleCheckout('starter')}
+              disabled={!!actionLoading}
+              className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-purple)] hover:shadow-lg hover:shadow-[var(--accent-cyan)]/25 transition-all disabled:opacity-50"
+            >
+              {actionLoading === 'starter' ? 'Redirecting...' : 'Upgrade to Starter — $29/mo'}
+            </button>
+          )}
+          {(currentTier === 'free' || currentTier === 'starter') && (
+            <button
+              onClick={() => handleCheckout('professional')}
+              disabled={!!actionLoading}
+              className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-[var(--accent-purple)] to-pink-500 hover:shadow-lg hover:shadow-[var(--accent-purple)]/25 transition-all disabled:opacity-50"
+            >
+              {actionLoading === 'professional' ? 'Redirecting...' : 'Upgrade to Professional — $99/mo'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Usage Card */}
+      <div className="glass rounded-xl p-6 border border-[var(--border-subtle)]">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-5">Usage This Period</h3>
+        {usage?.usage ? (
+          <div className="space-y-4">
+            <UsageBar label="Attestations" current={usage.usage.attestation?.current || 0} limit={usage.usage.attestation?.limit || 0} />
+            <UsageBar label="Verifications" current={usage.usage.verification?.current || 0} limit={usage.usage.verification?.limit || 0} />
+            <UsageBar label="Badge / Reputation Calls" current={usage.usage.credential_fetch?.current || 0} limit={usage.usage.credential_fetch?.limit || 0} />
+            <UsageBar label="A2A Tokens" current={usage.usage.token_issuance?.current || 0} limit={usage.usage.token_issuance?.limit || 0} />
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--text-muted)]">Usage data unavailable. Billing features coming soon.</p>
+        )}
+      </div>
+
+      {/* Pricing Table */}
+      <div className="glass rounded-xl p-6 border border-[var(--border-subtle)]">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Plan Comparison</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-[var(--border-subtle)]">
+                <th className="py-2 px-3 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">Plan</th>
+                <th className="py-2 px-3 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">Price</th>
+                <th className="py-2 px-3 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">Attestations</th>
+                <th className="py-2 px-3 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">Verifications</th>
+                <th className="py-2 px-3 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">Badge/Rep</th>
+                <th className="py-2 px-3 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">Tokens</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PLAN_TIERS.map(t => (
+                <tr key={t.tier} className={`border-b border-[var(--border-subtle)] ${t.tier === currentTier ? 'bg-[var(--accent-cyan)]/5' : ''}`}>
+                  <td className="py-2.5 px-3 font-medium text-[var(--text-primary)]">
+                    {t.label}
+                    {t.tier === currentTier && <span className="ml-2 text-[10px] font-bold text-[var(--accent-cyan)] uppercase">Current</span>}
+                  </td>
+                  <td className="py-2.5 px-3 text-[var(--text-secondary)]">{t.price}</td>
+                  <td className="py-2.5 px-3 text-[var(--text-secondary)]">{t.attestations}</td>
+                  <td className="py-2.5 px-3 text-[var(--text-secondary)]">{t.verifications}</td>
+                  <td className="py-2.5 px-3 text-[var(--text-secondary)]">{t.badge_rep}</td>
+                  <td className="py-2.5 px-3 text-[var(--text-secondary)]">{t.tokens}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---- Main Settings Page ----
 export default function Settings() {
   const { user } = useAuth();
@@ -613,6 +815,7 @@ export default function Settings() {
         {activeTab === 'keys' && <ApiKeysSection />}
         {activeTab === 'team' && <TeamSection orgId={user?.orgId} />}
         {activeTab === 'identity-providers' && <IdentityProvidersSection orgId={user?.orgId} />}
+        {activeTab === 'billing' && <BillingSection />}
       </div>
     </div>
   );

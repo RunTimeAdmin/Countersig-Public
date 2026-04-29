@@ -15,6 +15,8 @@ const { redis } = require('../models/redis');
 const { transformAgent, isValidSolanaAddress } = require('../utils/transform');
 const eventBus = require('../services/eventBus');
 const { cryptoRegistrationSchema, oauthRegistrationSchema } = require('../schemas');
+const { meterEvent } = require('../middleware/billingMeter');
+const { enforceQuota } = require('../middleware/quotaEnforcement');
 
 const router = express.Router();
 
@@ -29,7 +31,7 @@ const luaScript = `
  * POST /register
  * Full agent registration flow
  */
-router.post('/register', authenticate, registrationLimiter, async (req, res, next) => {
+router.post('/register', authenticate, enforceQuota('attestation'), meterEvent('attestation'), registrationLimiter, async (req, res, next) => {
   try {
     const { credential_type = 'crypto' } = req.body;
 

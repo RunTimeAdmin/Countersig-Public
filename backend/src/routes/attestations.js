@@ -27,6 +27,8 @@ const { recordTrustEdge } = require('../services/trustPropagation');
 const { query } = require('../models/db');
 const { validate } = require('../middleware/validate');
 const { attestationSchema } = require('../schemas');
+const { meterEvent } = require('../middleware/billingMeter');
+const { enforceQuota } = require('../middleware/quotaEnforcement');
 
 const router = express.Router();
 
@@ -34,7 +36,7 @@ const router = express.Router();
  * POST /agents/:agentId/attest
  * Record a successful/failed action
  */
-router.post('/agents/:agentId/attest', authenticate, requireScope('write'), authLimiter, validate(attestationSchema), async (req, res, next) => {
+router.post('/agents/:agentId/attest', authenticate, requireScope('write'), enforceQuota('attestation'), meterEvent('attestation'), authLimiter, validate(attestationSchema), async (req, res, next) => {
   try {
     const { agentId } = req.params;
     const { success, action } = req.body;
@@ -115,7 +117,7 @@ router.post('/agents/:agentId/attest', authenticate, requireScope('write'), auth
  * POST /agents/:agentId/flag
  * Flag suspicious behavior with cryptographic proof-of-ownership
  */
-router.post('/agents/:agentId/flag', authenticate, requireScope('write'), authLimiter, async (req, res, next) => {
+router.post('/agents/:agentId/flag', authenticate, requireScope('write'), enforceQuota('attestation'), meterEvent('attestation'), authLimiter, async (req, res, next) => {
   try {
     const { agentId } = req.params;
     const { reporterPubkey, signature, timestamp, reason, evidence } = req.body;

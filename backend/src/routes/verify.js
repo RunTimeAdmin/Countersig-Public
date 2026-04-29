@@ -9,6 +9,8 @@ const { getAgent } = require('../models/agentQueries');
 const { authLimiter } = require('../middleware/rateLimit');
 const { authenticate } = require('../middleware/authenticate');
 const eventBus = require('../services/eventBus');
+const { meterEvent } = require('../middleware/billingMeter');
+const { enforceQuota } = require('../middleware/quotaEnforcement');
 
 const router = express.Router();
 
@@ -16,7 +18,7 @@ const router = express.Router();
  * POST /challenge
  * Issue a PKI challenge for an agent
  */
-router.post('/challenge', authenticate, authLimiter, async (req, res, next) => {
+router.post('/challenge', authenticate, enforceQuota('verification'), meterEvent('verification'), authLimiter, async (req, res, next) => {
   try {
     // 1. Validate: requires agentId in body
     const { agentId } = req.body;
@@ -64,7 +66,7 @@ router.post('/challenge', authenticate, authLimiter, async (req, res, next) => {
  * POST /response
  * Verify signed challenge response
  */
-router.post('/response', authenticate, authLimiter, async (req, res, next) => {
+router.post('/response', authenticate, enforceQuota('verification'), meterEvent('verification'), authLimiter, async (req, res, next) => {
   try {
     // 1. Validate: requires agentId, nonce, signature in body
     const { agentId, nonce, signature } = req.body;

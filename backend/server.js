@@ -63,6 +63,7 @@ const webhookRoutes = require('./src/routes/webhooks');
 const heartbeatRoutes = require('./src/routes/heartbeat');
 const credentialRoutes = require('./src/routes/credentials');
 const usageRoutes = require('./src/routes/usage');
+const billingRoutes = require('./src/routes/billing');
 
 const app = express();
 
@@ -102,6 +103,11 @@ app.use(cors({
       },
   credentials: true
 }));
+
+// Billing routes — mounted BEFORE global JSON body parser so the
+// webhook endpoint receives the raw body required for Stripe signature verification.
+// Non-webhook routes include their own express.json() middleware.
+app.use('/billing', billingRoutes);
 
 // Body parsing middleware
 app.use(express.json({ limit: '100kb' }));
@@ -233,7 +239,7 @@ app.use((req, res, next) => {
     // - /health   : health check (never mutates state)
     // - /verify-token : A2A token verification (unauthenticated, called by external agents
     //                    that do not send the X-Requested-With header)
-    const csrfSkipExact = ['/health', '/verify-token', '/.well-known/jwks.json', '/v1/verify-token', '/credentials/verify', '/v1/credentials/verify', '/openapi.yaml', '/docs'];
+    const csrfSkipExact = ['/health', '/verify-token', '/.well-known/jwks.json', '/v1/verify-token', '/credentials/verify', '/v1/credentials/verify', '/openapi.yaml', '/docs', '/billing/webhook'];
     const csrfSkipPrefix = ['/public/', '/badge/', '/widget/', '/v1/public/', '/v1/badge/', '/v1/widget/'];
     if (csrfSkipExact.includes(req.path) || csrfSkipPrefix.some(p => req.path.startsWith(p))) {
       return next();
@@ -418,6 +424,7 @@ v1Router.use('/', webhookRoutes);
 v1Router.use('/', heartbeatRoutes);
 v1Router.use('/', credentialRoutes);
 v1Router.use('/', usageRoutes);
+v1Router.use('/billing', billingRoutes);
 app.use('/v1', v1Router);
 
 // 404 handler for undefined routes

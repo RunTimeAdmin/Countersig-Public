@@ -53,4 +53,10 @@ export const createIdentityProvider = (orgId, config) => authClient.post(`/orgs/
 export const updateIdentityProvider = (orgId, idpId, updates) => authClient.put(`/orgs/${orgId}/identity-providers/${idpId}`, updates).then(r => r.data);
 export const deleteIdentityProvider = (orgId, idpId) => authClient.delete(`/orgs/${orgId}/identity-providers/${idpId}`).then(r => r.data);
 
+// Billing
+export const getBillingUsage = () => authClient.get('/billing/usage').then(r => r.data);
+export const getBillingPlan = () => authClient.get('/billing/plan').then(r => r.data);
+export const createCheckoutSession = (tier) => authClient.post('/billing/checkout', { tier }).then(r => r.data);
+export const createPortalSession = () => authClient.post('/billing/portal', { returnUrl: window.location.href }).then(r => r.data);
+
 export default authClient;

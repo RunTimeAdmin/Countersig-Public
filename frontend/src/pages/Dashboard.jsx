@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthProvider';
-import { getOrgStats, getOrgAgents } from '../lib/authApi';
+import { getOrgStats, getOrgAgents, getBillingUsage } from '../lib/authApi';
 import { getChains } from '../lib/api';
 import TrustBadge from '../components/TrustBadge';
 
@@ -95,12 +95,61 @@ function AgentRow({ agent }) {
   );
 }
 
+function MiniUsageBar({ label, current, limit }) {
+  const pct = limit > 0 ? Math.min((current / limit) * 100, 100) : 0;
+  const barColor = pct > 80 ? 'bg-red-500' : pct > 60 ? 'bg-amber-500' : 'bg-emerald-500';
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-xs text-[var(--text-muted)] w-24 flex-shrink-0 truncate">{label}</span>
+      <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+        <div className={`h-full rounded-full ${barColor} transition-all duration-500`} style={{ width: `${limit > 0 ? pct : 0}%` }} />
+      </div>
+      <span className="text-[10px] font-mono text-[var(--text-muted)] w-20 text-right flex-shrink-0">
+        {current?.toLocaleString()}/{limit > 0 ? limit.toLocaleString() : '∞'}
+      </span>
+    </div>
+  );
+}
+
+function UsageWidget({ usage }) {
+  if (!usage?.usage) return null;
+
+  const tierBadge = {
+    free: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
+    starter: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+    professional: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+    enterprise: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  };
+  const tier = usage.tier || 'free';
+
+  return (
+    <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-5 mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider">API Usage</h3>
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${tierBadge[tier] || tierBadge.free}`}>
+          {tier}
+        </span>
+      </div>
+      <div className="space-y-2.5">
+        <MiniUsageBar label="Attestations" current={usage.usage.attestation?.current || 0} limit={usage.usage.attestation?.limit || 0} />
+        <MiniUsageBar label="Verifications" current={usage.usage.verification?.current || 0} limit={usage.usage.verification?.limit || 0} />
+        <MiniUsageBar label="Badge/Rep" current={usage.usage.credential_fetch?.current || 0} limit={usage.usage.credential_fetch?.limit || 0} />
+        <MiniUsageBar label="A2A Tokens" current={usage.usage.token_issuance?.current || 0} limit={usage.usage.token_issuance?.limit || 0} />
+      </div>
+      <Link to="/settings" className="inline-block mt-3 text-xs text-[var(--accent-cyan)] hover:text-[var(--accent-purple)] transition-colors">
+        View Details →
+      </Link>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [agents, setAgents] = useState([]);
   const [chains, setChains] = useState([]);
+  const [billingUsage, setBillingUsage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -111,14 +160,16 @@ export default function Dashboard() {
         return;
       }
       try {
-        const [statsRes, agentsRes, chainsRes] = await Promise.all([
+        const [statsRes, agentsRes, chainsRes, usageRes] = await Promise.all([
           getOrgStats(user.orgId).catch(() => ({ data: {} })),
           getOrgAgents(user.orgId, { limit: 10 }).catch(() => ({ data: { agents: [] } })),
           getChains().catch(() => []),
+          getBillingUsage().catch(() => null),
         ]);
         setStats(statsRes.data);
         setAgents(agentsRes.data.agents || []);
         setChains(chainsRes || []);
+        setBillingUsage(usageRes);
       } catch (err) {
         setError('Failed to load dashboard data');
       } finally {
@@ -193,6 +244,9 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* API Usage Widget */}
+      <UsageWidget usage={billingUsage} />
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3 mb-8">

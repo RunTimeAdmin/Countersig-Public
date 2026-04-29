@@ -34,6 +34,56 @@ Enterprise-grade developer onboarding documentation for the AgentID platform —
 
 ---
 
+## SDK Quick Start
+
+Install the SDK:
+
+```bash
+npm install @agentidapp/sdk
+```
+
+### Basic Usage
+
+```typescript
+import { AgentIDClient } from '@agentidapp/sdk';
+
+const client = new AgentIDClient({
+  apiKey: 'aid_your_key_here',
+  baseUrl: 'https://api.agentidapp.com'
+});
+
+// Register an agent
+const agent = await client.agents.register({
+  name: 'My AI Agent',
+  capabilities: ['text-generation'],
+  credential_type: 'api_key'
+});
+
+// Get reputation
+const reputation = await client.reputation.get(agent.agent_id);
+
+// Get trust badge
+const badge = await client.badges.get(agent.agent_id);
+
+// Issue A2A token
+const token = await client.tokens.issue(agent.agent_id, {
+  audience: 'target-agent-id',
+  scope: 'read:data'
+});
+```
+
+### MCP Integration
+
+For Claude Code / Claude Desktop integration:
+
+```bash
+claude mcp add agentid -- npx -y @agentidapp/mcp
+```
+
+See the [MCP package documentation](https://www.npmjs.com/package/@agentidapp/mcp) for full configuration options.
+
+---
+
 ## 1. Prerequisites
 
 | Component | Minimum Version | Purpose |

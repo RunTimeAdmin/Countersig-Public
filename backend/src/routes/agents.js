@@ -23,6 +23,8 @@ const config = require('../config');
 const { validate } = require('../middleware/validate');
 const { agentUpdateSchema } = require('../schemas');
 const { NotFoundError, AuthorizationError, GoneError } = require('../utils/errors');
+const { meterEvent } = require('../middleware/billingMeter');
+const { enforceQuota } = require('../middleware/quotaEnforcement');
 
 const router = express.Router();
 
@@ -317,7 +319,7 @@ router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
  * Issue a short-lived A2A authentication token for cross-agent communication
  * Requires authentication and write scope
  */
-router.post('/agents/:agentId/issue-token', authenticate, requireScope('write'), authLimiter, async (req, res, next) => {
+router.post('/agents/:agentId/issue-token', authenticate, requireScope('write'), enforceQuota('token_issuance'), meterEvent('token_issuance'), authLimiter, async (req, res, next) => {
   try {
     const { agentId } = req.params;
 
@@ -501,7 +503,7 @@ router.get('/orgs/:orgId/agents', authenticate, orgContext, requireScope('read')
  * PUT /agents/:agentId/update
  * Update agent metadata with signature verification
  */
-router.put('/agents/:agentId/update', authenticate, requireScope('write'), authLimiter, validate(agentUpdateSchema), async (req, res, next) => {
+router.put('/agents/:agentId/update', authenticate, requireScope('write'), enforceQuota('attestation'), meterEvent('attestation'), authLimiter, validate(agentUpdateSchema), async (req, res, next) => {
   try {
     const { agentId } = req.params;
     const { signature, timestamp, name, tokenMint, capabilities, creatorX, description } = req.body;
@@ -663,7 +665,7 @@ router.put('/agents/:agentId/update', authenticate, requireScope('write'), authL
  * POST /agents/:agentId/revoke
  * Revoke an agent with signature verification
  */
-router.post('/agents/:agentId/revoke', authenticate, requireScope('write'), authLimiter, async (req, res, next) => {
+router.post('/agents/:agentId/revoke', authenticate, requireScope('write'), enforceQuota('verification'), meterEvent('verification'), authLimiter, async (req, res, next) => {
   try {
     const { agentId } = req.params;
     const { pubkey, signature, message } = req.body;
