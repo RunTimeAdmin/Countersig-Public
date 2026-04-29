@@ -231,6 +231,39 @@ async function revokeAllSessions(userId) {
 }
 
 /**
+ * Revoke a user's access — adds to Redis blacklist with TTL matching access token expiry.
+ * Call on logout and admin-initiated revocation.
+ * @param {string} userId - User ID to revoke
+ * @returns {Promise<boolean>}
+ */
+async function revokeUserAccess(userId) {
+  try {
+    const ttl = expiryToSeconds(JWT_EXPIRY);
+    await redis.setex(`revoked:user:${userId}`, ttl, '1');
+    return true;
+  } catch (err) {
+    console.error('Redis revokeUserAccess error:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Check if a user's access has been revoked (constant-time, Redis-backed).
+ * @param {string} userId - User ID to check
+ * @returns {Promise<boolean>} true if revoked
+ */
+async function isUserRevoked(userId) {
+  try {
+    const revoked = await redis.get(`revoked:user:${userId}`);
+    return revoked === '1';
+  } catch (err) {
+    // Redis failure should NOT block authentication (fail-open for availability)
+    console.error('Redis isUserRevoked error:', err.message);
+    return false;
+  }
+}
+
+/**
  * Check if a refresh token is valid in Redis (constant-time comparison)
  * @param {string} tokenId - Unique token ID (jti)
  * @param {string} userId - User ID
@@ -328,6 +361,8 @@ module.exports = {
   revokeAllSessions,
   isRefreshTokenValid,
   expiryToSeconds,
+  revokeUserAccess,
+  isUserRevoked,
   generateA2AToken,
   verifyA2AToken,
   getA2APublicKeyJWK

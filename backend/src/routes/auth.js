@@ -13,6 +13,7 @@ const {
   storeRefreshToken,
   revokeRefreshToken,
   revokeAllSessions,
+  revokeUserAccess,
   isRefreshTokenValid,
   expiryToSeconds
 } = require('../services/authService');
@@ -341,6 +342,8 @@ router.post('/auth/logout', async (req, res, next) => {
         const payload = verifyRefreshToken(refreshToken);
         if (payload && payload.userId && payload.jti) {
           await revokeRefreshToken(payload.jti, payload.userId);
+          // Blacklist all access tokens for this user until they expire
+          await revokeUserAccess(payload.userId);
         }
       } catch (err) {
         // Ignore invalid token on logout

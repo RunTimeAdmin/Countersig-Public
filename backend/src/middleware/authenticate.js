@@ -4,7 +4,7 @@
  */
 
 const { query } = require('../models/db');
-const { verifyAccessToken, verifyApiKey } = require('../services/authService');
+const { verifyAccessToken, verifyApiKey, isUserRevoked } = require('../services/authService');
 
 /**
  * Parse a cookie value from the request header
@@ -94,6 +94,11 @@ async function authenticate(req, res, next) {
       return res.status(401).json({ error: 'Authentication required' });
     }
     req.user = identity;
+    // Check session revocation (Redis-backed blacklist)
+    const revoked = await isUserRevoked(identity.userId);
+    if (revoked) {
+      return res.status(401).json({ error: 'Session revoked' });
+    }
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid authentication' });
