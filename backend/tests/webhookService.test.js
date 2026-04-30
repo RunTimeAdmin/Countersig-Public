@@ -106,7 +106,7 @@ describe('webhookService', () => {
         timestamp: '2026-01-01',
         id: 'evt-1'
       });
-      expect(headers['X-AgentID-Event']).toBe('agent:updated');
+      expect(headers['X-Countersig-Event']).toBe('agent:updated');
 
       // Verify HMAC correctness independently
       const expectedBody = JSON.stringify(payload);
@@ -114,7 +114,7 @@ describe('webhookService', () => {
         .createHmac('sha256', 'test-secret')
         .update(expectedBody)
         .digest('hex');
-      expect(headers['X-AgentID-Signature']).toBe(expectedSignature);
+      expect(headers['X-Countersig-Signature']).toBe(expectedSignature);
     });
 
     it('should return success even before actual delivery completes', async () => {

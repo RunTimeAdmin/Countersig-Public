@@ -1,24 +1,24 @@
-# AgentID 2.0
+﻿# Countersig 2.0
 
 **Universal Non-Human Identity (NHI) Platform for AI Agents**
 
-[![Live App](https://img.shields.io/badge/Live-agentidapp.com-blue)](https://agentidapp.com)
-[![API](https://img.shields.io/badge/API-api.agentidapp.com-green)](https://api.agentidapp.com/health)
+[![Live App](https://img.shields.io/badge/Live-countersig.com-blue)](https://countersig.com)
+[![API](https://img.shields.io/badge/API-api.countersig.com-green)](https://api.countersig.com/health)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-AgentID 2.0 is a production-grade identity and trust platform purpose-built for autonomous AI agents. It provides verifiable identity, multi-chain credential binding, reputation scoring, and machine-to-machine authentication — enabling agents to prove who they are, what they can do, and why they should be trusted.
+Countersig 2.0 is a production-grade identity and trust platform purpose-built for autonomous AI agents. It provides verifiable identity, multi-chain credential binding, reputation scoring, and machine-to-machine authentication — enabling agents to prove who they are, what they can do, and why they should be trusted.
 
 ## Live Deployment
 
-- **Frontend**: [agentidapp.com](https://agentidapp.com)
-- **API**: [api.agentidapp.com](https://api.agentidapp.com/health)
+- **Frontend**: [countersig.com](https://countersig.com)
+- **API**: [api.countersig.com](https://api.countersig.com/health)
 - **Documentation**: [Wiki](https://github.com/RunTimeAdmin/AgentID-2.0-Public/wiki)
 
 ## Key Features
 
 ### Authentication & Identity
 
-AgentID 2.0 is built around a **pluggable, multi-provider authentication architecture** — not just crypto wallets. This is what distinguishes it from every other agent identity solution on the market.
+Countersig 2.0 is built around a **pluggable, multi-provider authentication architecture** — not just crypto wallets. This is what distinguishes it from every other agent identity solution on the market.
 
 | Provider | Purpose | Standard / Protocol |
 |----------|---------|---------------------|
@@ -54,7 +54,7 @@ AgentID 2.0 is built around a **pluggable, multi-provider authentication archite
 │  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐  │
 │  │  Frontend SPA   │  │  Embed Widget │  │  SDK / CLI   │  │  A2A Clients │  │
 │  │  (React + Vite) │  │  (iframe/JS)  │  │  (JS/TS)     │  │  (JWKS)      │  │
-│  │  agentidapp.com │  │               │  │              │  │              │  │
+│  │  countersig.com │  │               │  │              │  │              │  │
 │  └────────┬────────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │
 └───────────┼──────────────────┼─────────────────┼─────────────────┼──────────┘
             │                  │                 │                 │
@@ -151,15 +151,15 @@ Open [http://localhost:5173](http://localhost:5173) to view the app.
 | `JWT_EXPIRY` | Access token lifetime (default: 15m) |
 | `JWT_REFRESH_EXPIRY` | Refresh token lifetime (default: 7d) |
 | `BAGS_API_KEY` | BAGS reputation API key |
-| `CORS_ORIGIN` | Allowed frontend origin (e.g. `https://agentidapp.com`) |
-| `AGENTID_BASE_URL` | Public API URL (e.g. `https://api.agentidapp.com`) |
+| `CORS_ORIGIN` | Allowed frontend origin (e.g. `https://countersig.com`) |
+| `COUNTERSIG_BASE_URL` | Public API URL (e.g. `https://api.countersig.com`) |
 | `PORT` | Server port (default: 3002) |
 | `NODE_ENV` | `production` |
 | `DB_SSL` | Set to `"true"` only for hosted databases with SSL |
 | `OAUTH2_ENABLED` | Optional auth provider flag |
 | `ENTRA_ID_ENABLED` | Optional auth provider flag |
 | `HEALTH_DETAIL_SECRET` | Secret for detailed health check endpoint (any strong random string) |
-| `COOKIE_DOMAIN` | Cookie domain scope for cross-subdomain auth (e.g., `.agentidapp.com`) |
+| `COOKIE_DOMAIN` | Cookie domain scope for cross-subdomain auth (e.g., `.countersig.com`) |
 | `DB_POOL_MAX` | PostgreSQL connection pool max size (default: 20) |
 | `LEGACY_SIGNING_DEADLINE` | Unix timestamp after which legacy signatures are rejected (default: 2026-07-01) |
 | `DID_ED25519_PUBLIC_KEY` | Ed25519 public key for DID document (required for production VCs) |
@@ -185,7 +185,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 ## Billing & Plans
 
-AgentID 2.0 includes integrated billing and plan management via **Stripe**:
+Countersig 2.0 includes integrated billing and plan management via **Stripe**:
 
 | Tier | Price | Included |
 |------|-------|----------|
@@ -200,7 +200,7 @@ Required environment variables for billing: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK
 
 ## API Documentation
 
-See [docs/API_REFERENCE.md](docs/API_REFERENCE.md) for the complete API reference, or visit the [live API docs](https://agentidapp.com/docs).
+See [docs/API_REFERENCE.md](docs/API_REFERENCE.md) for the complete API reference, or visit the [live API docs](https://countersig.com/docs).
 
 ## Client Libraries
 
@@ -208,15 +208,15 @@ Now live on npm:
 
 | Package | Version | Install | Description |
 |---------|---------|---------|-------------|
-| [@agentidapp/sdk](https://www.npmjs.com/package/@agentidapp/sdk) | 1.0.0 | `npm install @agentidapp/sdk` | TypeScript SDK for all AgentID operations |
-| [@agentidapp/mcp](https://www.npmjs.com/package/@agentidapp/mcp) | 1.0.0 | `npx -y @agentidapp/mcp` | MCP server for Claude Code / Claude Desktop |
-| @agentidapp/verify | 1.0.0 | `npm install @agentidapp/verify` | Lightweight A2A token verification |
-| @agentidapp/react | Coming soon | — | React hooks and components |
+| [@countersig/sdk](https://www.npmjs.com/package/@countersig/sdk) | 1.0.0 | `npm install @countersig/sdk` | TypeScript SDK for all Countersig operations |
+| [@countersig/mcp](https://www.npmjs.com/package/@countersig/mcp) | 1.0.0 | `npx -y @countersig/mcp` | MCP server for Claude Code / Claude Desktop |
+| @countersig/verify | 1.0.0 | `npm install @countersig/verify` | Lightweight A2A token verification |
+| @countersig/react | Coming soon | — | React hooks and components |
 
 ### Quick Start with Claude
 
 ```bash
-claude mcp add agentid -- npx -y @agentidapp/mcp
+claude mcp add countersig -- npx -y @countersig/mcp
 ```
 
 Then ask Claude: "Register a new agent called my-assistant with text-generation capabilities"

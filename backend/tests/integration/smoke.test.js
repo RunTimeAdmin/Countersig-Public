@@ -97,7 +97,7 @@ describe('Smoke Tests', () => {
     test('returns 400 or 401 without credentials', async () => {
       const res = await request(app)
         .post('/auth/login')
-        .set('X-Requested-With', 'AgentID')
+        .set('X-Requested-With', 'Countersig')
         .send({});
       expect([400, 401, 422]).toContain(res.status);
     });
@@ -108,7 +108,7 @@ describe('Smoke Tests', () => {
     test('returns 400 or 422 without valid payload', async () => {
       const res = await request(app)
         .post('/register')
-        .set('X-Requested-With', 'AgentID')
+        .set('X-Requested-With', 'Countersig')
         .send({});
       expect([400, 422, 500]).toContain(res.status);
     });

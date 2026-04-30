@@ -1,8 +1,8 @@
 {
-  "name": "agentid-2.0-frontend",
+  "name": "countersig-frontend",
   "private": true,
   "version": "2.0.0-alpha.1",
-  "description": "AgentID 2.0 Dashboard — Enterprise Identity Management for AI Agents",
+  "description": "Countersig 2.0 Dashboard — Enterprise Identity Management for AI Agents",
   "type": "module",
   "scripts": {
     "dev": "vite",

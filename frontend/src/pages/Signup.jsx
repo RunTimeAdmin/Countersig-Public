@@ -87,7 +87,7 @@ export default function Signup() {
             </svg>
           </div>
           <h1 className="text-3xl font-bold gradient-text mb-2">Create Account</h1>
-          <p className="text-[var(--text-secondary)]">Set up your AgentID organization</p>
+          <p className="text-[var(--text-secondary)]">Set up your Countersig organization</p>
         </div>
 
         {/* Card */}

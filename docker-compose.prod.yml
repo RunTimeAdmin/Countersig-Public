@@ -1,6 +1,6 @@
-# AgentID 2.0 — Production Docker Compose
-# Backend API only at api.agentidapp.com
-# Frontend SPA is hosted separately on Hostinger CDN at agentidapp.com
+# Countersig — Production Docker Compose
+# Backend API only at api.countersig.com
+# Frontend SPA is hosted separately on Hostinger CDN at countersig.com
 
 services:
   caddy:
@@ -25,18 +25,18 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - agentid-network
+      - countersig-network
 
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-agentid}
+      POSTGRES_USER: ${POSTGRES_USER:-countersig}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: agentid
+      POSTGRES_DB: countersig
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agentid -d agentid"]
+      test: ["CMD-SHELL", "pg_isready -U countersig -d countersig"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -52,7 +52,7 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - agentid-network
+      - countersig-network
 
   redis:
     image: redis:7-alpine
@@ -76,7 +76,7 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - agentid-network
+      - countersig-network
 
   backend:
     build:
@@ -85,19 +85,19 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3002
-      DATABASE_URL: postgresql://${POSTGRES_USER:-agentid}:${POSTGRES_PASSWORD}@postgres:5432/agentid
+      DATABASE_URL: postgresql://${POSTGRES_USER:-countersig}:${POSTGRES_PASSWORD}@postgres:5432/countersig
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY: 15m
       JWT_REFRESH_EXPIRY: 7d
-      CORS_ORIGIN: https://agentidapp.com,https://www.agentidapp.com
-      AGENTID_BASE_URL: https://api.agentidapp.com
+      CORS_ORIGIN: https://countersig.com,https://www.countersig.com
+      COUNTERSIG_BASE_URL: https://api.countersig.com
       BAGS_API_KEY: ${BAGS_API_KEY}
       SAID_GATEWAY_URL: ${SAID_GATEWAY_URL:-https://said-identity-gateway.up.railway.app}
       BADGE_CACHE_TTL: 300
       VERIFIED_THRESHOLD: 70
       HEALTH_DETAIL_SECRET: ${HEALTH_DETAIL_SECRET}
-      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.agentidapp.com}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.countersig.com}
       A2A_SIGNING_KEY: ${A2A_SIGNING_KEY}
       A2A_VERIFY_KEY: ${A2A_VERIFY_KEY}
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -123,10 +123,10 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - agentid-network
+      - countersig-network
 
 networks:
-  agentid-network:
+  countersig-network:
     driver: bridge
 
 volumes:

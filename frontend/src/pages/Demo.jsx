@@ -131,7 +131,7 @@ export default function Demo() {
   const [keypair, setKeypair] = useState(null);
   const [agentData, setAgentData] = useState({
     name: '',
-    description: 'This is a demo agent created to showcase AgentID\'s verification flow',
+    description: 'This is a demo agent created to showcase Countersig\'s verification flow',
     capabilities: ['demo', 'testing'],
     categories: ['utility'],
   });
@@ -304,7 +304,7 @@ export default function Demo() {
     const randomDigits = Math.floor(1000 + Math.random() * 9000);
     setAgentData({
       name: `Demo Agent ${randomDigits}`,
-      description: 'This is a demo agent created to showcase AgentID\'s verification flow',
+      description: 'This is a demo agent created to showcase Countersig\'s verification flow',
       capabilities: ['bags.swap.v1', 'bags.trade.v1', 'infra.solana.health.v1', 'defi.swap.v1'],
       categories: ['utility'],
     });
@@ -360,9 +360,9 @@ export default function Demo() {
           Interactive Demo
         </div>
         <div className="flex items-center justify-center gap-4 mb-4">
-          <img src="/AgentIDLogo.png" alt="AgentID" className="w-16 h-16 rounded-2xl shadow-lg" />
+          <img src="/CountersigLogo.png" alt="Countersig" className="w-16 h-16 rounded-2xl shadow-lg" />
           <h1 className="text-4xl md:text-5xl font-bold">
-            <span className="gradient-text">Try AgentID</span>
+            <span className="gradient-text">Try Countersig</span>
           </h1>
         </div>
         <p className="text-[var(--text-secondary)] text-lg max-w-2xl mx-auto">
@@ -477,14 +477,14 @@ export default function Demo() {
         <StepCard
           stepNumber={2}
           title="Register Agent"
-          description="Register your demo agent with the AgentID registry"
+          description="Register your demo agent with the Countersig registry"
           isActive={currentStep === 2}
           isCompleted={currentStep > 2}
         >
           {!registeredAgent ? (
             <div className="space-y-4">
               <p className="text-sm text-[var(--text-secondary)]">
-                Register your agent with the AgentID registry. This creates a database record 
+                Register your agent with the Countersig registry. This creates a database record 
                 linked to your public key, establishing the agent&apos;s identity in the ecosystem.
               </p>
               <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-subtle)] space-y-3">
@@ -531,7 +531,7 @@ export default function Demo() {
               </button>
               <ApiCallSection
                 title="See the API call"
-                curl={`curl -X POST https://api.agentidapp.com/register \\
+                curl={`curl -X POST https://api.countersig.com/register \\
   -H "Content-Type: application/json" \\
   -d '{
     "pubkey": "${getPublicKeyBase58()}",
@@ -643,7 +643,7 @@ export default function Demo() {
                 </p>
                 <ApiCallSection
                   title="See the API call"
-                  curl={`curl -X POST https://api.agentidapp.com/verify/challenge \\
+                  curl={`curl -X POST https://api.countersig.com/verify/challenge \\
   -H "Content-Type: application/json" \\
   -d '{
     "agentId": "${agentId}"
@@ -700,7 +700,7 @@ export default function Demo() {
             {signature && (
               <ApiCallSection
                 title="See the API call"
-                curl={`curl -X POST https://api.agentidapp.com/verify/response \\
+                curl={`curl -X POST https://api.countersig.com/verify/response \\
   -H "Content-Type: application/json" \\
   -d '{
     "agentId": "${agentId}",
@@ -806,7 +806,7 @@ export default function Demo() {
 
                 <ApiCallSection
                   title="See the API call"
-                  curl={`curl https://api.agentidapp.com/badge/${agentId}`}
+                  curl={`curl https://api.countersig.com/badge/${agentId}`}
                 />
               </div>
             )}
@@ -836,11 +836,11 @@ export default function Demo() {
           <div className="text-sm text-[var(--text-secondary)]">
             <p className="font-medium text-[var(--text-primary)] mb-1">What&apos;s happening here?</p>
             <p className="mb-2">
-              This demo showcases AgentID&apos;s core challenge-response verification protocol:
+              This demo showcases Countersig&apos;s core challenge-response verification protocol:
             </p>
             <ol className="list-decimal list-inside space-y-1 ml-2">
               <li><strong className="text-[var(--text-primary)]">Key Generation:</strong> An Ed25519 keypair is created in-browser using tweetnacl</li>
-              <li><strong className="text-[var(--text-primary)]">Registration:</strong> The public key is registered with the AgentID service</li>
+              <li><strong className="text-[var(--text-primary)]">Registration:</strong> The public key is registered with the Countersig service</li>
               <li><strong className="text-[var(--text-primary)]">Challenge:</strong> The server issues a unique challenge message with a nonce</li>
               <li><strong className="text-[var(--text-primary)]">Signing:</strong> The challenge is signed with the private key using Ed25519</li>
               <li><strong className="text-[var(--text-primary)]">Verification:</strong> The server verifies the signature against the public key</li>

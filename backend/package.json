@@ -1,7 +1,7 @@
 {
-  "name": "agentid-2.0-backend",
+  "name": "countersig-backend",
   "version": "2.0.0-alpha.1",
-  "description": "AgentID 2.0 — Non-Human Identity Manager for AI Agents",
+  "description": "Countersig — Non-Human Identity Manager for AI Agents",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -11,7 +11,7 @@
     "test:watch": "jest --watch"
   },
   "keywords": [
-    "agentid",
+    "countersig",
     "solana",
     "identity",
     "verification"

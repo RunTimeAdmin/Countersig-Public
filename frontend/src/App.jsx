@@ -18,7 +18,7 @@ import Settings from './pages/Settings';
 import AuditLog from './pages/AuditLog';
 import AgentGroups from './pages/AgentGroups';
 import Policies from './pages/Policies';
-import WhyAgentID from './pages/WhyAgentID';
+import WhyCountersig from './pages/WhyCountersig';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 
 class ErrorBoundary extends React.Component {
@@ -77,8 +77,8 @@ function Navigation() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 group" onClick={handleNavClick}>
-            <img src="/AgentIDLogo.png" alt="AgentID" className="w-10 h-10 rounded-xl shadow-lg group-hover:shadow-[var(--shadow-glow-cyan)] transition-shadow duration-300" />
-            <span className="text-xl font-bold gradient-text">AgentID</span>
+            <img src="/CountersigLogo.png" alt="Countersig" className="w-10 h-10 rounded-xl shadow-lg group-hover:shadow-[var(--shadow-glow-cyan)] transition-shadow duration-300" />
+            <span className="text-xl font-bold gradient-text">Countersig</span>
           </Link>
 
           {/* Nav Links */}
@@ -91,7 +91,7 @@ function Navigation() {
                 <NavLink to="/policies" active={isActive('/policies')}>Policies</NavLink>
               </>
             )}
-            <NavLink to="/why" active={isActive('/why')}>Why AgentID</NavLink>
+            <NavLink to="/why" active={isActive('/why')}>Why Countersig</NavLink>
             <NavLink to="/" active={isActive('/')}>Registry</NavLink>
             <NavLink to="/discover" active={isActive('/discover')}>Discover</NavLink>
             <NavLink to="/pricing" active={isActive('/pricing')}>Pricing</NavLink>
@@ -159,7 +159,7 @@ function Navigation() {
                   <MobileNavLink to="/policies" active={isActive('/policies')} onClick={handleNavClick}>Policies</MobileNavLink>
                 </>
               )}
-              <MobileNavLink to="/why" active={isActive('/why')} onClick={handleNavClick}>Why AgentID</MobileNavLink>
+              <MobileNavLink to="/why" active={isActive('/why')} onClick={handleNavClick}>Why Countersig</MobileNavLink>
               <MobileNavLink to="/" active={isActive('/')} onClick={handleNavClick}>Registry</MobileNavLink>
               <MobileNavLink to="/discover" active={isActive('/discover')} onClick={handleNavClick}>Discover</MobileNavLink>
               <MobileNavLink to="/pricing" active={isActive('/pricing')} onClick={handleNavClick}>Pricing</MobileNavLink>
@@ -272,9 +272,9 @@ function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
-            <img src="/AgentIDLogo.png" alt="AgentID" className="w-8 h-8 rounded-lg" />
+            <img src="/CountersigLogo.png" alt="Countersig" className="w-8 h-8 rounded-lg" />
             <span className="text-sm text-[var(--text-muted)]">
-              AgentID — Trust Verification Layer for AI Agents
+              Countersig — Trust Verification Layer for AI Agents
             </span>
           </div>
           <div className="flex items-center space-x-6 text-sm text-[var(--text-muted)]">
@@ -298,7 +298,7 @@ function App() {
             <ErrorBoundary>
               <Routes>
                 <Route path="/" element={<RouteErrorBoundary><Registry /></RouteErrorBoundary>} />
-                <Route path="/why" element={<RouteErrorBoundary><WhyAgentID /></RouteErrorBoundary>} />
+                <Route path="/why" element={<RouteErrorBoundary><WhyCountersig /></RouteErrorBoundary>} />
                 <Route path="/agents/:agentId" element={<RouteErrorBoundary><AgentDetail /></RouteErrorBoundary>} />
                 <Route path="/discover" element={<RouteErrorBoundary><Discover /></RouteErrorBoundary>} />
                 <Route path="/demo" element={<RouteErrorBoundary><Demo /></RouteErrorBoundary>} />

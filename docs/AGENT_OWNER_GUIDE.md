@@ -1,20 +1,20 @@
-# AgentID Trust Mark — Agent Owner Guide
+﻿# Countersig Trust Mark — Agent Owner Guide
 
-Welcome! This guide will walk you through registering your AI agent with AgentID and displaying a trust badge that proves your agent's identity to users and other agents in the ecosystem.
+Welcome! This guide will walk you through registering your AI agent with Countersig and displaying a trust badge that proves your agent's identity to users and other agents in the ecosystem.
 
 ---
 
-## What is AgentID?
+## What is Countersig?
 
-AgentID is a **trust verification layer** for AI agents across multiple blockchains. Think of it like a verified badge on social media — but for AI agents.
+Countersig is a **trust verification layer** for AI agents across multiple blockchains. Think of it like a verified badge on social media — but for AI agents.
 
-When you register your agent with AgentID:
+When you register your agent with Countersig:
 - Your agent gets a unique, verifiable identity
 - Users can trust that your agent is who it claims to be
 - You can display a trust badge on your website, documentation, or GitHub README
 - Other agents and systems can verify your agent's reputation and capabilities
 
-**In simple terms:** AgentID proves your AI agent is legitimate and helps users trust it.
+**In simple terms:** Countersig proves your AI agent is legitimate and helps users trust it.
 
 ---
 
@@ -35,7 +35,7 @@ This keypair is used to cryptographically prove you own your agent. Anyone can s
 Open a terminal and run the following commands:
 
 ```bash
-cd AgentID/backend
+cd Countersig/backend
 node -e "const nacl = require('tweetnacl'); const bs58 = require('bs58'); const kp = nacl.sign.keyPair(); console.log('PUBLIC KEY:', bs58.encode(kp.publicKey)); console.log('PRIVATE KEY:', bs58.encode(kp.secretKey));"
 ```
 
@@ -46,7 +46,7 @@ PRIVATE KEY: 3xKXtJ5CwXJHkjXzZW7nTFjKfZJxYfJQFjKxJzQjZJxQjKxJzQjZJxQjKxJzQjZJxQj
 ```
 
 **CRITICAL SECURITY WARNINGS:**
-- **NEVER share your private key with anyone** — not even AgentID support
+- **NEVER share your private key with anyone** — not even Countersig support
 - **Store your private key securely** — in a password manager, encrypted file, or secure environment variable
 - **If you lose your private key, there's no recovery mechanism** (yet) — you'll need to register a new agent
 - **Anyone with your private key can impersonate your agent**
@@ -60,10 +60,10 @@ Gather the following details about your agent:
 - **X/Twitter Handle** (optional): For social verification
 - **Wallet Address** (optional): Associated blockchain address
 
-### 3. Access to AgentID
+### 3. Access to Countersig
 
-The AgentID platform is available at:
-**https://agentid.provenanceai.network**
+The Countersig platform is available at:
+**https://countersig.com**
 
 ---
 
@@ -75,7 +75,7 @@ You have three options for registering your agent. Choose the one that works bes
 
 The web interface provides a simple 4-step wizard to register your agent:
 
-1. **Go to**: https://agentid.provenanceai.network/register
+1. **Go to**: https://countersig.com/register
 
 2. **Step 1 — Agent Identity**:
    - Enter your **Public Key** (from the keypair you generated)
@@ -108,7 +108,7 @@ The web interface provides a simple 4-step wizard to register your agent:
 
 The demo page is perfect for understanding the process before using your real keys:
 
-1. **Go to**: https://agentid.provenanceai.network/demo
+1. **Go to**: https://countersig.com/demo
 
 2. The demo will:
    - Generate a temporary keypair in your browser
@@ -125,7 +125,7 @@ For advanced users who prefer command-line tools:
 ```bash
 # Step 1: Register your agent
 # Note: You need to generate the signature first (see Developer Guide for details)
-curl -X POST https://agentid.provenanceai.network/register \
+curl -X POST https://countersig.com/register \
   -H "Content-Type: application/json" \
   -d '{
     "pubkey": "YOUR_PUBLIC_KEY",
@@ -168,7 +168,7 @@ The verification uses a "challenge-response" protocol:
 
 #### Using the Web Interface:
 
-1. Go to https://agentid.provenanceai.network and find your agent
+1. Go to https://countersig.com and find your agent
 2. Click on your agent to open the detail page
 3. Click the "Verify Agent" button
 4. Follow the prompts to sign the challenge with your private key
@@ -179,7 +179,7 @@ The verification uses a "challenge-response" protocol:
 
 ```bash
 # Step 1: Request a challenge
-curl -X POST https://agentid.provenanceai.network/verify/challenge \
+curl -X POST https://countersig.com/verify/challenge \
   -H "Content-Type: application/json" \
   -d '{"agentId": "YOUR_AGENT_ID"}'
 
@@ -189,7 +189,7 @@ curl -X POST https://agentid.provenanceai.network/verify/challenge \
 # (Use a signing tool or script — see Developer Guide)
 
 # Step 3: Submit the verification response
-curl -X POST https://agentid.provenanceai.network/verify/response \
+curl -X POST https://countersig.com/verify/response \
   -H "Content-Type: application/json" \
   -d '{
     "agentId": "YOUR_AGENT_ID",
@@ -212,12 +212,12 @@ The widget is the most interactive option — it auto-refreshes and shows live d
 
 ```html
 <iframe 
-  src="https://agentid.provenanceai.network/widget/YOUR_AGENT_ID" 
+  src="https://countersig.com/widget/YOUR_AGENT_ID" 
   width="400" 
   height="300" 
   frameborder="0" 
   style="border-radius: 12px;" 
-  title="AgentID Trust Badge">
+  title="Countersig Trust Badge">
 </iframe>
 ```
 
@@ -235,7 +235,7 @@ The widget is the most interactive option — it auto-refreshes and shows live d
 The SVG badge is a static image perfect for GitHub READMEs, documentation, or websites:
 
 ```markdown
-![AgentID Trust Badge](https://agentid.provenanceai.network/badge/YOUR_AGENT_ID/svg)
+![Countersig Trust Badge](https://countersig.com/badge/YOUR_AGENT_ID/svg)
 ```
 
 **Features:**
@@ -246,8 +246,8 @@ The SVG badge is a static image perfect for GitHub READMEs, documentation, or we
 
 **In HTML:**
 ```html
-<img src="https://agentid.provenanceai.network/badge/YOUR_AGENT_ID/svg" 
-     alt="AgentID Trust Badge" />
+<img src="https://countersig.com/badge/YOUR_AGENT_ID/svg" 
+     alt="Countersig Trust Badge" />
 ```
 
 ### Option 3: JSON API (for Custom Displays)
@@ -255,7 +255,7 @@ The SVG badge is a static image perfect for GitHub READMEs, documentation, or we
 If you want to build your own display or integrate the data into your application:
 
 ```
-GET https://agentid.provenanceai.network/badge/YOUR_AGENT_ID
+GET https://countersig.com/badge/YOUR_AGENT_ID
 ```
 
 **Example Response:**
@@ -270,7 +270,7 @@ GET https://agentid.provenanceai.network/badge/YOUR_AGENT_ID
   "score": 75,
   "capabilities": ["trading", "analysis"],
   "verificationStatus": "verified",
-  "widgetUrl": "https://agentid.provenanceai.network/widget/550e8400-e29b-41d4-a716-446655440000"
+  "widgetUrl": "https://countersig.com/widget/550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -354,7 +354,7 @@ Use this checklist to ensure you've completed each step correctly:
 ### Registration
 - [ ] Successfully registered agent via web interface, demo, or API
 - [ ] Saved the Agent ID (UUID) returned after registration
-- [ ] Can find your agent on https://agentid.provenanceai.network
+- [ ] Can find your agent on https://countersig.com
 
 ### Verification
 - [ ] Completed the challenge-response verification flow
@@ -362,7 +362,7 @@ Use this checklist to ensure you've completed each step correctly:
 - [ ] Trust badge shows "VERIFIED" (not "UNVERIFIED")
 
 ### Display
-- [ ] Widget URL loads correctly: `https://agentid.provenanceai.network/widget/YOUR_AGENT_ID`
+- [ ] Widget URL loads correctly: `https://countersig.com/widget/YOUR_AGENT_ID`
 - [ ] Badge displays agent name, score, and verification status
 - [ ] SVG badge loads correctly (if using Option 2)
 
@@ -379,10 +379,10 @@ If you encounter issues:
 
 1. **Check this guide first** — many issues are covered in the Common Pitfalls section
 2. **Review the Developer Guide** — for technical details on signing and encoding
-3. **Try the Demo page** — https://agentid.provenanceai.network/demo to see a working example
+3. **Try the Demo page** — https://countersig.com/demo to see a working example
 4. **Check your Agent ID** — make sure you're using the correct UUID
 5. **Verify your private key** — ensure you have the correct key that matches your public key
 
 ---
 
-**Welcome to the AgentID ecosystem! Your verified agent helps build trust in the AI-powered future.**
+**Welcome to the Countersig ecosystem! Your verified agent helps build trust in the AI-powered future.**

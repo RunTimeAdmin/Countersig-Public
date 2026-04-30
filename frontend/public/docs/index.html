@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AgentID — Documentation</title>
+  <title>Countersig — Documentation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
@@ -18,10 +18,10 @@
         <div class="logo-mark">
           <span class="logo-left">A</span><span class="logo-right">I</span>
         </div>
-        <span class="logo-text">AgentID <span class="logo-sub">Docs</span></span>
+        <span class="logo-text">Countersig <span class="logo-sub">Docs</span></span>
       </div>
       <nav class="topnav-links">
-        <a href="https://agentidapp.com" target="_blank" class="btn-launch">Launch App ↗</a>
+        <a href="https://countersig.com" target="_blank" class="btn-launch">Launch App ↗</a>
       </nav>
       <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
     </div>
@@ -56,8 +56,8 @@
         <div class="sidebar-section">
           <div class="sidebar-label">Resources</div>
           <a href="https://github.com/RunTimeAdmin/AgentID-2.0-Public" target="_blank" class="sidebar-link ext">GitHub ↗</a>
-          <a href="https://agentidapp.com" target="_blank" class="sidebar-link ext">Live App ↗</a>
-          <a href="https://api.agentidapp.com/health" target="_blank" class="sidebar-link ext">API Status ↗</a>
+          <a href="https://countersig.com" target="_blank" class="sidebar-link ext">Live App ↗</a>
+          <a href="https://api.countersig.com/health" target="_blank" class="sidebar-link ext">API Status ↗</a>
         </div>
 
       </div>
@@ -69,24 +69,24 @@
       <!-- ===================== OVERVIEW ===================== -->
       <section id="overview" class="doc-section">
         <div class="section-badge">Getting Started</div>
-        <h1>AgentID Documentation</h1>
-        <p class="lead">AgentID is the <strong>trust verification layer for AI agents</strong> operating across multiple blockchains. Every AI agent gets a cryptographic identity, a 5-factor reputation score, and an embeddable trust badge.</p>
+        <h1>Countersig Documentation</h1>
+        <p class="lead">Countersig is the <strong>trust verification layer for AI agents</strong> operating across multiple blockchains. Every AI agent gets a cryptographic identity, a 5-factor reputation score, and an embeddable trust badge.</p>
 
         <div class="callout callout-info">
           <div class="callout-icon">🌐</div>
           <div>
-            <strong>Live Platform:</strong> <a href="https://agentidapp.com" target="_blank">agentidapp.com</a><br/>
+            <strong>Live Platform:</strong> <a href="https://countersig.com" target="_blank">countersig.com</a><br/>
             <strong>Author:</strong> David Cooper, CCIE #14019 &nbsp;|&nbsp; <strong>Version:</strong> 1.0.0
           </div>
         </div>
 
-        <h2>What is AgentID?</h2>
-        <p>AgentID bridges three systems that exist independently but for comprehensive agent identity: Ed25519 and SECP256K1 agent authentication, the SAID Identity Gateway, and a configurable reputation scoring engine.</p>
+        <h2>What is Countersig?</h2>
+        <p>Countersig bridges three systems that exist independently but for comprehensive agent identity: Ed25519 and SECP256K1 agent authentication, the SAID Identity Gateway, and a configurable reputation scoring engine.</p>
 
         <div class="arch-diagram">
           <div class="arch-box blue">Agent Auth</div>
           <div class="arch-arrow">→</div>
-          <div class="arch-box purple">AgentID Registry<br/><small>Node.js / Express / PG</small></div>
+          <div class="arch-box purple">Countersig Registry<br/><small>Node.js / Express / PG</small></div>
           <div class="arch-arrow">→</div>
           <div class="arch-box green">Trust Badge / Widget<br/><small>JSON / SVG / iframe</small></div>
         </div>
@@ -183,7 +183,7 @@
         <p>Think of it like a digital lock and key: your <strong>Public Key</strong> is the lock (share it freely), and your <strong>Private Key</strong> is the key (never share it — it proves ownership).</p>
 
         <h4>Generate Your Keypair</h4>
-        <pre><code class="lang-bash">cd AgentID/backend
+        <pre><code class="lang-bash">cd Countersig/backend
 node -e "const nacl = require('tweetnacl'); const bs58 = require('bs58'); \
 const kp = nacl.sign.keyPair(); \
 console.log('PUBLIC KEY:', bs58.encode(kp.publicKey)); \
@@ -193,7 +193,7 @@ console.log('PRIVATE KEY:', bs58.encode(kp.secretKey));"</code></pre>
           <div class="callout-icon">🔴</div>
           <div>
             <strong>CRITICAL SECURITY WARNINGS</strong><br/>
-            • <strong>NEVER share your private key</strong> with anyone — not even AgentID support<br/>
+            • <strong>NEVER share your private key</strong> with anyone — not even Countersig support<br/>
             • Store your private key in a password manager, encrypted file, or secure env variable<br/>
             • If you lose your private key, there is no recovery mechanism — you'll need to register a new agent<br/>
             • Anyone with your private key can impersonate your agent
@@ -220,7 +220,7 @@ console.log('PRIVATE KEY:', bs58.encode(kp.secretKey));"</code></pre>
           </div>
 
           <div class="tab-content active" id="tab-web-ui">
-            <p>Go to <a href="https://agentidapp.com/register" target="_blank">agentidapp.com/register</a> and follow the 4-step wizard:</p>
+            <p>Go to <a href="https://countersig.com/register" target="_blank">countersig.com/register</a> and follow the 4-step wizard:</p>
             <div class="steps">
               <div class="step"><div class="step-num">1</div><div><strong>Agent Identity</strong> — Enter your Public Key and agent Name, click Next</div></div>
               <div class="step"><div class="step-num">2</div><div><strong>Sign Challenge</strong> — Copy the challenge message, sign it with your private key, paste signature back, click Next</div></div>
@@ -234,7 +234,7 @@ console.log('PRIVATE KEY:', bs58.encode(kp.secretKey));"</code></pre>
           </div>
 
           <div class="tab-content" id="tab-demo">
-            <p>The demo page at <a href="https://agentidapp.com/demo" target="_blank">agentidapp.com/demo</a> is perfect for learning the flow before using your real keys. It will:</p>
+            <p>The demo page at <a href="https://countersig.com/demo" target="_blank">countersig.com/demo</a> is perfect for learning the flow before using your real keys. It will:</p>
             <ul>
               <li>Generate a temporary keypair in your browser</li>
               <li>Walk through all 4 steps automatically</li>
@@ -245,7 +245,7 @@ console.log('PRIVATE KEY:', bs58.encode(kp.secretKey));"</code></pre>
           </div>
 
           <div class="tab-content" id="tab-curl">
-            <pre><code class="lang-bash">curl -X POST https://api.agentidapp.com/register \
+            <pre><code class="lang-bash">curl -X POST https://api.countersig.com/register \
   -H "Content-Type: application/json" \
   -d '{
     "pubkey": "YOUR_PUBLIC_KEY",
@@ -273,7 +273,7 @@ console.log('PRIVATE KEY:', bs58.encode(kp.secretKey));"</code></pre>
 
         <h3>Verification via curl</h3>
         <pre><code class="lang-bash"># Step 1: Request a challenge
-curl -X POST https://api.agentidapp.com/verify/challenge \
+curl -X POST https://api.countersig.com/verify/challenge \
   -H "Content-Type: application/json" \
   -d '{"agentId": "YOUR_AGENT_ID"}'
 # Response: {"nonce": "...", "challenge": "...", "expiresIn": 300}
@@ -281,7 +281,7 @@ curl -X POST https://api.agentidapp.com/verify/challenge \
 # Step 2: Sign the challenge with your private key (see Developer Guide)
 
 # Step 3: Submit verification
-curl -X POST https://api.agentidapp.com/verify/response \
+curl -X POST https://api.countersig.com/verify/response \
   -H "Content-Type: application/json" \
   -d '{
     "agentId": "YOUR_AGENT_ID",
@@ -298,20 +298,20 @@ curl -X POST https://api.agentidapp.com/verify/response \
 
         <h3>Option 1: Embeddable Widget (Recommended)</h3>
         <pre><code class="lang-html"><iframe 
-  src="https://api.agentidapp.com/widget/YOUR_AGENT_ID"
+  src="https://api.countersig.com/widget/YOUR_AGENT_ID"
   width="400" 
   height="300" 
   frameborder="0" 
   style="border-radius: 12px;" 
-  title="AgentID Trust Badge">
+  title="Countersig Trust Badge">
 </iframe></code></pre>
         <p>Auto-refreshes every 60 seconds. Shows name, trust score, verification status, capabilities, and links to full profile.</p>
 
         <h3>Option 2: SVG Badge (for README / Docs)</h3>
-        <pre><code class="lang-markdown">![AgentID Trust Badge](https://api.agentidapp.com/badge/YOUR_AGENT_ID/svg)</code></pre>
+        <pre><code class="lang-markdown">![Countersig Trust Badge](https://api.countersig.com/badge/YOUR_AGENT_ID/svg)</code></pre>
 
         <h3>Option 3: JSON API (for Custom Displays)</h3>
-        <pre><code class="lang-bash">GET https://api.agentidapp.com/badge/YOUR_AGENT_ID</code></pre>
+        <pre><code class="lang-bash">GET https://api.countersig.com/badge/YOUR_AGENT_ID</code></pre>
         <pre><code class="lang-json">{
   "status": "success",
   "agentId": "550e8400-e29b-41d4-a716-446655440000",
@@ -322,7 +322,7 @@ curl -X POST https://api.agentidapp.com/verify/response \
   "score": 75,
   "capabilities": ["trading", "analysis"],
   "verificationStatus": "verified",
-  "widgetUrl": "https://api.agentidapp.com/widget/550e8400..."
+  "widgetUrl": "https://api.countersig.com/widget/550e8400..."
 }</code></pre>
 
         <h2 id="ao-score">Understanding Your Trust Score</h2>
@@ -360,7 +360,7 @@ curl -X POST https://api.agentidapp.com/verify/response \
           <div class="checklist-group"><div class="checklist-group-title">Registration</div>
             <label><input type="checkbox"/> Successfully registered via web, demo, or API</label>
             <label><input type="checkbox"/> Saved the Agent ID (UUID)</label>
-            <label><input type="checkbox"/> Agent visible at agentidapp.com</label>
+            <label><input type="checkbox"/> Agent visible at countersig.com</label>
           </div>
           <div class="checklist-group"><div class="checklist-group-title">Verification</div>
             <label><input type="checkbox"/> Completed challenge-response flow</label>
@@ -384,7 +384,7 @@ curl -X POST https://api.agentidapp.com/verify/response \
       <section id="widget" class="doc-section hidden">
         <div class="section-badge">Integration</div>
         <h1>Widget Integration Guide</h1>
-        <p class="lead">The AgentID Widget provides a visual trust indicator that can be embedded in any web application, documentation, or marketplace listing, displaying real-time reputation data.</p>
+        <p class="lead">The Countersig Widget provides a visual trust indicator that can be embedded in any web application, documentation, or marketplace listing, displaying real-time reputation data.</p>
 
         <div class="toc">
           <div class="toc-title">On this page</div>
@@ -399,12 +399,12 @@ curl -X POST https://api.agentidapp.com/verify/response \
         <h2 id="w-quickstart">Quick Start</h2>
         <h3>iframe Embed (Recommended)</h3>
         <pre><code class="lang-html"><iframe 
-  src="https://api.agentidapp.com/widget/YOUR_AGENT_ID"
+  src="https://api.countersig.com/widget/YOUR_AGENT_ID"
   width="400"
   height="300"
   frameborder="0"
   style="border-radius: 12px; overflow: hidden;"
-  title="AgentID Trust Badge"
+  title="Countersig Trust Badge"
 ></iframe></code></pre>
 
         <div class="feature-list">
@@ -438,7 +438,7 @@ curl -X POST https://api.agentidapp.com/verify/response \
 
         <pre><code class="lang-html"><!-- Dark compact mode -->
 <iframe 
-  src="https://api.agentidapp.com/widget/{AGENT_ID}?theme=dark&compact=true"
+  src="https://api.countersig.com/widget/{AGENT_ID}?theme=dark&compact=true"
   width="320"
   height="200"
   frameborder="0"
@@ -468,17 +468,17 @@ curl -X POST https://api.agentidapp.com/verify/response \
 };</code></pre>
         <pre><code class="lang-jsx">import { useState, useEffect } from 'react';
 
-function AgentIDWidget({ agentId }) {
+function CountersigWidget({ agentId }) {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch(`https://api.agentidapp.com/badge/${agentId}`)
+    fetch(`https://api.countersig.com/badge/${agentId}`)
       .then(res => res.json())
       .then(setData);
 
     // Auto-refresh every 60 seconds
     const interval = setInterval(() => {
-      fetch(`https://api.agentidapp.com/badge/${agentId}`)
+      fetch(`https://api.countersig.com/badge/${agentId}`)
         .then(res => res.json())
         .then(setData);
     }, 60000);
@@ -525,13 +525,13 @@ function AgentIDWidget({ agentId }) {
   "totalActions": 150,
   "successRate": 0.94,
   "capabilities": ["trading", "analytics"],
-  "widgetUrl": "https://api.agentidapp.com/widget/AgentPubkey..."
+  "widgetUrl": "https://api.countersig.com/widget/AgentPubkey..."
 }</code></pre>
 
         <h2 id="w-svg">SVG Badge for README / Docs</h2>
-        <pre><code class="lang-markdown">![AgentID Trust Badge](https://api.agentidapp.com/badge/{AGENT_ID}/svg)</code></pre>
+        <pre><code class="lang-markdown">![Countersig Trust Badge](https://api.countersig.com/badge/{AGENT_ID}/svg)</code></pre>
         <pre><code class="lang-markdown"><!-- Linked badge for GitHub README -->
-[![AgentID](https://api.agentidapp.com/badge/{AGENT_ID}/svg)](https://agentidapp.com/agents/{AGENT_ID})</code></pre>
+[![Countersig](https://api.countersig.com/badge/{AGENT_ID}/svg)](https://countersig.com/agents/{AGENT_ID})</code></pre>
 
         <h2 id="w-troubleshoot">Troubleshooting</h2>
         <div class="troubleshoot-list">
@@ -543,7 +543,7 @@ function AgentIDWidget({ agentId }) {
           <details class="troubleshoot-item">
             <summary>Widget Not Loading — iframe shows blank or error</summary>
             <p>Verify the agent ID is correct, check for 404 errors in console, confirm the agent is registered:</p>
-            <pre><code>curl https://api.agentidapp.com/badge/{AGENT_ID}</code></pre>
+            <pre><code>curl https://api.countersig.com/badge/{AGENT_ID}</code></pre>
           </details>
           <details class="troubleshoot-item">
             <summary>Data Not Updating — badge shows stale data</summary>
@@ -560,7 +560,7 @@ function AgentIDWidget({ agentId }) {
 <iframe loading="lazy" src="..."></iframe>
 
 <!-- Accessibility: always include title -->
-<iframe title="AgentID Trust Badge for My Agent" ...></iframe>
+<iframe title="Countersig Trust Badge for My Agent" ...></iframe>
 
 <!-- Security: validate pubkey before embedding --></code></pre>
         <pre><code class="lang-javascript">function isValidPubkey(pubkey) {
@@ -577,7 +577,7 @@ function AgentIDWidget({ agentId }) {
       <section id="trustmark" class="doc-section hidden">
         <div class="section-badge">Integration</div>
         <h1>Trustmark Developer Integration Guide</h1>
-        <p class="lead">Technical implementation details and code examples for developers integrating AgentID trust verification into their applications.</p>
+        <p class="lead">Technical implementation details and code examples for developers integrating Countersig trust verification into their applications.</p>
 
         <div class="toc">
           <div class="toc-title">On this page</div>
@@ -652,7 +652,7 @@ const bs58 = require('bs58');
 
 async function registerAgent(config) {
   const { pubkey, secretKey, name, description, capabilities } = config;
-  const API_BASE = 'https://api.agentidapp.com';
+  const API_BASE = 'https://api.countersig.com';
   
   // Step 1: Register the agent first to get an agentId
   // (Registration requires a pre-signed challenge - see PKI Challenge flow)
@@ -789,7 +789,7 @@ fn main() {
       <section id="api" class="doc-section hidden">
         <div class="section-badge">Reference</div>
         <h1>API Reference</h1>
-        <p class="lead">Complete reference for all AgentID API endpoints. Base URL: <code>https://api.agentidapp.com</code></p>
+        <p class="lead">Complete reference for all Countersig API endpoints. Base URL: <code>https://api.countersig.com</code></p>
 
         <div class="toc">
           <div class="toc-title">On this page</div>
@@ -801,7 +801,7 @@ fn main() {
         </div>
 
         <h2 id="api-auth">Authentication Model</h2>
-        <p>AgentID uses an <strong>Ed25519 signature-based authentication model</strong> for all state-modifying operations — no API keys, no shared secrets. Challenge messages follow the exact format:</p>
+        <p>Countersig uses an <strong>Ed25519 signature-based authentication model</strong> for all state-modifying operations — no API keys, no shared secrets. Challenge messages follow the exact format:</p>
         <pre><code>AGENTID-VERIFY:{agentId}:{pubkey}:{nonce}:{timestamp}</code></pre>
 
         <div class="auth-flow">
@@ -879,7 +879,7 @@ const totalScore = feeActivity + successRate + age + saidTrust + community;</cod
                   <tr><td><code>creatorWallet</code></td><td>string</td><td>—</td><td>Creator's wallet address</td></tr>
                 </tbody>
               </table>
-              <pre><code class="lang-bash">curl -X POST https://api.agentidapp.com/register \
+              <pre><code class="lang-bash">curl -X POST https://api.countersig.com/register \
   -H "Content-Type: application/json" \
   -d '{
     "pubkey": "AgentPubkey111...",
@@ -902,7 +902,7 @@ const totalScore = feeActivity + successRate + age + saidTrust + community;</cod
             </div>
             <div class="endpoint-body">
               <p>Signature message format: <code>AGENTID-UPDATE:{agentId}:{timestamp}</code></p>
-              <pre><code class="lang-bash">curl -X PUT https://api.agentidapp.com/agents/{AGENT_ID}/update \
+              <pre><code class="lang-bash">curl -X PUT https://api.countersig.com/agents/{AGENT_ID}/update \
   -H "Content-Type: application/json" \
   -d '{
     "signature": "Base58Sig...",
@@ -926,7 +926,7 @@ const totalScore = feeActivity + successRate + age + saidTrust + community;</cod
               <span class="rate-badge">Auth tier</span>
             </div>
             <div class="endpoint-body">
-              <pre><code class="lang-bash">curl -X POST https://api.agentidapp.com/verify/challenge \
+              <pre><code class="lang-bash">curl -X POST https://api.countersig.com/verify/challenge \
   -H "Content-Type: application/json" \
   -d '{"agentId": "550e8400-e29b-41d4-a716-446655440000"}'</code></pre>
               <pre><code class="lang-json">// Response 200 OK
@@ -947,7 +947,7 @@ const totalScore = feeActivity + successRate + age + saidTrust + community;</cod
               <span class="rate-badge">Auth tier</span>
             </div>
             <div class="endpoint-body">
-              <pre><code class="lang-bash">curl -X POST https://api.agentidapp.com/verify/response \
+              <pre><code class="lang-bash">curl -X POST https://api.countersig.com/verify/response \
   -H "Content-Type: application/json" \
   -d '{
     "agentId": "550e8400-e29b-41d4-a716-446655440000",
@@ -1064,7 +1064,7 @@ const totalScore = feeActivity + successRate + age + saidTrust + community;</cod
       <section id="developer" class="doc-section hidden">
         <div class="section-badge">Reference</div>
         <h1>Developer Guide</h1>
-        <p class="lead">Enterprise-grade developer onboarding for the AgentID platform — local setup, architecture, testing, and contributing.</p>
+        <p class="lead">Enterprise-grade developer onboarding for the Countersig platform — local setup, architecture, testing, and contributing.</p>
 
         <div class="toc">
           <div class="toc-title">On this page</div>
@@ -1132,7 +1132,7 @@ NODE_ENV=development
 CORS_ORIGIN=http://localhost:5174
 
 # Identity
-AGENTID_BASE_URL=http://localhost:3002  # Production: https://api.agentidapp.com
+AGENTID_BASE_URL=http://localhost:3002  # Production: https://api.countersig.com
 
 # SAID Gateway
 SAID_GATEWAY_URL=https://said-gateway.example.com
@@ -1243,7 +1243,7 @@ backend/tests/
         <div class="callout callout-info">
           <div class="callout-icon">🖥️</div>
           <div>
-            <strong>Target Environment:</strong> Ubuntu 22.04 LTS &nbsp;|&nbsp; <strong>Domain:</strong> agentidapp.com<br/>
+            <strong>Target Environment:</strong> Ubuntu 22.04 LTS &nbsp;|&nbsp; <strong>Domain:</strong> countersig.com<br/>
             PostgreSQL 14 &nbsp;|&nbsp; Redis &nbsp;|&nbsp; Node.js 20 &nbsp;|&nbsp; PM2 &nbsp;|&nbsp; Nginx (SSL)
           </div>
         </div>
@@ -1278,7 +1278,7 @@ sudo lsof -i :3002</code></pre>
         <h2 id="dep-clone">Clone & Install</h2>
         <pre><code class="lang-bash">cd /var/www
 git clone https://github.com/RunTimeAdmin/AgentID-2.0-Public.git
-cd AgentID/backend
+cd Countersig/backend
 npm install --production</code></pre>
 
         <h2 id="dep-envsetup">Environment Setup</h2>
@@ -1289,8 +1289,8 @@ REDIS_URL=redis://localhost:6379
 BAGS_API_KEY=your_production_bags_api_key
 PORT=3002
 NODE_ENV=production
-CORS_ORIGIN=https://agentidapp.com
-AGENTID_BASE_URL=https://api.agentidapp.com</code></pre>
+CORS_ORIGIN=https://countersig.com
+AGENTID_BASE_URL=https://api.countersig.com</code></pre>
 
         <h2 id="dep-db">Database Setup</h2>
         <pre><code class="lang-bash"># Create database and user
@@ -1316,16 +1316,16 @@ pm2 logs agentid</code></pre>
         <h2 id="dep-nginx">Nginx Configuration</h2>
         <pre><code class="lang-nginx">server {
     listen 80;
-    server_name agentidapp.com;
+    server_name countersig.com;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name agentidapp.com;
+    server_name countersig.com;
 
-    ssl_certificate /etc/letsencrypt/live/agentidapp.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/agentidapp.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/countersig.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/countersig.com/privkey.pem;
 
     # API backend - routes mounted at root (no /api/ prefix)
     location ~ ^/(register|verify|agents|badge|widget|health|discover|reputation) {
@@ -1351,10 +1351,10 @@ sudo nginx -t && sudo systemctl reload nginx</code></pre>
 
         <h2 id="dep-verify">Verify Deployment</h2>
         <pre><code class="lang-bash"># Health check
-curl https://api.agentidapp.com/health
+curl https://api.countersig.com/health
 
 # List agents
-curl https://api.agentidapp.com/agents
+curl https://api.countersig.com/agents
 
 # PM2 process list
 pm2 list</code></pre>
@@ -1377,8 +1377,8 @@ pm2 list</code></pre>
       </div>
       <div class="footer-right">
         <a href="https://github.com/RunTimeAdmin/AgentID-2.0-Public" target="_blank">GitHub</a>
-        <a href="https://agentidapp.com" target="_blank">Live App</a>
-        <a href="https://api.agentidapp.com/health" target="_blank">API Status</a>
+        <a href="https://countersig.com" target="_blank">Live App</a>
+        <a href="https://api.countersig.com/health" target="_blank">API Status</a>
       </div>
     </div>
   </footer>

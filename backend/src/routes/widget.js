@@ -55,7 +55,7 @@ router.get('/widget/:agentId', defaultLimiter, async (req, res, next) => {
       font-size: 18px;
       color: #888;
     }
-    .agent-id {
+    .countersig-id {
       font-family: monospace;
       background: #1a1a1a;
       padding: 8px 16px;
@@ -70,7 +70,7 @@ router.get('/widget/:agentId', defaultLimiter, async (req, res, next) => {
   <div class="error-container">
     <div class="error-code">404</div>
     <div class="error-message">Agent not found</div>
-    <div class="agent-id">${escapeHtml(agentId)}</div>
+    <div class="countersig-id">${escapeHtml(agentId)}</div>
   </div>
 </body>
 </html>`);

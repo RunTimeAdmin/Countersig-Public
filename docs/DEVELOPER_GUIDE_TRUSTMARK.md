@@ -1,6 +1,6 @@
-# AgentID Trust Mark — Developer Integration Guide
+﻿# Countersig Trust Mark — Developer Integration Guide
 
-This guide provides technical implementation details and code examples for developers integrating AgentID trust verification into their applications.
+This guide provides technical implementation details and code examples for developers integrating Countersig trust verification into their applications.
 
 ---
 
@@ -65,7 +65,7 @@ const bs58 = require('bs58');
 const crypto = require('crypto');
 
 /**
- * Register a new agent with AgentID
+ * Register a new agent with Countersig
  * @param {string} pubkey - Base58-encoded public key
  * @param {Uint8Array} secretKey - Raw secret key bytes (from nacl.sign.keyPair())
  * @param {Object} agentData - Agent metadata
@@ -88,7 +88,7 @@ async function registerAgent(pubkey, secretKey, agentData) {
   const signature = bs58.encode(Buffer.from(sigBytes));
 
   // Send registration request
-  const response = await fetch('https://agentid.provenanceai.network/register', {
+  const response = await fetch('https://countersig.com/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -166,7 +166,7 @@ Verification proves you control the private key. The flow:
  */
 async function verifyAgent(agentId, secretKey) {
   // Step 1: Request a challenge
-  const chalRes = await fetch('https://agentid.provenanceai.network/verify/challenge', {
+  const chalRes = await fetch('https://countersig.com/verify/challenge', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ agentId })
@@ -187,7 +187,7 @@ async function verifyAgent(agentId, secretKey) {
   const signature = bs58.encode(Buffer.from(sigBytes));
 
   // Step 3: Submit verification response
-  const verifyRes = await fetch('https://agentid.provenanceai.network/verify/response', {
+  const verifyRes = await fetch('https://countersig.com/verify/response', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ agentId, nonce, signature })
@@ -226,12 +226,12 @@ The widget provides a rich, interactive display that auto-refreshes:
 
 ```html
 <iframe 
-  src="https://agentid.provenanceai.network/widget/{agentId}" 
+  src="https://countersig.com/widget/{agentId}" 
   width="400" 
   height="300" 
   frameborder="0" 
   style="border-radius: 12px; overflow: hidden;" 
-  title="AgentID Trust Badge">
+  title="Countersig Trust Badge">
 </iframe>
 ```
 
@@ -247,14 +247,14 @@ The widget provides a rich, interactive display that auto-refreshes:
 Static image perfect for documentation:
 
 ```markdown
-![Trust Badge](https://agentid.provenanceai.network/badge/{agentId}/svg)
+![Trust Badge](https://countersig.com/badge/{agentId}/svg)
 ```
 
 **In HTML:**
 ```html
 <img 
-  src="https://agentid.provenanceai.network/badge/{agentId}/svg" 
-  alt="AgentID Trust Badge"
+  src="https://countersig.com/badge/{agentId}/svg" 
+  alt="Countersig Trust Badge"
   width="340"
   height="80" />
 ```
@@ -276,7 +276,7 @@ For custom integrations, fetch the badge data as JSON:
  * @returns {Promise<Object>} - Badge data
  */
 async function getBadge(agentId) {
-  const res = await fetch(`https://agentid.provenanceai.network/badge/${agentId}`);
+  const res = await fetch(`https://countersig.com/badge/${agentId}`);
   
   if (!res.ok) {
     throw new Error(`Failed to fetch badge: ${res.statusText}`);
@@ -306,25 +306,25 @@ Programmatically embed the widget:
 
 ```javascript
 /**
- * Embed an AgentID widget into a container
+ * Embed an Countersig widget into a container
  * @param {string} containerId - ID of the container element
  * @param {string} agentId - The agent's UUID
  * @param {Object} options - Optional configuration
  */
-function embedAgentIDWidget(containerId, agentId, options = {}) {
+function embedCountersigWidget(containerId, agentId, options = {}) {
   const container = document.getElementById(containerId);
   if (!container) {
     throw new Error(`Container #${containerId} not found`);
   }
   
   const iframe = document.createElement('iframe');
-  iframe.src = `https://agentid.provenanceai.network/widget/${agentId}`;
+  iframe.src = `https://countersig.com/widget/${agentId}`;
   iframe.width = options.width || '100%';
   iframe.height = options.height || '320';
   iframe.frameBorder = '0';
   iframe.style.border = 'none';
   iframe.style.borderRadius = options.borderRadius || '12px';
-  iframe.title = options.title || 'AgentID Trust Badge';
+  iframe.title = options.title || 'Countersig Trust Badge';
   
   container.appendChild(iframe);
   
@@ -332,7 +332,7 @@ function embedAgentIDWidget(containerId, agentId, options = {}) {
 }
 
 // Example usage:
-embedAgentIDWidget('badge-container', '550e8400-e29b-41d4-a716-446655440000', {
+embedCountersigWidget('badge-container', '550e8400-e29b-41d4-a716-446655440000', {
   width: '400',
   height: '300',
   borderRadius: '8px'
@@ -413,8 +413,8 @@ interface BadgeResponse {
   "score": 75,
   "capabilities": ["trading", "analysis", "notifications"],
   "verificationStatus": "verified",
-  "widgetUrl": "https://agentid.provenanceai.network/widget/550e8400-e29b-41d4-a716-446655440000",
-  "svgUrl": "https://agentid.provenanceai.network/badge/550e8400-e29b-41d4-a716-446655440000/svg",
+  "widgetUrl": "https://countersig.com/widget/550e8400-e29b-41d4-a716-446655440000",
+  "svgUrl": "https://countersig.com/badge/550e8400-e29b-41d4-a716-446655440000/svg",
   "createdAt": "2026-01-15T10:30:00Z",
   "updatedAt": "2026-01-20T14:45:00Z"
 }
@@ -585,7 +585,7 @@ message = base58.b58encode(message_bytes).decode()
 
 # Register agent
 response = requests.post(
-    'https://agentid.provenanceai.network/register',
+    'https://countersig.com/register',
     json={
         'pubkey': pubkey,
         'name': 'MyAgent',
@@ -608,7 +608,7 @@ else:
 def verify_agent(agent_id, signing_key):
     # Request challenge
     chal_res = requests.post(
-        'https://agentid.provenanceai.network/verify/challenge',
+        'https://countersig.com/verify/challenge',
         json={'agentId': agent_id}
     )
     chal_data = chal_res.json()
@@ -622,7 +622,7 @@ def verify_agent(agent_id, signing_key):
     
     # Submit verification
     verify_res = requests.post(
-        'https://agentid.provenanceai.network/verify/response',
+        'https://countersig.com/verify/response',
         json={
             'agentId': agent_id,
             'nonce': nonce,
@@ -648,10 +648,10 @@ const nacl = require('tweetnacl');
 const bs58 = require('bs58');
 const crypto = require('crypto');
 
-const BASE_URL = 'https://agentid.provenanceai.network';
+const BASE_URL = 'https://countersig.com';
 
 async function main() {
-  console.log('=== AgentID End-to-End Example ===\n');
+  console.log('=== Countersig End-to-End Example ===\n');
   
   // Step 1: Generate Keypair
   console.log('Step 1: Generating Ed25519 keypair...');
@@ -770,8 +770,8 @@ node example.js
 
 ## Additional Resources
 
-- **Demo Page**: https://agentid.provenanceai.network/demo
-- **Agent Registry**: https://agentid.provenanceai.network/registry
+- **Demo Page**: https://countersig.com/demo
+- **Agent Registry**: https://countersig.com/registry
 - **API Documentation**: See `docs/API_REFERENCE.md`
 - **Widget Guide**: See `docs/WIDGET_GUIDE.md`
 

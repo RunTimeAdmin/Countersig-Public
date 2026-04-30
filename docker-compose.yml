@@ -1,22 +1,22 @@
 # For production, set all secrets via environment variables or .env file
-# AgentID 2.0 — Docker Compose for local development
-# Production URL: https://agentid2.provenanceai.network
+# Countersig — Docker Compose for local development
+# Production URL: https://countersig.com
 version: '3.8'
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: agentid-postgres
+    container_name: countersig-postgres
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-agentid}
+      POSTGRES_USER: ${POSTGRES_USER:-countersig}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
-      POSTGRES_DB: agentid
+      POSTGRES_DB: countersig
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agentid -d agentid"]
+      test: ["CMD-SHELL", "pg_isready -U countersig -d countersig"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -32,11 +32,11 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - agentid-network
+      - countersig-network
 
   redis:
     image: redis:7-alpine
-    container_name: agentid-redis
+    container_name: countersig-redis
     ports:
       - "6379:6379"
     command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
@@ -61,24 +61,24 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - agentid-network
+      - countersig-network
 
   backend:
     image: node:20-alpine
-    container_name: agentid-backend
+    container_name: countersig-backend
     working_dir: /app
     command: sh -c "npm install && npm run dev"
     ports:
       - "3002:3002"
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-agentid}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/agentid
+      DATABASE_URL: postgresql://${POSTGRES_USER:-countersig}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/countersig
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
-      CORS_ORIGIN: https://agentidapp.com
-      AGENTID_BASE_URL: https://api.agentidapp.com
+      CORS_ORIGIN: https://countersig.com
+      COUNTERSIG_BASE_URL: https://api.countersig.com
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       JWT_EXPIRY: 15m
       JWT_REFRESH_EXPIRY: 7d
@@ -107,7 +107,7 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - agentid-network
+      - countersig-network
 
 volumes:
   postgres_data:
@@ -118,5 +118,5 @@ volumes:
     driver: local
 
 networks:
-  agentid-network:
+  countersig-network:
     driver: bridge

@@ -1,6 +1,6 @@
-# AgentID Developer Guide
+﻿# Countersig Developer Guide
 
-Enterprise-grade developer onboarding documentation for the AgentID platform — the trust verification layer for AI agents.
+Enterprise-grade developer onboarding documentation for the Countersig platform — the trust verification layer for AI agents.
 
 **Author:** David Cooper (CCIE #14019)  
 **Version:** 1.0.0  
@@ -18,7 +18,7 @@ Enterprise-grade developer onboarding documentation for the AgentID platform —
 6. [Architecture Overview](#6-architecture-overview)
 7. [Testing](#7-testing)
 8. [Key Concepts](#8-key-concepts)
-9. [AgentID 2.0 Features](#9-agentid-20-features)
+9. [Countersig 2.0 Features](#9-countersig-20-features)
    - [Authentication Flow](#authentication-flow)
    - [Multi-Tenancy Model](#multi-tenancy-model)
    - [Audit System](#audit-system)
@@ -39,17 +39,17 @@ Enterprise-grade developer onboarding documentation for the AgentID platform —
 Install the SDK:
 
 ```bash
-npm install @agentidapp/sdk
+npm install @countersig/sdk
 ```
 
 ### Basic Usage
 
 ```typescript
-import { AgentIDClient } from '@agentidapp/sdk';
+import { CountersigClient } from '@countersig/sdk';
 
-const client = new AgentIDClient({
-  apiKey: 'aid_your_key_here',
-  baseUrl: 'https://api.agentidapp.com'
+const client = new CountersigClient({
+  apiKey: 'cs_your_key_here',
+  baseUrl: 'https://api.countersig.com'
 });
 
 // Register an agent
@@ -77,10 +77,10 @@ const token = await client.tokens.issue(agent.agent_id, {
 For Claude Code / Claude Desktop integration:
 
 ```bash
-claude mcp add agentid -- npx -y @agentidapp/mcp
+claude mcp add countersig -- npx -y @countersig/mcp
 ```
 
-See the [MCP package documentation](https://www.npmjs.com/package/@agentidapp/mcp) for full configuration options.
+See the [MCP package documentation](https://www.npmjs.com/package/@countersig/mcp) for full configuration options.
 
 ---
 
@@ -153,7 +153,7 @@ Access the application:
 ```bash
 # Ensure your local PostgreSQL and Redis are running
 # Then follow the same setup as Option A, but update .env:
-# DATABASE_URL=postgresql://youruser:yourpass@localhost:5432/agentid
+# DATABASE_URL=postgresql://youruser:yourpass@localhost:5432/countersig
 # REDIS_URL=redis://localhost:6379
 
 cd backend
@@ -194,7 +194,7 @@ Copy `.env.example` to `.env` and configure the following variables:
 
 | Variable | Description | Default | Where to Get |
 |----------|-------------|---------|--------------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:password@localhost:5432/agentid` | Local: use docker-compose values; Cloud: provider dashboard |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:password@localhost:5432/countersig` | Local: use docker-compose values; Cloud: provider dashboard |
 | `BAGS_API_KEY` | API key for Bags.fm integration | (empty) | **Required** — Contact Bags team or check docs.bags.fm |
 
 ### Optional Variables
@@ -208,13 +208,13 @@ Copy `.env.example` to `.env` and configure the following variables:
 | `CORS_ORIGIN` | Allowed frontend origin | `http://localhost:5173` | Update for production domains |
 | `BADGE_CACHE_TTL` | Badge cache duration (seconds) | `60` | Increase for production |
 | `CHALLENGE_EXPIRY_SECONDS` | PKI challenge lifetime | `300` | 5 minutes default |
-| `AGENTID_BASE_URL` | Public API base URL | `http://localhost:3002` | Update for production |
+| `COUNTERSIG_BASE_URL` | Public API base URL | `http://localhost:3002` | Update for production |
 | `A2A_TOKEN_SECRET` | Secret for signing A2A tokens | Falls back to `JWT_SECRET` | Recommended to set a separate secret for production |
 | `DID_ED25519_PUBLIC_KEY` | Ed25519 public key for DID document (multibase-encoded) | (empty) | Required for Solana agent VC signing |
 | `DID_SECP256K1_PUBLIC_KEY` | SECP256K1 public key for DID document (multibase-encoded) | (empty) | Required for EVM agent VC signing |
 | `OAUTH2_ENABLED` | Enable OAuth2/OIDC authentication | `false` | Set to `true` to enable |
 | `OAUTH2_ALLOWED_ISSUERS` | Comma-separated list of trusted OAuth2 issuers | (empty) | e.g., `https://accounts.google.com,https://myorg.okta.com` |
-| `OAUTH2_ALLOWED_AUDIENCES` | Comma-separated list of valid OAuth2 audiences | (empty) | e.g., `api://agentid,https://agentidapp.com` |
+| `OAUTH2_ALLOWED_AUDIENCES` | Comma-separated list of valid OAuth2 audiences | (empty) | e.g., `api://countersig,https://countersig.com` |
 | `ENTRA_ID_ENABLED` | Enable Microsoft Entra ID authentication | `false` | Set to `true` to enable |
 | `ENTRA_TENANT_ID` | Entra ID tenant ID for validation | (empty) | Required when `ENTRA_ID_ENABLED=true` |
 
@@ -266,8 +266,8 @@ This creates the following schema:
 │ description        │ TEXT         │ Agent description           │
 │ token_mint         │ VARCHAR(88)  │ Associated token mint       │
 │ bags_api_key_id    │ VARCHAR(255) │ Bags API reference          │
-│ said_registered    │ BOOLEAN      │ SAID protocol binding       │
-│ said_trust_score   │ INTEGER      │ Inherited SAID score        │
+│ scs_registered    │ BOOLEAN      │ SAID protocol binding       │
+│ scs_trust_score   │ INTEGER      │ Inherited SAID score        │
 │ capability_set     │ JSONB        │ Array of capabilities       │
 │ creator_x          │ VARCHAR(255) │ Creator's X handle          │
 │ creator_wallet     │ VARCHAR(88)  │ Creator's wallet            │
@@ -409,7 +409,7 @@ npm run test:watch
 ### Directory Structure
 
 ```
-AgentID/
+Countersig/
 ├── backend/
 │   ├── server.js              # Express app entry point
 │   ├── src/
@@ -600,7 +600,7 @@ describe('My Feature', () => {
 
 ### Ed25519 PKI Challenge-Response
 
-AgentID uses Ed25519 digital signatures for cryptographic identity verification:
+Countersig uses Ed25519 digital signatures for cryptographic identity verification:
 
 ```
 ┌─────────────┐                    ┌─────────────┐
@@ -627,11 +627,11 @@ AGENTID-VERIFY:{pubkey}:{nonce}:{timestamp}
 
 ### Challenge-Response Auth Integration
 
-AgentID wraps the Bags.fm agent authentication system:
+Countersig wraps the Bags.fm agent authentication system:
 
 1. **Init:** Call Bags API to get challenge message
 2. **Sign:** Agent signs message with Ed25519 private key
-3. **Verify:** AgentID verifies signature locally using `tweetnacl`
+3. **Verify:** Countersig verifies signature locally using `tweetnacl`
 4. **Callback:** Submit to Bags API to complete auth
 5. **Store:** Save `bags_api_key_id` for future reference
 
@@ -653,7 +653,7 @@ SAID (Solana Agent Identity) provides cross-platform agent discovery:
   bags_binding: {
     tokenMint,
     bags_wallet: pubkey,
-    agentid_registered_at: ISOString,
+    countersig_registered_at: ISOString,
     capability_set: capabilities
   }
 }
@@ -706,11 +706,11 @@ The 5-factor scoring model (0-100 points):
 
 ---
 
-## 9. AgentID 2.0 Features
+## 9. Countersig 2.0 Features
 
 ### Authentication Flow
 
-AgentID 2.0 introduces JWT cookie-based authentication alongside the existing Ed25519 PKI system.
+Countersig 2.0 introduces JWT cookie-based authentication alongside the existing Ed25519 PKI system.
 
 #### JWT Session Flow
 
@@ -739,8 +739,8 @@ For programmatic access (CI/CD, server-to-server), use API keys:
 3. Keys are scoped to an organization and can be limited by `scopes` and `expiresAt`
 
 ```bash
-curl https://agentid2.provenanceai.network/orgs/org-uuid/agents \
-  -H "X-API-Key: aid_abc123xyz789secret"
+curl https://countersig.com/orgs/org-uuid/agents \
+  -H "X-API-Key: cs_abc123xyz789secret"
 ```
 
 #### Middleware Stack
@@ -755,7 +755,7 @@ curl https://agentid2.provenanceai.network/orgs/org-uuid/agents \
 
 ### Multi-Tenancy Model
 
-AgentID 2.0 is built around an **organization-centric multi-tenant architecture**.
+Countersig 2.0 is built around an **organization-centric multi-tenant architecture**.
 
 #### Organization Isolation
 
@@ -833,7 +833,7 @@ Audit entries are tagged with compliance frameworks:
 Export audit logs in CSV format for compliance auditors:
 
 ```bash
-curl "https://agentid2.provenanceai.network/orgs/org-uuid/audit/export?format=csv" \
+curl "https://countersig.com/orgs/org-uuid/audit/export?format=csv" \
   -H "Cookie: token=..." \
   --output soc2-audit.csv
 ```
@@ -842,7 +842,7 @@ curl "https://agentid2.provenanceai.network/orgs/org-uuid/audit/export?format=cs
 
 ### Event System
 
-AgentID 2.0 includes a real-time event bus for reactive automation.
+Countersig 2.0 includes a real-time event bus for reactive automation.
 
 #### Event Types
 
@@ -889,7 +889,7 @@ Delivery is retried up to 3 times with exponential backoff for non-2xx responses
 
 ### Multi-Chain Support
 
-AgentID 2.0 introduces a chain abstraction layer that supports multiple blockchain networks through a pluggable adapter pattern.
+Countersig 2.0 introduces a chain abstraction layer that supports multiple blockchain networks through a pluggable adapter pattern.
 
 #### Chain Adapters
 
@@ -926,7 +926,7 @@ Every adapter implements the `ChainAdapter` interface defined in [`chainAdapters
 
 ```bash
 # Get all supported chains
-curl https://agentidapp.com/chains
+curl https://countersig.com/chains
 
 # Response:
 # {
@@ -946,7 +946,7 @@ curl https://agentidapp.com/chains
 Specify the `chainType` field when registering an agent:
 
 ```bash
-curl -X POST https://agentidapp.com/register \
+curl -X POST https://countersig.com/register \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -971,7 +971,7 @@ If `chainType` is omitted, it defaults to `solana-bags` for backward compatibili
 
 ### Enterprise Authentication
 
-AgentID 2.0 introduces a pluggable authentication architecture that supports enterprise identity providers alongside the existing cryptographic (Ed25519/SECP256K1) chain adapters.
+Countersig 2.0 introduces a pluggable authentication architecture that supports enterprise identity providers alongside the existing cryptographic (Ed25519/SECP256K1) chain adapters.
 
 #### Pluggable Auth Architecture
 
@@ -1046,7 +1046,7 @@ Agents using enterprise auth specify `credential_type` in the registration reque
 
 ```bash
 # Register an agent via OAuth2
-curl -X POST https://agentidapp.com/register \
+curl -X POST https://countersig.com/register \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -1058,7 +1058,7 @@ curl -X POST https://agentidapp.com/register \
   }'
 
 # Register an agent via Entra ID
-curl -X POST https://agentidapp.com/register \
+curl -X POST https://countersig.com/register \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -1086,14 +1086,14 @@ Organization admins can manage IdP configurations at the org level:
 Example — add an Okta IdP:
 
 ```bash
-curl -X POST https://agentidapp.com/orgs/org-uuid/identity-providers \
+curl -X POST https://countersig.com/orgs/org-uuid/identity-providers \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
     "providerType": "oauth2",
     "issuerUrl": "https://myorg.okta.com/oauth2/default",
     "clientId": "0oabc123def",
-    "allowedAudiences": ["api://agentid"],
+    "allowedAudiences": ["api://countersig"],
     "claimMappings": { "email": "email", "name": "name" }
   }'
 ```
@@ -1135,13 +1135,13 @@ org_identity_providers:
 
 ### A2A (Agent-to-Agent) Tokens
 
-AgentID provides a short-lived JWT-based token system for authenticated agent-to-agent communication.
+Countersig provides a short-lived JWT-based token system for authenticated agent-to-agent communication.
 
 #### How It Works
 
 ```
 ┌─────────────┐                    ┌─────────────┐                    ┌─────────────┐
-│  Agent A    │──1. Request────────▶│  AgentID    │                    │  Agent B    │
+│  Agent A    │──1. Request────────▶│  Countersig    │                    │  Agent B    │
 │ (Issuer)    │   POST /issue-token │  Platform   │                    │ (Verifier)  │
 │             │◀──2. JWT Token──────│             │                    │             │
 │             │                    │             │                    │             │
@@ -1156,7 +1156,7 @@ AgentID provides a short-lived JWT-based token system for authenticated agent-to
 #### Issue a Token
 
 ```bash
-curl -X POST https://agentidapp.com/agents/agent-uuid/issue-token \
+curl -X POST https://countersig.com/agents/agent-uuid/issue-token \
   -b cookies.txt
 
 # Response:
@@ -1183,7 +1183,7 @@ Tokens are short-lived (60 seconds) and signed with `A2A_TOKEN_SECRET`.
 Any agent can verify a token without sharing the secret, using the public verification endpoint:
 
 ```bash
-curl -X POST https://agentidapp.com/agents/verify-token \
+curl -X POST https://countersig.com/agents/verify-token \
   -H "Content-Type: application/json" \
   -d '{ "token": "eyJhbGciOiJIUzI1NiIs..." }'
 
@@ -1212,7 +1212,7 @@ Set `A2A_TOKEN_SECRET` in your `.env` file. If not set, it falls back to `JWT_SE
 
 ### W3C DID & Verifiable Credentials
 
-AgentID exposes W3C-compliant DID documents and Verifiable Credentials for interoperability with decentralized identity ecosystems.
+Countersig exposes W3C-compliant DID documents and Verifiable Credentials for interoperability with decentralized identity ecosystems.
 
 #### DID Document
 
@@ -1229,29 +1229,29 @@ GET /.well-known/did.json
     "https://w3id.org/security/suites/ed25519-2020/v1",
     "https://w3id.org/security/suites/secp256k1-2019/v1"
   ],
-  "id": "did:web:agentidapp.com",
-  "controller": "did:web:agentidapp.com",
+  "id": "did:web:countersig.com",
+  "controller": "did:web:countersig.com",
   "verificationMethod": [
     {
-      "id": "did:web:agentidapp.com#ed25519-key",
+      "id": "did:web:countersig.com#ed25519-key",
       "type": "Ed25519VerificationKey2020",
-      "controller": "did:web:agentidapp.com",
+      "controller": "did:web:countersig.com",
       "publicKeyMultibase": "<DID_ED25519_PUBLIC_KEY>"
     },
     {
-      "id": "did:web:agentidapp.com#secp256k1-key",
+      "id": "did:web:countersig.com#secp256k1-key",
       "type": "EcdsaSecp256k1VerificationKey2019",
-      "controller": "did:web:agentidapp.com",
+      "controller": "did:web:countersig.com",
       "publicKeyMultibase": "<DID_SECP256K1_PUBLIC_KEY>"
     }
   ],
   "authentication": [
-    "did:web:agentidapp.com#ed25519-key",
-    "did:web:agentidapp.com#secp256k1-key"
+    "did:web:countersig.com#ed25519-key",
+    "did:web:countersig.com#secp256k1-key"
   ],
   "assertionMethod": [
-    "did:web:agentidapp.com#ed25519-key",
-    "did:web:agentidapp.com#secp256k1-key"
+    "did:web:countersig.com#ed25519-key",
+    "did:web:countersig.com#secp256k1-key"
   ]
 }
 ```
@@ -1272,23 +1272,23 @@ Returns a W3C Verifiable Credential for the specified agent:
     "https://www.w3.org/2018/credentials/v1",
     "https://w3id.org/security/suites/ed25519-2020/v1",
     {
-      "AgentIDCredential": "https://agentidapp.com/schemas/credential/v1",
-      "agentName": "https://agentidapp.com/schemas/credential/v1#agentName",
-      "chainType": "https://agentidapp.com/schemas/credential/v1#chainType",
-      "reputationScore": "https://agentidapp.com/schemas/credential/v1#reputationScore",
-      "reputationLabel": "https://agentidapp.com/schemas/credential/v1#reputationLabel",
-      "capabilities": "https://agentidapp.com/schemas/credential/v1#capabilities",
-      "verificationStatus": "https://agentidapp.com/schemas/credential/v1#verificationStatus",
-      "registeredAt": "https://agentidapp.com/schemas/credential/v1#registeredAt",
-      "lastVerified": "https://agentidapp.com/schemas/credential/v1#lastVerified"
+      "CountersigCredential": "https://countersig.com/schemas/credential/v1",
+      "agentName": "https://countersig.com/schemas/credential/v1#agentName",
+      "chainType": "https://countersig.com/schemas/credential/v1#chainType",
+      "reputationScore": "https://countersig.com/schemas/credential/v1#reputationScore",
+      "reputationLabel": "https://countersig.com/schemas/credential/v1#reputationLabel",
+      "capabilities": "https://countersig.com/schemas/credential/v1#capabilities",
+      "verificationStatus": "https://countersig.com/schemas/credential/v1#verificationStatus",
+      "registeredAt": "https://countersig.com/schemas/credential/v1#registeredAt",
+      "lastVerified": "https://countersig.com/schemas/credential/v1#lastVerified"
     }
   ],
   "id": "urn:agentid:credential:<agentId>",
   "type": ["VerifiableCredential", "AIAgentIdentityCredential"],
   "issuer": {
-    "id": "did:web:agentidapp.com",
-    "name": "AgentID",
-    "url": "https://agentidapp.com"
+    "id": "did:web:countersig.com",
+    "name": "Countersig",
+    "url": "https://countersig.com"
   },
   "issuanceDate": "2026-04-27T12:00:00.000Z",
   "expirationDate": "2026-04-28T12:00:00.000Z",
@@ -1309,8 +1309,8 @@ Returns a W3C Verifiable Credential for the specified agent:
 - EVM agents: `did:pkh:eip155:<chainId>:<pubkey>`
 
 **Verification method** is selected based on chain type:
-- Solana agents: `did:web:agentidapp.com#ed25519-key`
-- EVM agents: `did:web:agentidapp.com#secp256k1-key`
+- Solana agents: `did:web:countersig.com#ed25519-key`
+- EVM agents: `did:web:countersig.com#secp256k1-key`
 
 Credentials are valid for 24 hours from issuance.
 
@@ -1318,22 +1318,22 @@ Credentials are valid for 24 hours from issuance.
 
 ### SDK Packages
 
-AgentID ships three standalone packages for developers building on the platform.
+Countersig ships three standalone packages for developers building on the platform.
 
-#### @agentidapp/sdk
+#### @countersig/sdk
 
 Full-featured TypeScript API client for Node.js applications.
 
 ```bash
-npm install @agentidapp/sdk
+npm install @countersig/sdk
 ```
 
 ```typescript
-import { AgentIDClient } from '@agentidapp/sdk';
+import { CountersigClient } from '@countersig/sdk';
 
-const client = new AgentIDClient({
-  baseUrl: 'https://agentidapp.com',
-  apiKey: 'aid_abc123...'
+const client = new CountersigClient({
+  baseUrl: 'https://countersig.com',
+  apiKey: 'cs_abc123...'
 });
 
 // Register an agent
@@ -1350,7 +1350,7 @@ const details = await client.getAgent(agent.agentId);
 
 **Build:** `cd packages/sdk && npm run build`
 
-#### @agentidapp/react
+#### @countersig/react
 
 React component library with theme-aware UI components:
 
@@ -1360,11 +1360,11 @@ React component library with theme-aware UI components:
 - **ReputationGauge** — Visual score gauge with trust tier coloring
 
 ```bash
-npm install @agentidapp/react
+npm install @countersig/react
 ```
 
 ```jsx
-import { TrustBadge, AgentCard } from '@agentidapp/react';
+import { TrustBadge, AgentCard } from '@countersig/react';
 
 function AgentProfile({ agentId }) {
   return (
@@ -1378,23 +1378,23 @@ function AgentProfile({ agentId }) {
 
 **Build:** `cd packages/react && npm run build`
 
-#### @agentidapp/verify
+#### @countersig/verify
 
 Lightweight A2A token verification library for agent-to-agent communication:
 
 ```bash
-npm install @agentidapp/verify
+npm install @countersig/verify
 ```
 
 ```javascript
-const { verifyA2AToken } = require('@agentidapp/verify');
+const { verifyA2AToken } = require('@countersig/verify');
 
 // Verify with shared secret (fast, local)
 const result = verifyA2AToken(token, { secret: 'your-a2a-secret' });
 
-// Verify via AgentID API (no secret needed)
+// Verify via Countersig API (no secret needed)
 const result = await verifyA2AToken(token, {
-  baseUrl: 'https://agentidapp.com',
+  baseUrl: 'https://countersig.com',
   verifyEndpoint: '/agents/verify-token'
 });
 ```
@@ -1451,12 +1451,12 @@ await closeWebhookQueue();
 
 ### Getting Started with 2.0
 
-Follow this checklist to set up your first AgentID 2.0 organization:
+Follow this checklist to set up your first Countersig 2.0 organization:
 
 #### 1. Register an Account
 
 ```bash
-curl -X POST https://agentid2.provenanceai.network/auth/register \
+curl -X POST https://countersig.com/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "you@example.com",
@@ -1471,7 +1471,7 @@ This creates your user account and initial organization in one step.
 #### 2. Log In
 
 ```bash
-curl -X POST https://agentid2.provenanceai.network/auth/login \
+curl -X POST https://countersig.com/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "you@example.com",
@@ -1487,7 +1487,7 @@ The server sets `httpOnly` cookies. Use `-b cookies.txt` in subsequent `curl` co
 Agents registered while authenticated are automatically scoped to your organization:
 
 ```bash
-curl -X POST https://agentid2.provenanceai.network/register \
+curl -X POST https://countersig.com/register \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -1501,7 +1501,7 @@ curl -X POST https://agentid2.provenanceai.network/register \
 
 #### 4. View the Dashboard
 
-Open `https://agentid2.provenanceai.network` in your browser and log in. The dashboard shows:
+Open `https://countersig.com` in your browser and log in. The dashboard shows:
 
 - Organization overview and stats
 - Agent registry with trust scores
@@ -1511,7 +1511,7 @@ Open `https://agentid2.provenanceai.network` in your browser and log in. The das
 #### 5. Invite Team Members
 
 ```bash
-curl -X POST https://agentid2.provenanceai.network/orgs/your-org-id/invite \
+curl -X POST https://countersig.com/orgs/your-org-id/invite \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -1531,7 +1531,7 @@ curl -X POST https://agentid2.provenanceai.network/orgs/your-org-id/invite \
 - [ ] Configure production `REDIS_URL`
 - [ ] Set strong `BAGS_API_KEY`
 - [ ] Update `CORS_ORIGIN` to production domain
-- [ ] Update `AGENTID_BASE_URL` to public URL
+- [ ] Update `COUNTERSIG_BASE_URL` to public URL
 - [ ] Increase `BADGE_CACHE_TTL` (e.g., 300 seconds)
 - [ ] Enable SSL/TLS
 - [ ] Configure log aggregation
@@ -1544,7 +1544,7 @@ Create `ecosystem.config.js`:
 ```javascript
 module.exports = {
   apps: [{
-    name: 'agentid-api',
+    name: 'countersig-api',
     script: './backend/server.js',
     instances: 'max',
     exec_mode: 'cluster',
@@ -1573,16 +1573,16 @@ pm2 startup
 ```nginx
 server {
     listen 80;
-    server_name agentid2.provenanceai.network;
+    server_name countersig.com;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name agentid2.provenanceai.network;
+    server_name countersig.com;
 
-    ssl_certificate /etc/letsencrypt/live/api.agentid.io/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.agentid.io/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/api.countersig.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.countersig.com/privkey.pem;
 
     location / {
         proxy_pass http://localhost:3002;
@@ -1605,7 +1605,7 @@ server {
 sudo apt install certbot python3-certbot-nginx
 
 # Obtain certificate
-sudo certbot --nginx -d api.agentid.io
+sudo certbot --nginx -d api.countersig.com
 
 # Auto-renewal test
 sudo certbot renew --dry-run
@@ -1618,25 +1618,25 @@ cd frontend
 npm run build
 
 # Serve with Nginx
-# Copy dist/ contents to /var/www/agentid/
+# Copy dist/ contents to /var/www/countersig/
 ```
 
 Nginx static file configuration:
 ```nginx
 server {
     listen 80;
-    server_name agentid2.provenanceai.network;
+    server_name countersig.com;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name agentid2.provenanceai.network;
+    server_name countersig.com;
 
-    ssl_certificate /etc/letsencrypt/live/agentid.io/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/agentid.io/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/countersig.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/countersig.com/privkey.pem;
 
-    root /var/www/agentid;
+    root /var/www/countersig;
     index index.html;
 
     location / {

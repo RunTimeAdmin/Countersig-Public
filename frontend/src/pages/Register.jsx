@@ -445,7 +445,7 @@ export default function Register() {
           </div>
           <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Registration Successful!</h2>
           <p className="text-[var(--text-secondary)] mb-6">
-            Your agent has been registered in the AgentID ecosystem.
+            Your agent has been registered in the Countersig ecosystem.
           </p>
 
           <div className="mb-8">
@@ -490,7 +490,7 @@ export default function Register() {
           <span className="gradient-text">Register Agent</span>
         </h1>
         <p className="text-[var(--text-secondary)] text-lg">
-          Register your AI agent with AgentID to receive a trust badge and establish verifiable identity.
+          Register your AI agent with Countersig to receive a trust badge and establish verifiable identity.
         </p>
       </div>
 

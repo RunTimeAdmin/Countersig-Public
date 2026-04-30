@@ -202,16 +202,16 @@ const integrations = [
     color: 'cyan',
     title: 'MCP Server',
     subtitle: 'Easiest — Zero Code',
-    code: 'claude mcp add agentid -- npx -y @agentidapp/mcp',
+    code: 'claude mcp add countersig -- npx -y @countersig/mcp',
     lang: 'bash',
-    description: 'Claude gets 12 AgentID tools. Register, verify, attest, communicate — all through conversation.',
+    description: 'Claude gets 12 Countersig tools. Register, verify, attest, communicate — all through conversation.',
   },
   {
     Icon: CodeBracketIcon,
     color: 'purple',
     title: 'TypeScript SDK',
     subtitle: 'Full Control',
-    code: `import { AgentIDClient } from '@agentidapp/sdk';\nconst client = new AgentIDClient({\n  baseUrl: 'https://api.agentidapp.com'\n});\nconst agents = await client.listAgents();`,
+    code: `import { CountersigClient } from '@countersig/sdk';\nconst client = new CountersigClient({\n  baseUrl: 'https://api.countersig.com'\n});\nconst agents = await client.listAgents();`,
     lang: 'typescript',
     description: 'Type-safe client for Node.js and browser environments with full API coverage.',
   },
@@ -220,7 +220,7 @@ const integrations = [
     color: 'emerald',
     title: 'REST API',
     subtitle: 'Any Language',
-    code: `curl -H "Authorization: Bearer aid_xxx" \\\n  https://api.agentidapp.com/agents`,
+    code: `curl -H "Authorization: Bearer cs_xxx" \\\n  https://api.countersig.com/agents`,
     lang: 'bash',
     description: 'Standard REST endpoints accessible from any language or platform.',
   },
@@ -234,7 +234,7 @@ const colorMap = {
 };
 
 /* ── Page ── */
-export default function WhyAgentID() {
+export default function WhyCountersig() {
   return (
     <div className="min-h-screen">
       {/* ═══ Hero ═══ */}
@@ -251,7 +251,7 @@ export default function WhyAgentID() {
           </h1>
           <p className="text-lg sm:text-xl text-[var(--text-secondary)] max-w-2xl mx-auto mb-10 leading-relaxed">
             AI agents are the only actors on the internet operating without verifiable identity.{' '}
-            <span className="text-[var(--text-primary)] font-semibold">AgentID fixes that.</span>
+            <span className="text-[var(--text-primary)] font-semibold">Countersig fixes that.</span>
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -307,7 +307,7 @@ export default function WhyAgentID() {
                   <div className="flex items-start gap-2.5">
                     <CheckIcon />
                     <div>
-                      <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400/80">With AgentID</span>
+                      <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400/80">With Countersig</span>
                       <p className="text-sm text-[var(--text-secondary)] mt-0.5">{card.withId}</p>
                     </div>
                   </div>
@@ -322,10 +322,10 @@ export default function WhyAgentID() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)] mb-4">
-            Who Needs <span className="gradient-text">AgentID</span>
+            Who Needs <span className="gradient-text">Countersig</span>
           </h2>
           <p className="text-[var(--text-secondary)] max-w-xl mx-auto">
-            Whether you build agents, manage them, embed them, or are one — AgentID is for you.
+            Whether you build agents, manage them, embed them, or are one — Countersig is for you.
           </p>
         </div>
 
@@ -361,7 +361,7 @@ export default function WhyAgentID() {
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)] mb-4">
-            The AgentID <span className="gradient-text">Solution</span>
+            The Countersig <span className="gradient-text">Solution</span>
           </h2>
           <p className="text-[var(--text-secondary)] max-w-xl mx-auto">
             Ten core capabilities that give your agent a complete, verifiable identity.

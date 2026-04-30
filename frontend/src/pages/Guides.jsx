@@ -25,7 +25,7 @@ export default function Guides() {
               <BookOpenIcon className="w-10 h-10 text-cyan-400" />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4"><span className="gradient-text">Documentation</span></h1>
-            <p className="text-gray-400 text-lg max-w-2xl mx-auto mb-8">Everything you need to register your AI agent, verify its identity, and integrate AgentID trust badges.</p>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto mb-8">Everything you need to register your AI agent, verify its identity, and integrate Countersig trust badges.</p>
             <a 
               href="/docs/index.html" 
               className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-cyan-500/25"
@@ -37,7 +37,7 @@ export default function Guides() {
         </div>
       </section>
 
-      {/* Why AgentID — Value Proposition */}
+      {/* Why Countersig — Value Proposition */}
       <section className="mb-10 animate-fade-in">
         <div className="glass rounded-2xl p-6 md:p-8 border border-gray-700 hover:border-emerald-500/50 transition-colors relative overflow-hidden">
           <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-emerald-500/5 to-transparent rounded-bl-full pointer-events-none" />
@@ -47,12 +47,12 @@ export default function Guides() {
                 <ShieldIcon className="w-6 h-6 text-emerald-400" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Why AgentID?</h2>
+                <h2 className="text-xl font-bold text-white">Why Countersig?</h2>
                 <p className="text-sm text-gray-400">The case for verifiable AI agent identity</p>
               </div>
             </div>
 
-            <p className="text-gray-400 mb-6">AI agents operate without identity. AgentID gives them cryptographic proof of who they are, what they've done, and why they can be trusted.</p>
+            <p className="text-gray-400 mb-6">AI agents operate without identity. Countersig gives them cryptographic proof of who they are, what they've done, and why they can be trusted.</p>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
               <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
@@ -106,7 +106,7 @@ export default function Guides() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">MCP Server Quick Start</h2>
-                <p className="text-sm text-gray-400">Using AgentID with Claude — from zero to daily use</p>
+                <p className="text-sm text-gray-400">Using Countersig with Claude — from zero to daily use</p>
               </div>
             </div>
 
@@ -121,7 +121,7 @@ export default function Guides() {
               <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                 <div className="text-orange-400 font-bold text-lg mb-1">2</div>
                 <h4 className="text-sm font-semibold text-white mb-1">Install MCP</h4>
-                <p className="text-xs text-gray-400"><code>claude mcp add agentid</code></p>
+                <p className="text-xs text-gray-400"><code>claude mcp add countersig</code></p>
               </div>
               <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                 <div className="text-orange-400 font-bold text-lg mb-1">3</div>
@@ -146,7 +146,7 @@ export default function Guides() {
                 <ArrowRightIcon className="w-4 h-4" />
               </a>
               <a
-                href="https://www.npmjs.com/package/@agentidapp/mcp"
+                href="https://www.npmjs.com/package/@countersig/mcp"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl transition-colors border border-gray-600"
@@ -171,16 +171,16 @@ export default function Guides() {
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-semibold text-sky-400 uppercase tracking-wider mb-2">Installation</h3>
-                <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>npm install @agentidapp/sdk</code></pre>
+                <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>npm install @countersig/sdk</code></pre>
               </div>
 
               <div>
                 <h3 className="text-sm font-semibold text-sky-400 uppercase tracking-wider mb-2">Quick Start</h3>
-                <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`import { AgentIDClient } from '@agentidapp/sdk';
+                <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`import { CountersigClient } from '@countersig/sdk';
 
-const client = new AgentIDClient({
-  apiKey: 'aid_your_key_here',
-  baseUrl: 'https://api.agentidapp.com'
+const client = new CountersigClient({
+  apiKey: 'cs_your_key_here',
+  baseUrl: 'https://api.countersig.com'
 });
 
 // Register an agent
@@ -213,7 +213,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
               </div>
 
               <div className="flex flex-wrap gap-3 pt-2">
-                <a href="https://www.npmjs.com/package/@agentidapp/sdk" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sky-400 hover:text-sky-300 transition-colors text-sm">
+                <a href="https://www.npmjs.com/package/@countersig/sdk" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sky-400 hover:text-sky-300 transition-colors text-sm">
                   <span>npm</span>
                   <ExternalLinkIcon className="w-3.5 h-3.5" />
                 </a>
@@ -239,7 +239,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-semibold text-violet-400 uppercase tracking-wider mb-2">For Claude Code</h3>
-                <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>claude mcp add agentid -- npx -y @agentidapp/mcp</code></pre>
+                <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>claude mcp add countersig -- npx -y @countersig/mcp</code></pre>
               </div>
 
               <div>
@@ -247,11 +247,11 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
                 <p className="text-xs text-[var(--text-muted)] mb-2">Add to <code className="bg-[var(--bg-primary)] px-1.5 py-0.5 rounded text-xs">claude_desktop_config.json</code>:</p>
                 <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`{
   "mcpServers": {
-    "agentid": {
+    "countersig": {
       "command": "npx",
-      "args": ["-y", "@agentidapp/mcp"],
+      "args": ["-y", "@countersig/mcp"],
       "env": {
-        "AGENTID_API_KEY": "aid_your_key_here"
+        "COUNTERSIG_API_KEY": "cs_your_key_here"
       }
     }
   }
@@ -297,7 +297,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
               </div>
 
               <div className="flex flex-wrap gap-3 pt-2">
-                <a href="https://www.npmjs.com/package/@agentidapp/mcp" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 transition-colors text-sm">
+                <a href="https://www.npmjs.com/package/@countersig/mcp" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 transition-colors text-sm">
                   <span>npm</span>
                   <ExternalLinkIcon className="w-3.5 h-3.5" />
                 </a>
@@ -331,7 +331,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
             </div>
             <h2 className="text-xl font-bold text-white">Developer Guide</h2>
           </div>
-          <p className="text-gray-400 mb-4">Technical documentation for integrating AgentID into your applications, including API reference, widget embedding, and SDK usage.</p>
+          <p className="text-gray-400 mb-4">Technical documentation for integrating Countersig into your applications, including API reference, widget embedding, and SDK usage.</p>
           <a href="/docs/index.html#trustmark" className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors">
             <span>Read Guide</span>
             <ArrowRightIcon className="w-4 h-4" />
@@ -359,7 +359,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
             </div>
             <h2 className="text-xl font-bold text-white">Deployment Guide</h2>
           </div>
-          <p className="text-gray-400 mb-4">Deploy AgentID to production with Docker Compose, configure PostgreSQL, Redis, and Caddy reverse proxy for HTTPS.</p>
+          <p className="text-gray-400 mb-4">Deploy Countersig to production with Docker Compose, configure PostgreSQL, Redis, and Caddy reverse proxy for HTTPS.</p>
           <a href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/blob/main/docs/DEPLOYMENT_GUIDE.md" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 transition-colors">
             <span>Read Guide</span>
             <ExternalLinkIcon className="w-4 h-4" />
@@ -387,7 +387,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
             </div>
             <h2 className="text-xl font-bold text-white">Migration Guide</h2>
           </div>
-          <p className="text-gray-400 mb-4">Upgrade between AgentID versions with step-by-step migration instructions, schema changes, and backward compatibility notes.</p>
+          <p className="text-gray-400 mb-4">Upgrade between Countersig versions with step-by-step migration instructions, schema changes, and backward compatibility notes.</p>
           <a href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/blob/main/docs/MIGRATION_GUIDE.md" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors">
             <span>Read Guide</span>
             <ExternalLinkIcon className="w-4 h-4" />
@@ -416,7 +416,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
       <section className="mt-12 space-y-4">
         <h2 className="text-2xl font-bold text-[var(--text-primary)]">Client Libraries</h2>
         <p className="text-[var(--text-secondary)]">
-          Official packages for integrating AgentID into your applications and AI workflows.
+          Official packages for integrating Countersig into your applications and AI workflows.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -428,10 +428,10 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
               </tr>
             </thead>
             <tbody className="text-[var(--text-secondary)]">
-              <tr className="border-b border-[var(--border-subtle)]"><td className="py-2"><code className="text-xs">@agentidapp/sdk</code></td><td>1.0.0</td><td>TypeScript SDK for all AgentID operations</td></tr>
-              <tr className="border-b border-[var(--border-subtle)]"><td className="py-2"><code className="text-xs">@agentidapp/mcp</code></td><td>1.0.0</td><td>MCP server for Claude Code / Claude Desktop</td></tr>
-              <tr className="border-b border-[var(--border-subtle)]"><td className="py-2"><code className="text-xs">@agentidapp/verify</code></td><td>1.0.0</td><td>Lightweight A2A token verifier</td></tr>
-              <tr><td className="py-2"><code className="text-xs">@agentidapp/react</code></td><td className="text-[var(--text-muted)] italic">Coming soon</td><td>React hooks for AgentID</td></tr>
+              <tr className="border-b border-[var(--border-subtle)]"><td className="py-2"><code className="text-xs">@countersig/sdk</code></td><td>1.0.0</td><td>TypeScript SDK for all Countersig operations</td></tr>
+              <tr className="border-b border-[var(--border-subtle)]"><td className="py-2"><code className="text-xs">@countersig/mcp</code></td><td>1.0.0</td><td>MCP server for Claude Code / Claude Desktop</td></tr>
+              <tr className="border-b border-[var(--border-subtle)]"><td className="py-2"><code className="text-xs">@countersig/verify</code></td><td>1.0.0</td><td>Lightweight A2A token verifier</td></tr>
+              <tr><td className="py-2"><code className="text-xs">@countersig/react</code></td><td className="text-[var(--text-muted)] italic">Coming soon</td><td>React hooks for Countersig</td></tr>
             </tbody>
           </table>
         </div>
@@ -440,7 +440,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
       <section className="mt-12 space-y-4">
         <h2 className="text-2xl font-bold text-[var(--text-primary)]">Multi-Chain Registration</h2>
         <p className="text-[var(--text-secondary)]">
-          AgentID 2.0 supports agent registration across multiple blockchains. Each chain uses its native signing algorithm for identity verification.
+          Countersig 2.0 supports agent registration across multiple blockchains. Each chain uses its native signing algorithm for identity verification.
         </p>
 
         <div className="space-y-3">
@@ -471,7 +471,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
             <ol className="list-decimal list-inside space-y-2 text-sm text-[var(--text-secondary)]">
               <li>Select an EVM chain (Ethereum, Base, or Polygon) during registration</li>
               <li>Enter your wallet address (0x format, 42 characters)</li>
-              <li>Request a challenge from the AgentID server</li>
+              <li>Request a challenge from the Countersig server</li>
               <li>Sign the challenge using MetaMask (<code className="bg-[var(--bg-primary)] px-1.5 py-0.5 rounded text-xs">personal_sign</code>) or ethers.js</li>
               <li>Submit the signature to complete verification</li>
             </ol>
@@ -514,10 +514,10 @@ Response:
 
         <div className="space-y-3">
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">Using the Verify Package</h3>
-          <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`import { AgentIDVerifier } from '@agentidapp/verify';
+          <pre className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-x-auto text-xs text-[var(--text-secondary)]"><code>{`import { CountersigVerifier } from '@countersig/verify';
 
-const verifier = new AgentIDVerifier({
-  baseURL: 'https://agentidapp.com'
+const verifier = new CountersigVerifier({
+  baseURL: 'https://countersig.com'
 });
 
 const result = await verifier.verify(token);
@@ -528,7 +528,7 @@ console.log(result.valid, result.agentId);`}</code></pre>
       <section className="mt-12 space-y-4">
         <h2 className="text-2xl font-bold text-[var(--text-primary)]">W3C Verifiable Credentials</h2>
         <p className="text-[var(--text-secondary)]">
-          AgentID can export agent identity data as W3C Verifiable Credentials, enabling interoperability with standard identity systems.
+          Countersig can export agent identity data as W3C Verifiable Credentials, enabling interoperability with standard identity systems.
         </p>
 
         <div className="space-y-3">
@@ -539,9 +539,9 @@ Response:
 {
   "@context": ["https://www.w3.org/2018/credentials/v1"],
   "type": ["VerifiableCredential", "AgentIdentityCredential"],
-  "issuer": "did:web:agentidapp.com",
+  "issuer": "did:web:countersig.com",
   "credentialSubject": {
-    "id": "did:web:agentidapp.com:agents:agent-123",
+    "id": "did:web:countersig.com:agents:agent-123",
     "name": "My Agent",
     "chainType": "ethereum",
     "capabilities": ["defi.swap.v1"],

@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
 
   // Try to restore session on mount from httpOnly cookie
   useEffect(() => {
-    const hasSessionHint = document.cookie.includes('aid_logged_in=1');
+    const hasSessionHint = document.cookie.includes('cs_logged_in=1');
     if (!hasSessionHint) {
       setLoading(false);
       return;

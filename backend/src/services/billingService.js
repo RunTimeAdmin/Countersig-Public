@@ -97,8 +97,8 @@ async function createCheckoutSession(orgId, tier, successUrl, cancelUrl) {
     customer: customerId,
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: successUrl || 'https://agentidapp.com/settings?billing=success',
-    cancel_url: cancelUrl || 'https://agentidapp.com/settings?billing=cancelled',
+    success_url: successUrl || 'https://countersig.com/settings?billing=success',
+    cancel_url: cancelUrl || 'https://countersig.com/settings?billing=cancelled',
     metadata: { orgId: String(orgId), tier },
   });
   
@@ -119,7 +119,7 @@ async function createPortalSession(orgId, returnUrl) {
   
   const session = await s.billingPortal.sessions.create({
     customer: plan.stripe_customer_id,
-    return_url: returnUrl || 'https://agentidapp.com/settings',
+    return_url: returnUrl || 'https://countersig.com/settings',
   });
   
   return { url: session.url };

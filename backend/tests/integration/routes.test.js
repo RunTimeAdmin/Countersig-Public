@@ -87,7 +87,7 @@ describe('Integration — route smoke tests', () => {
     it('returns 400 when no body is sent', async () => {
       const res = await request(app)
         .post('/verify/challenge')
-        .set('X-Requested-With', 'AgentID')
+        .set('X-Requested-With', 'Countersig')
         .send({});
       expect([400, 422, 500]).toContain(res.status);
     });

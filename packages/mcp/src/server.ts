@@ -21,9 +21,9 @@ export interface ToolDefinition {
   }>;
 }
 
-export function createAgentIDServer(): Server {
+export function createCountersigServer(): Server {
   const server = new Server(
-    { name: 'agentid', version: '1.0.0' },
+    { name: 'countersig', version: '1.0.0' },
     { capabilities: { tools: {} } }
   );
 

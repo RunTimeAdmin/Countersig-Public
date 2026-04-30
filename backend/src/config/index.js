@@ -11,7 +11,7 @@ const config = {
   // External API configuration
   bagsApiKey: process.env.BAGS_API_KEY || '',
   saidGatewayUrl: process.env.SAID_GATEWAY_URL || 'https://said-identity-gateway.up.railway.app',
-  agentIdBaseUrl: process.env.AGENTID_BASE_URL || 'http://localhost:3002',
+  countersigBaseUrl: process.env.COUNTERSIG_BASE_URL || 'http://localhost:3002',
 
   // Database configuration
   databaseUrl: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/agentid',

@@ -6,20 +6,20 @@ exports.getConfigPath = getConfigPath;
 const fs_1 = require("fs");
 const os_1 = require("os");
 const path_1 = require("path");
-const CONFIG_DIR = (0, path_1.join)((0, os_1.homedir)(), '.agentid');
+const CONFIG_DIR = (0, path_1.join)((0, os_1.homedir)(), '.countersig');
 const CONFIG_FILE = (0, path_1.join)(CONFIG_DIR, 'config.json');
 const DEFAULT_CONFIG = {
-    apiUrl: 'https://api.agentidapp.com',
+    apiUrl: 'https://api.countersig.com',
 };
 function loadConfig() {
     // Environment variables take precedence
     const envConfig = {};
-    if (process.env.AGENTID_API_KEY)
-        envConfig.apiKey = process.env.AGENTID_API_KEY;
-    if (process.env.AGENTID_AGENT_ID)
-        envConfig.agentId = process.env.AGENTID_AGENT_ID;
-    if (process.env.AGENTID_API_URL)
-        envConfig.apiUrl = process.env.AGENTID_API_URL;
+    if (process.env.COUNTERSIG_API_KEY)
+        envConfig.apiKey = process.env.COUNTERSIG_API_KEY;
+    if (process.env.COUNTERSIG_AGENT_ID)
+        envConfig.agentId = process.env.COUNTERSIG_AGENT_ID;
+    if (process.env.COUNTERSIG_API_URL)
+        envConfig.apiUrl = process.env.COUNTERSIG_API_URL;
     // Read file config if present
     let fileConfig = {};
     if ((0, fs_1.existsSync)(CONFIG_FILE)) {

@@ -43,7 +43,7 @@ export default function Login() {
             </svg>
           </div>
           <h1 className="text-3xl font-bold gradient-text mb-2">Welcome Back</h1>
-          <p className="text-[var(--text-secondary)]">Sign in to your AgentID organization</p>
+          <p className="text-[var(--text-secondary)]">Sign in to your Countersig organization</p>
         </div>
 
         {/* Card */}

@@ -4,7 +4,7 @@ import axios from 'axios';
 // NOTE: The widget intentionally uses its own axios instance (not the shared lib/api.js)
 // because it's built as a standalone bundle for iframe embedding and cannot share imports
 // with the main app.
-const API_BASE_URL = window.__AGENTID_API_URL__ || import.meta.env.VITE_AGENTID_API_URL || 'https://api.agentidapp.com';
+const API_BASE_URL = window.__COUNTERSIG_API_URL__ || import.meta.env.VITE_COUNTERSIG_API_URL || 'https://api.countersig.com';
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -191,7 +191,7 @@ function Widget() {
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
               </svg>
-              {data?.chain_type ? (CHAIN_CONFIG[data.chain_type]?.label || data.chain_type) : 'AgentID'}
+              {data?.chain_type ? (CHAIN_CONFIG[data.chain_type]?.label || data.chain_type) : 'Countersig'}
             </span>
             {data?.chain_type && CHAIN_CONFIG[data.chain_type] && (
               <span

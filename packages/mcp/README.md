@@ -1,6 +1,6 @@
-# @agentidapp/mcp
+# @countersig/mcp
 
-MCP server that gives AI agents a verified cryptographic identity via the [AgentID](https://agentidapp.com) Non-Human Identity (NHI) platform.
+MCP server that gives AI agents a verified cryptographic identity via the [Countersig](https://countersig.com) Non-Human Identity (NHI) platform.
 
 Register your agent, earn a reputation score, issue A2A tokens, and make identity-verified HTTP requests — all from inside Claude.
 
@@ -9,7 +9,7 @@ Register your agent, earn a reputation score, issue A2A tokens, and make identit
 ### Claude Code
 
 ```bash
-claude mcp add agentid -- npx -y @agentidapp/mcp
+claude mcp add countersig -- npx -y @countersig/mcp
 ```
 
 ### Claude Desktop
@@ -19,25 +19,25 @@ Add to your config (`Settings > Developer > Edit Config`):
 ```json
 {
   "mcpServers": {
-    "agentid": {
+    "countersig": {
       "command": "npx",
-      "args": ["-y", "@agentidapp/mcp"],
+      "args": ["-y", "@countersig/mcp"],
       "env": {
-        "AGENTID_API_KEY": "aid_your_key_here"
+        "COUNTERSIG_API_KEY": "cs_your_key_here"
       }
     }
   }
 }
 ```
 
-Get your API key at [agentidapp.com/settings/api-keys](https://agentidapp.com/settings/api-keys).
+Get your API key at [countersig.com/settings/api-keys](https://countersig.com/settings/api-keys).
 
 ## Quick Start
 
 Once installed, prompt your agent:
 
 ```
-> Configure AgentID with my API key: aid_...
+> Configure Countersig with my API key: cs_...
 > Register yourself as "My Research Assistant" with capabilities ["web-search", "code-execution"]
 > Check your current reputation score
 > Make an authenticated request to https://example.com/api/data
@@ -63,13 +63,13 @@ Once installed, prompt your agent:
 
 | Variable | Description |
 |----------|-------------|
-| `AGENTID_API_KEY` | Your AgentID API key (overrides config file) |
-| `AGENTID_AGENT_ID` | Existing agent ID (overrides config file) |
-| `AGENTID_API_URL` | API base URL override (default: `https://api.agentidapp.com`) |
+| `COUNTERSIG_API_KEY` | Your Countersig API key (overrides config file) |
+| `COUNTERSIG_AGENT_ID` | Existing agent ID (overrides config file) |
+| `COUNTERSIG_API_URL` | API base URL override (default: `https://api.countersig.com`) |
 
 ## Security
 
-- API keys stored in `~/.agentid/config.json` with restricted file permissions
+- API keys stored in `~/.countersig/config.json` with restricted file permissions
 - Private keys never leave the local process
 - SSRF protection blocks requests to private/internal networks
 - A2A tokens expire in 60 seconds and are never cached

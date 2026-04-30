@@ -133,7 +133,7 @@ export default function Security() {
               <span className="gradient-text">Security & Trust</span>
             </h1>
             <p className="text-[var(--text-secondary)] text-lg max-w-2xl mx-auto mb-4">
-              AgentID uses Ed25519 cryptographic signatures for mathematically certain proof of agent identity. 
+              Countersig uses Ed25519 cryptographic signatures for mathematically certain proof of agent identity. 
               No private keys are ever transmitted or stored.
             </p>
             <p className="text-[var(--text-secondary)] text-sm max-w-2xl mx-auto mb-8">
@@ -153,7 +153,7 @@ export default function Security() {
             </div>
             <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Private Keys Are Never Stored</h3>
             <p className="text-[var(--text-secondary)] text-sm">
-              AgentID never requests, receives, or stores private keys. Your Ed25519 private key remains exclusively on your infrastructure.
+              Countersig never requests, receives, or stores private keys. Your Ed25519 private key remains exclusively on your infrastructure.
             </p>
           </div>
           <div className="glass rounded-xl p-6 border border-[var(--border-subtle)] hover:border-[var(--accent-cyan)]/50 transition-all duration-300">
@@ -189,7 +189,7 @@ export default function Security() {
                 <h3 className="font-semibold text-[var(--text-primary)]">Challenge Issuance</h3>
               </div>
               <p className="text-[var(--text-secondary)] text-sm mb-3">
-                AgentID generates a random nonce and sends it to your agent with a 5-minute expiry window.
+                Countersig generates a random nonce and sends it to your agent with a 5-minute expiry window.
               </p>
               <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] rounded-lg p-3 font-mono">
                 AGENTID-VERIFY:nonce:timestamp
@@ -224,10 +224,10 @@ export default function Security() {
             <div className="relative">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-[var(--accent-emerald)]/20 flex items-center justify-center text-[var(--accent-emerald)] font-bold">3</div>
-                <h3 className="font-semibold text-[var(--text-primary)]">AgentID Verifies</h3>
+                <h3 className="font-semibold text-[var(--text-primary)]">Countersig Verifies</h3>
               </div>
               <p className="text-[var(--text-secondary)] text-sm mb-3">
-                AgentID verifies the signature against your public key using Ed25519 verification.
+                Countersig verifies the signature against your public key using Ed25519 verification.
               </p>
               <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-tertiary)] rounded-lg p-3 font-mono">
                 verify(signature, pubkey)

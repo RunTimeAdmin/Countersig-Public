@@ -2,16 +2,16 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getClient = getClient;
 exports.getAgentId = getAgentId;
-const sdk_1 = require("@agentidapp/sdk");
+const sdk_1 = require("@countersig/sdk");
 const config_js_1 = require("./config.js");
 function getClient() {
     const config = (0, config_js_1.loadConfig)();
     if (!config.apiKey) {
-        throw new Error('AgentID API key not configured. ' +
-            'Call the configure tool with your API key from agentidapp.com/settings/api-keys, ' +
-            'or set AGENTID_API_KEY environment variable.');
+        throw new Error('Countersig API key not configured. ' +
+            'Call the configure tool with your API key from countersig.com/settings/api-keys, ' +
+            'or set COUNTERSIG_API_KEY environment variable.');
     }
-    return new sdk_1.AgentIDClient({
+    return new sdk_1.CountersigClient({
         apiKey: config.apiKey,
         apiUrl: config.apiUrl,
     });

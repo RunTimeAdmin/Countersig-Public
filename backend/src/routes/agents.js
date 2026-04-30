@@ -225,8 +225,8 @@ router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
     // Determine verification status
     const isVerified = agent.status === 'verified' && !agent.revoked_at;
     const verificationMethod = chainType.startsWith('solana') 
-      ? 'did:web:agentidapp.com#ed25519-key'
-      : 'did:web:agentidapp.com#secp256k1-key';
+      ? 'did:web:countersig.com#ed25519-key'
+      : 'did:web:countersig.com#secp256k1-key';
 
     // Build reputation data
     let reputationScore = agent.bags_score || 0;
@@ -239,23 +239,23 @@ router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
         'https://www.w3.org/2018/credentials/v1',
         'https://w3id.org/security/suites/ed25519-2020/v1',
         {
-          'AgentIDCredential': 'https://agentidapp.com/schemas/credential/v1',
-          'agentName': 'https://agentidapp.com/schemas/credential/v1#agentName',
-          'chainType': 'https://agentidapp.com/schemas/credential/v1#chainType',
-          'reputationScore': 'https://agentidapp.com/schemas/credential/v1#reputationScore',
-          'reputationLabel': 'https://agentidapp.com/schemas/credential/v1#reputationLabel',
-          'capabilities': 'https://agentidapp.com/schemas/credential/v1#capabilities',
-          'verificationStatus': 'https://agentidapp.com/schemas/credential/v1#verificationStatus',
-          'registeredAt': 'https://agentidapp.com/schemas/credential/v1#registeredAt',
-          'lastVerified': 'https://agentidapp.com/schemas/credential/v1#lastVerified'
+          'CountersigCredential': 'https://countersig.com/schemas/credential/v1',
+          'agentName': 'https://countersig.com/schemas/credential/v1#agentName',
+          'chainType': 'https://countersig.com/schemas/credential/v1#chainType',
+          'reputationScore': 'https://countersig.com/schemas/credential/v1#reputationScore',
+          'reputationLabel': 'https://countersig.com/schemas/credential/v1#reputationLabel',
+          'capabilities': 'https://countersig.com/schemas/credential/v1#capabilities',
+          'verificationStatus': 'https://countersig.com/schemas/credential/v1#verificationStatus',
+          'registeredAt': 'https://countersig.com/schemas/credential/v1#registeredAt',
+          'lastVerified': 'https://countersig.com/schemas/credential/v1#lastVerified'
         }
       ],
       id: `urn:agentid:credential:${agentId}`,
       type: ['VerifiableCredential', 'AIAgentIdentityCredential'],
       issuer: {
-        id: 'did:web:agentidapp.com',
-        name: 'AgentID',
-        url: 'https://agentidapp.com'
+        id: 'did:web:countersig.com',
+        name: 'Countersig',
+        url: 'https://countersig.com'
       },
       issuanceDate: now,
       expirationDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24h validity
@@ -273,8 +273,8 @@ router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
         lastVerified: agent.last_verified || null
       },
       credentialStatus: {
-        id: `${config.agentIdBaseUrl}/agents/${agentId}`,
-        type: 'AgentIDStatusCheck2024',
+        id: `${config.countersigBaseUrl}/agents/${agentId}`,
+        type: 'CountersigStatusCheck2024',
         statusPurpose: 'revocation'
       }
     };
@@ -288,7 +288,7 @@ router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
         type: 'DataIntegrityProof',
         cryptosuite: 'eddsa-jcs-2022',
         created: now,
-        verificationMethod: 'did:web:agentidapp.com#a2a-ed25519-1',
+        verificationMethod: 'did:web:countersig.com#a2a-ed25519-1',
         proofPurpose: 'assertionMethod',
         proofValue
       };

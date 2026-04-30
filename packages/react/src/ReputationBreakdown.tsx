@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 
 export interface ReputationBreakdownProps {
-  /** AgentID agent identifier (fetches reputation from API) */
+  /** Countersig agent identifier (fetches reputation from API) */
   agentId?: string;
   /** Pre-fetched breakdown data (skips API call if provided) */
   breakdown?: Record<string, number | { score: number; max: number }>;
-  /** AgentID API base URL */
+  /** Countersig API base URL */
   apiUrl?: string;
   /** Visual theme */
   theme?: 'light' | 'dark';
@@ -60,7 +60,7 @@ function getLabel(score: number): string {
 export const ReputationBreakdown: React.FC<ReputationBreakdownProps> = ({
   agentId,
   breakdown: propBreakdown,
-  apiUrl = 'https://api.agentidapp.com',
+  apiUrl = 'https://api.countersig.com',
   theme = 'light',
   showHeader = true,
   showLegend = true,

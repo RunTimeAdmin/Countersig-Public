@@ -84,7 +84,7 @@ function planEnforcement(req, res, next) {
         current: usage.apiCalls,
         max: limits.max_api_calls_daily,
         plan: orgPlan,
-        upgrade_url: 'https://agentidapp.com/pricing'
+        upgrade_url: 'https://countersig.com/pricing'
       });
     }
 

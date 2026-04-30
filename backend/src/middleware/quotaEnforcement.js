@@ -41,7 +41,7 @@ function enforceQuota(operationType) {
       if (currentUsage >= limit) {
         return res.status(429).json({
           error: 'Quota exceeded',
-          message: `Monthly ${operationType} limit reached (${limit}). Upgrade your plan at https://agentidapp.com/settings.`,
+          message: `Monthly ${operationType} limit reached (${limit}). Upgrade your plan at https://countersig.com/settings.`,
           usage: { current: currentUsage, limit, operationType, tier },
         });
       }

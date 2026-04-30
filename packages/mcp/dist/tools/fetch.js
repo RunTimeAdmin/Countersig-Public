@@ -40,7 +40,7 @@ function registerFetchTool() {
         // ─── authenticated_fetch ──────────────────────────────────────────
         {
             name: 'authenticated_fetch',
-            description: "Make an HTTP request with the agent's A2A token automatically attached. Use instead of generic HTTP fetch when calling services that accept X-AgentID-Token for identity verification.",
+            description: "Make an HTTP request with the agent's A2A token automatically attached. Use instead of generic HTTP fetch when calling services that accept X-Countersig-Token for identity verification.",
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -60,7 +60,7 @@ function registerFetchTool() {
                     },
                     headers: {
                         type: 'object',
-                        description: 'Additional headers. X-AgentID-Token is added automatically.',
+                        description: 'Additional headers. X-Countersig-Token is added automatically.',
                     },
                     timeout: {
                         type: 'number',
@@ -130,7 +130,7 @@ function registerFetchTool() {
                     const token = await client.tokens.issue(agentId);
                     const mergedHeaders = {
                         ...userHeaders,
-                        'X-AgentID-Token': token.token,
+                        'X-Countersig-Token': token.token,
                         Authorization: 'Bearer ' + token.token,
                     };
                     const response = await (0, axios_1.default)({

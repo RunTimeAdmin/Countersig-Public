@@ -1,6 +1,6 @@
 /**
  * Credential Verification Routes
- * Public endpoint for verifying W3C Verifiable Credentials issued by AgentID
+ * Public endpoint for verifying W3C Verifiable Credentials issued by Countersig
  */
 
 const express = require('express');
@@ -31,7 +31,7 @@ router.post('/credentials/verify', async (req, res, next) => {
 
     // 1. Check issuer
     const issuer = credential.issuer?.id || credential.issuer;
-    checks.issuer = issuer === 'did:web:agentidapp.com';
+    checks.issuer = issuer === 'did:web:countersig.com';
 
     // 2. Check expiration
     if (credential.expirationDate) {

@@ -1,4 +1,4 @@
-# Why AgentID?
+﻿# Why Countersig?
 
 ## The Problem: AI Agents Are Anonymous
 
@@ -15,35 +15,35 @@ As agents proliferate (autonomous coding agents, trading bots, data pipelines, c
 Agent A calls Agent B's API. B has no way to verify A is legitimate.
 
 - **Without identity:** B must either trust blindly (security risk) or block everything (usability dead end)
-- **With AgentID:** B verifies A's cryptographic identity in milliseconds, checks reputation score, proceeds with confidence
+- **With Countersig:** B verifies A's cryptographic identity in milliseconds, checks reputation score, proceeds with confidence
 
 ### 2. Enterprise Compliance
 
 Your company deploys 50 AI agents across departments. Auditor asks: "Which agents accessed customer data? When? Were they authorized?"
 
 - **Without identity:** Shrug. No audit trail. Compliance failure.
-- **With AgentID:** Every agent has a verifiable identity, every action is attested, hash-chained audit logs prove the complete history
+- **With Countersig:** Every agent has a verifiable identity, every action is attested, hash-chained audit logs prove the complete history
 
 ### 3. Marketplace Trust
 
 You're building an agent marketplace / registry. Users need to know: Is this agent verified? How reliable is it? Who's accountable?
 
 - **Without identity:** Star ratings and reviews (easily gamed)
-- **With AgentID:** Cryptographically-verified identity, W3C Verifiable Credentials, objective reputation scores based on actual performance
+- **With Countersig:** Cryptographically-verified identity, W3C Verifiable Credentials, objective reputation scores based on actual performance
 
 ### 4. Multi-Chain / Cross-Platform
 
 Agent operates across Solana, Ethereum, and enterprise APIs. Each platform has different auth — wallet signatures, OAuth, API keys.
 
 - **Without identity:** Manage separate credentials per platform, no unified identity
-- **With AgentID:** One identity, multiple auth methods, cross-chain reputation that follows the agent everywhere
+- **With Countersig:** One identity, multiple auth methods, cross-chain reputation that follows the agent everywhere
 
 ### 5. Autonomous Agent Accountability
 
 Agent runs autonomously — makes decisions, calls APIs, processes data. Something goes wrong. Who's responsible? What did the agent actually do?
 
 - **Without identity:** Black box. No forensics.
-- **With AgentID:** Complete attestation history, verifiable credentials, reputation impact from failures
+- **With Countersig:** Complete attestation history, verifiable credentials, reputation impact from failures
 
 ## Who Needs This
 
@@ -76,7 +76,7 @@ Agent runs autonomously — makes decisions, calls APIs, processes data. Somethi
 - Build portable reputation that transfers across platforms
 - Export W3C Verifiable Credentials as proof of status
 
-## The AgentID Solution
+## The Countersig Solution
 
 | Capability | What It Does |
 |-----------|-------------|
@@ -107,25 +107,25 @@ Three ways to integrate, from simplest to most flexible:
 
 **MCP Server (Easiest — Zero Code)**
 ```bash
-claude mcp add agentid -- npx -y @agentidapp/mcp
+claude mcp add countersig -- npx -y @countersig/mcp
 ```
-Claude gets 12 AgentID tools. Register, verify, attest, communicate — all through conversation.
+Claude gets 12 Countersig tools. Register, verify, attest, communicate — all through conversation.
 
 **TypeScript SDK (Full Control)**
 ```typescript
-import { AgentIDClient } from '@agentidapp/sdk';
-const client = new AgentIDClient({ baseUrl: 'https://api.agentidapp.com' });
+import { CountersigClient } from '@countersig/sdk';
+const client = new CountersigClient({ baseUrl: 'https://api.countersig.com' });
 const agents = await client.listAgents();
 ```
 
 **REST API (Any Language)**
 ```bash
-curl -H "Authorization: Bearer aid_xxx" https://api.agentidapp.com/agents
+curl -H "Authorization: Bearer cs_xxx" https://api.countersig.com/agents
 ```
 
 **React Components (Frontend)**
 ```tsx
-import { TrustBadge, ReputationBreakdown } from '@agentidapp/react';
+import { TrustBadge, ReputationBreakdown } from '@countersig/react';
 <TrustBadge agentId="..." />
 ```
 
@@ -147,8 +147,8 @@ Every human on the internet has identity (accounts, certificates, credentials). 
 
 **AI agents are the only actors on the internet operating without verifiable identity.**
 
-AgentID fixes that.
+Countersig fixes that.
 
 ---
 
-**Get Started:** [agentidapp.com/signup](https://agentidapp.com/signup) | [MCP Quick Start](MCP_QUICKSTART.md) | [API Reference](API_REFERENCE.md) | [Developer Guide](DEVELOPER_GUIDE.md)
+**Get Started:** [countersig.com/signup](https://countersig.com/signup) | [MCP Quick Start](MCP_QUICKSTART.md) | [API Reference](API_REFERENCE.md) | [Developer Guide](DEVELOPER_GUIDE.md)

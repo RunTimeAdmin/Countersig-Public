@@ -1,12 +1,12 @@
-# AgentID 2.0 Migration Guide
+﻿# Countersig 2.0 Migration Guide
 
-This guide documents how to upgrade an existing AgentID v1.0 deployment to v2.0.
+This guide documents how to upgrade an existing Countersig v1.0 deployment to v2.0.
 
 ---
 
 ## Overview
 
-AgentID 2.0 introduces organizations, user authentication, RBAC, audit logging, policies, and webhooks. Most v1 public read endpoints remain unchanged, but state-mutating operations now require authentication.
+Countersig 2.0 introduces organizations, user authentication, RBAC, audit logging, policies, and webhooks. Most v1 public read endpoints remain unchanged, but state-mutating operations now require authentication.
 
 ---
 
@@ -66,13 +66,13 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
-SMTP_FROM=noreply@agentid.dev
+SMTP_FROM=noreply@countersig.dev
 
 # === Organization ===
 DEFAULT_ORG_NAME=Default Organization
 
 # === API Keys ===
-API_KEY_PREFIX=aid_
+API_KEY_PREFIX=cs_
 ```
 
 **Critical:** `JWT_SECRET` must be cryptographically strong (minimum 32 characters). Rotate it immediately if you suspect compromise — all sessions will be invalidated.
@@ -80,8 +80,8 @@ API_KEY_PREFIX=aid_
 ### Updated Production URLs
 
 ```bash
-CORS_ORIGIN=https://agentid2.provenanceai.network
-AGENTID_BASE_URL=https://agentid2.provenanceai.network
+CORS_ORIGIN=https://countersig.com
+COUNTERSIG_BASE_URL=https://countersig.com
 ```
 
 ---
@@ -142,7 +142,7 @@ Existing widgets and badges embedded on external sites will continue to function
 
 ```bash
 # Create a full backup before any schema changes
-pg_dump $DATABASE_URL > agentid-v1-backup-$(date +%Y%m%d).sql
+pg_dump $DATABASE_URL > countersig-v1-backup-$(date +%Y%m%d).sql
 ```
 
 ### Step 2: Update Environment Variables
@@ -154,7 +154,7 @@ cp .env .env.v1-backup
 # Add new variables to .env
 cat >> .env << 'EOF'
 
-# === AgentID 2.0 ===
+# === Countersig 2.0 ===
 JWT_SECRET=$(openssl rand -hex 32)
 JWT_EXPIRY=15m
 JWT_REFRESH_EXPIRY=7d
@@ -162,9 +162,9 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
-SMTP_FROM=noreply@agentid.dev
+SMTP_FROM=noreply@countersig.dev
 DEFAULT_ORG_NAME=Default Organization
-API_KEY_PREFIX=aid_
+API_KEY_PREFIX=cs_
 EOF
 ```
 
@@ -260,7 +260,7 @@ const { pool } = require('./src/models/db');
 cd frontend
 
 # Update API URL if needed
-echo 'VITE_AGENTID_API_URL=https://agentid2.provenanceai.network' > .env
+echo 'VITE_COUNTERSIG_API_URL=https://countersig.com' > .env
 
 npm install
 npm run build
@@ -270,14 +270,14 @@ npm run build
 
 ```bash
 # If using PM2
-pm2 restart agentid
+pm2 restart countersig
 
 # If using Docker Compose
 docker-compose down
 docker-compose up -d
 
 # Verify health check
-curl https://agentid2.provenanceai.network/health
+curl https://countersig.com/health
 ```
 
 ---
@@ -288,22 +288,22 @@ Run these checks to confirm a successful upgrade:
 
 ```bash
 # 1. Health endpoint
-curl https://agentid2.provenanceai.network/health
+curl https://countersig.com/health
 
 # 2. Public read still works
-curl https://agentid2.provenanceai.network/agents
+curl https://countersig.com/agents
 
 # 3. Authentication flow
-curl -X POST https://agentid2.provenanceai.network/auth/register \
+curl -X POST https://countersig.com/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"TestPass123!","name":"Test User"}'
 
 # 4. Organization stats (requires login)
-curl https://agentid2.provenanceai.network/orgs/your-org-id/stats \
+curl https://countersig.com/orgs/your-org-id/stats \
   -H "Cookie: token=..."
 
 # 5. Audit log integrity
-curl https://agentid2.provenanceai.network/orgs/your-org-id/audit/verify \
+curl https://countersig.com/orgs/your-org-id/audit/verify \
   -H "Cookie: token=..."
 ```
 
@@ -316,13 +316,13 @@ If issues occur, you can rollback to v1:
 ```bash
 # Restore database
 cd backend
-psql $DATABASE_URL < agentid-v1-backup-YYYYMMDD.sql
+psql $DATABASE_URL < countersig-v1-backup-YYYYMMDD.sql
 
 # Restore v1 environment
 cp .env.v1-backup .env
 
 # Restart services
-pm2 restart agentid
+pm2 restart countersig
 ```
 
 > **Note:** Rollback will lose any data created after the v2 migration (new users, orgs, audit logs, etc.).

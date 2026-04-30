@@ -82,7 +82,7 @@ const tiers = [
       'On-premise deployment option',
     ],
     cta: 'Contact Us',
-    ctaTo: 'mailto:enterprise@agentidapp.com',
+    ctaTo: 'mailto:enterprise@countersig.com',
     ctaExternal: true,
   },
 ];
@@ -295,12 +295,12 @@ export default function Pricing() {
             </h3>
             <p className="text-[var(--text-secondary)] mb-6">
               Contact us at{' '}
-              <a href="mailto:enterprise@agentidapp.com" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2 transition-colors">
-                enterprise@agentidapp.com
+              <a href="mailto:enterprise@countersig.com" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2 transition-colors">
+                enterprise@countersig.com
               </a>
             </p>
             <a
-              href="mailto:enterprise@agentidapp.com"
+              href="mailto:enterprise@countersig.com"
               className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all duration-200"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

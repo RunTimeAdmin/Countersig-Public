@@ -314,7 +314,7 @@ export default function Registry() {
           <span className="gradient-text">Universal Identity for AI Agents</span>
         </h1>
         <p className="text-[var(--text-secondary)] text-xl max-w-3xl mx-auto leading-relaxed mb-4">
-          AgentID 2.0 is the only identity platform built from the ground up with a pluggable, multi-provider authentication architecture. Prove who you are — by wallet, by enterprise SSO, by API key, or by direct agent-to-agent trust.
+          Countersig 2.0 is the only identity platform built from the ground up with a pluggable, multi-provider authentication architecture. Prove who you are — by wallet, by enterprise SSO, by API key, or by direct agent-to-agent trust.
         </p>
         <p className="text-[var(--text-muted)] text-sm max-w-2xl mx-auto mb-8">
           Not crypto-only. Not enterprise-only. Every identity. One platform.
@@ -401,10 +401,10 @@ export default function Registry() {
         </div>
       </div>
 
-      {/* Why AgentID? */}
+      {/* Why Countersig? */}
       <div className="mb-16 animate-fade-in">
         <h2 className="text-2xl font-bold text-center mb-8">
-          <span className="gradient-text">Why AgentID?</span>
+          <span className="gradient-text">Why Countersig?</span>
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <div className="glass rounded-2xl p-6 border border-[var(--border-subtle)] text-center hover:bg-[var(--bg-tertiary)]/40 transition-all duration-300">
@@ -525,7 +525,7 @@ export default function Registry() {
                 </li>
               ))}
             </ul>
-            <a href="mailto:enterprise@agentidapp.com" className="block text-center px-5 py-2.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-primary)] font-semibold hover:bg-[var(--bg-tertiary)] transition-colors">Contact Us</a>
+            <a href="mailto:enterprise@countersig.com" className="block text-center px-5 py-2.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-primary)] font-semibold hover:bg-[var(--bg-tertiary)] transition-colors">Contact Us</a>
           </div>
         </div>
       </div>
@@ -540,9 +540,9 @@ export default function Registry() {
           <div>
             <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">TypeScript SDK</h3>
             <div className="relative group">
-              <pre className="rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)] p-4 overflow-x-auto text-sm text-emerald-400 font-mono">npm install @agentidapp/sdk</pre>
+              <pre className="rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)] p-4 overflow-x-auto text-sm text-emerald-400 font-mono">npm install @countersig/sdk</pre>
               <button
-                onClick={() => { navigator.clipboard.writeText('npm install @agentidapp/sdk'); }}
+                onClick={() => { navigator.clipboard.writeText('npm install @countersig/sdk'); }}
                 className="absolute top-3 right-3 p-1.5 rounded-md bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 transition-all"
                 title="Copy"
               >
@@ -554,9 +554,9 @@ export default function Registry() {
           <div>
             <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Claude MCP Integration</h3>
             <div className="relative group">
-              <pre className="rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)] p-4 overflow-x-auto text-sm text-emerald-400 font-mono">claude mcp add agentid -- npx -y @agentidapp/mcp</pre>
+              <pre className="rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)] p-4 overflow-x-auto text-sm text-emerald-400 font-mono">claude mcp add countersig -- npx -y @countersig/mcp</pre>
               <button
-                onClick={() => { navigator.clipboard.writeText('claude mcp add agentid -- npx -y @agentidapp/mcp'); }}
+                onClick={() => { navigator.clipboard.writeText('claude mcp add countersig -- npx -y @countersig/mcp'); }}
                 className="absolute top-3 right-3 p-1.5 rounded-md bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 transition-all"
                 title="Copy"
               >

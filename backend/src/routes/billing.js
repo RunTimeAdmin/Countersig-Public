@@ -15,8 +15,8 @@ function validateRedirectUrl(url) {
   try {
     const parsed = new URL(url);
     const allowed = [
-      'agentidapp.com',
-      'www.agentidapp.com',
+      'countersig.com',
+      'www.countersig.com',
       ...(process.env.NODE_ENV !== 'production' ? ['localhost'] : [])
     ];
     return ['http:', 'https:'].includes(parsed.protocol) &&

@@ -104,13 +104,13 @@ function generateTokens(user) {
   const accessToken = jwt.sign(
     { userId: user.id, email: user.email, orgId: user.org_id, role: user.role, type: 'access' },
     ACCESS_TOKEN_SECRET,
-    { expiresIn: JWT_EXPIRY, issuer: 'agentidapp.com', audience: 'agentid-access' }
+    { expiresIn: JWT_EXPIRY, issuer: 'countersig.com', audience: 'countersig-access' }
   );
 
   const refreshToken = jwt.sign(
     { userId: user.id, type: 'refresh', jti: tokenId },
     REFRESH_TOKEN_SECRET,
-    { expiresIn: JWT_REFRESH_EXPIRY, issuer: 'agentidapp.com', audience: 'agentid-refresh' }
+    { expiresIn: JWT_REFRESH_EXPIRY, issuer: 'countersig.com', audience: 'countersig-refresh' }
   );
 
   return { accessToken, refreshToken, tokenId };
@@ -123,8 +123,8 @@ function generateTokens(user) {
  */
 function verifyAccessToken(token) {
   const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET, {
-    issuer: 'agentidapp.com',
-    audience: 'agentid-access'
+    issuer: 'countersig.com',
+    audience: 'countersig-access'
   });
   if (decoded.type !== 'access') {
     throw new Error('Invalid token type: expected access token');
@@ -139,8 +139,8 @@ function verifyAccessToken(token) {
  */
 function verifyRefreshToken(token) {
   return jwt.verify(token, REFRESH_TOKEN_SECRET, {
-    issuer: 'agentidapp.com',
-    audience: 'agentid-refresh'
+    issuer: 'countersig.com',
+    audience: 'countersig-refresh'
   });
 }
 
@@ -149,7 +149,7 @@ function verifyRefreshToken(token) {
  * @returns {Object} { rawKey, keyHash, keyPrefix }
  */
 function generateApiKey() {
-  const rawKey = 'aid_' + crypto.randomBytes(20).toString('hex');
+  const rawKey = 'cs_' + crypto.randomBytes(20).toString('hex');
   const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
   const keyPrefix = rawKey.slice(0, 12);
   return { rawKey, keyHash, keyPrefix };
@@ -294,8 +294,8 @@ async function generateA2AToken(payload) {
     // Ed25519 asymmetric signing (production)
     return new jose.SignJWT(payload)
       .setProtectedHeader({ alg: 'EdDSA', kid: 'a2a-ed25519-1' })
-      .setIssuer('agentidapp.com')
-      .setAudience('agentid-a2a')
+      .setIssuer('countersig.com')
+      .setAudience('countersig-a2a')
       .setExpirationTime('60s')
       .setIssuedAt()
       .sign(a2aPrivateKey);
@@ -304,8 +304,8 @@ async function generateA2AToken(payload) {
   // HMAC fallback (development only)
   return jwt.sign(payload, A2A_TOKEN_SECRET, {
     expiresIn: '60s',
-    issuer: 'agentidapp.com',
-    audience: 'agentid-a2a'
+    issuer: 'countersig.com',
+    audience: 'countersig-a2a'
   });
 }
 
@@ -320,16 +320,16 @@ async function verifyA2AToken(token) {
   if (!a2aUseHMAC) {
     // Ed25519 asymmetric verification (production)
     const { payload } = await jose.jwtVerify(token, a2aPublicKey, {
-      issuer: 'agentidapp.com',
-      audience: 'agentid-a2a',
+      issuer: 'countersig.com',
+      audience: 'countersig-a2a',
     });
     return payload;
   }
   
   // HMAC fallback (development only)
   return jwt.verify(token, A2A_TOKEN_SECRET, {
-    issuer: 'agentidapp.com',
-    audience: 'agentid-a2a'
+    issuer: 'countersig.com',
+    audience: 'countersig-a2a'
   });
 }
 

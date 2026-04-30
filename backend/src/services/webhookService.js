@@ -184,8 +184,8 @@ async function deliverWithRetry(webhook, event) {
     .digest('hex');
 
   await deliverWebhook(webhook.url, body, {
-    'X-AgentID-Signature': signature,
-    'X-AgentID-Event': event.type
+    'X-Countersig-Signature': signature,
+    'X-Countersig-Event': event.type
   }, webhook.transform_template || null);
 
   return { success: true, statusCode: null, error: null };

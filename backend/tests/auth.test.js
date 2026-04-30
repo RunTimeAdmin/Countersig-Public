@@ -125,9 +125,9 @@ describe('Auth Service', () => {
       expect(result).toHaveProperty('keyPrefix');
     });
 
-    it('rawKey should start with aid_', () => {
+    it('rawKey should start with cs_', () => {
       const { rawKey } = generateApiKey();
-      expect(rawKey.startsWith('aid_')).toBe(true);
+      expect(rawKey.startsWith('cs_')).toBe(true);
     });
 
     it('keyPrefix should be first 12 chars of rawKey', () => {
@@ -143,15 +143,15 @@ describe('Auth Service', () => {
 
   describe('verifyApiKey', () => {
     it('should return the same hash for the same key', () => {
-      const key = 'aid_abc123';
+      const key = 'cs_abc123';
       const hash1 = verifyApiKey(key);
       const hash2 = verifyApiKey(key);
       expect(hash1).toBe(hash2);
     });
 
     it('different keys should produce different hashes', () => {
-      const hash1 = verifyApiKey('aid_abc123');
-      const hash2 = verifyApiKey('aid_def456');
+      const hash1 = verifyApiKey('cs_abc123');
+      const hash2 = verifyApiKey('cs_def456');
       expect(hash1).not.toBe(hash2);
     });
   });

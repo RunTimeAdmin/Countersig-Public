@@ -22,7 +22,7 @@ if (!process.env.BAGS_API_KEY) {
 }
 
 // Recommended environment variables - warn but allow startup
-const recommended = ['CORS_ORIGIN', 'AGENTID_BASE_URL'];
+const recommended = ['CORS_ORIGIN', 'COUNTERSIG_BASE_URL'];
 const missingRecommended = recommended.filter(key => !process.env[key]);
 if (missingRecommended.length > 0) {
   logger.warn({ missing: missingRecommended }, 'Missing recommended environment variables (using defaults)');
@@ -146,7 +146,7 @@ app.get('/openapi.yaml', (req, res) => {
 // Swagger UI (CDN-based, zero dependencies)
 app.get('/docs', (req, res) => {
   res.send(`<!DOCTYPE html>
-<html><head><title>AgentID API Docs</title>
+<html><head><title>Countersig API Docs</title>
 <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
 </head><body>
 <div id="swagger-ui"></div>
@@ -274,7 +274,7 @@ app.use((req, res, next) => {
     }
 
     // Secondary defense: require custom header on cookie-authenticated requests
-    if (req.get('X-Requested-With') !== 'AgentID') {
+    if (req.get('X-Requested-With') !== 'Countersig') {
       return res.status(403).json({ error: 'CSRF validation failed' });
     }
   }
@@ -297,7 +297,7 @@ app.get('/.well-known/jwks.json', async (req, res) => {
 });
 
 // DID Document endpoint — public, no auth required
-// Exposes W3C DID document for did:web:agentidapp.com
+// Exposes W3C DID document for did:web:countersig.com
 let cachedDIDDoc = null;
 let didDocCachedAt = 0;
 const DID_DOC_CACHE_TTL = 3600000; // 1 hour in ms
@@ -317,7 +317,7 @@ app.get('/.well-known/did.json', (req, res) => {
     return res.json(cachedDIDDoc);
   }
 
-  const didDomain = new URL(config.agentIdBaseUrl).hostname;
+  const didDomain = new URL(config.countersigBaseUrl).hostname;
   const didId = `did:web:${didDomain}`;
 
   const document = {
@@ -352,19 +352,19 @@ app.get('/.well-known/did.json', (req, res) => {
     ],
     service: [
       {
-        id: `${didId}#agentid-api`,
-        type: 'AgentIDService',
-        serviceEndpoint: config.agentIdBaseUrl
+        id: `${didId}#countersig-api`,
+        type: 'CountersigService',
+        serviceEndpoint: config.countersigBaseUrl
       },
       {
         id: `${didId}#a2a-verify`,
         type: 'A2AVerificationService',
-        serviceEndpoint: `${config.agentIdBaseUrl}/agents/verify-token`
+        serviceEndpoint: `${config.countersigBaseUrl}/agents/verify-token`
       },
       {
         id: `${didId}#credential-issuance`,
         type: 'VerifiableCredentialService',
-        serviceEndpoint: `${config.agentIdBaseUrl}/agents/{agentId}/credential`
+        serviceEndpoint: `${config.countersigBaseUrl}/agents/{agentId}/credential`
       }
     ]
   };
@@ -472,7 +472,7 @@ if (require.main === module) {
     }
 
     app.listen(config.port, () => {
-    logger.info({ port: config.port, env: config.nodeEnv }, 'AgentID API server running');
+    logger.info({ port: config.port, env: config.nodeEnv }, 'Countersig API server running');
 
     // Non-blocking SAID Gateway connectivity check
     axios.get(`${config.saidGatewayUrl}/health`, { timeout: 5000 })

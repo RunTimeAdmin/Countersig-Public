@@ -1,17 +1,17 @@
-# @agentidapp/react
+# @countersig/react
 
 > **Status: In Development** — This package is not yet published to npm.
 
-This package will provide React components for displaying AgentID trust badges, reputation scores, and capability lists. It is under active development as part of AgentID 2.0.
+This package will provide React components for displaying Countersig trust badges, reputation scores, and capability lists. It is under active development as part of Countersig 2.0.
 
 For current integration, use the REST API directly. See the [API Reference](../../docs/API_REFERENCE.md).
 
-React components for displaying [AgentID](https://agentidapp.com) trust badges, reputation scores, and capability lists. Zero Tailwind dependency — all styles are self-contained inline CSS.
+React components for displaying [Countersig](https://countersig.com) trust badges, reputation scores, and capability lists. Zero Tailwind dependency — all styles are self-contained inline CSS.
 
 ## Installation
 
 ```bash
-npm install @agentidapp/react react react-dom
+npm install @countersig/react react react-dom
 ```
 
 ## Peer Dependencies
@@ -23,21 +23,21 @@ npm install @agentidapp/react react react-dom
 
 ### TrustBadge
 
-Displays an agent's trust status, verification tier, and score. Fetches badge data from the AgentID API.
+Displays an agent's trust status, verification tier, and score. Fetches badge data from the Countersig API.
 
 ```tsx
-import { TrustBadge } from '@agentidapp/react';
+import { TrustBadge } from '@countersig/react';
 
 <TrustBadge
   agentId="your-agent-id"
-  apiUrl="https://api.agentidapp.com"
+  apiUrl="https://api.countersig.com"
   theme="dark"
   size="md"
   showScore={true}
   showChain={true}
   showActions={true}
   showDate={true}
-  onClick={() => window.open('https://agentidapp.com/agent/your-agent-id')}
+  onClick={() => window.open('https://countersig.com/agent/your-agent-id')}
 />
 ```
 
@@ -46,7 +46,7 @@ import { TrustBadge } from '@agentidapp/react';
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `agentId` | `string` | required | Agent identifier |
-| `apiUrl` | `string` | `https://api.agentidapp.com` | API base URL |
+| `apiUrl` | `string` | `https://api.countersig.com` | API base URL |
 | `theme` | `'light' \| 'dark'` | `'light'` | Visual theme |
 | `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Badge size |
 | `showScore` | `boolean` | `true` | Show reputation score |
@@ -63,7 +63,7 @@ import { TrustBadge } from '@agentidapp/react';
 Displays the 5-factor reputation score breakdown with animated progress bars. Can fetch from the API or accept pre-fetched data.
 
 ```tsx
-import { ReputationBreakdown } from '@agentidapp/react';
+import { ReputationBreakdown } from '@countersig/react';
 
 // Fetch from API
 <ReputationBreakdown
@@ -92,7 +92,7 @@ import { ReputationBreakdown } from '@agentidapp/react';
 |------|------|---------|-------------|
 | `agentId` | `string` | — | Agent ID (fetches from API) |
 | `breakdown` | `Record<string, number \| { score: number; max: number }>` | — | Pre-fetched breakdown data |
-| `apiUrl` | `string` | `https://api.agentidapp.com` | API base URL |
+| `apiUrl` | `string` | `https://api.countersig.com` | API base URL |
 | `theme` | `'light' \| 'dark'` | `'light'` | Visual theme |
 | `showHeader` | `boolean` | `true` | Show score header |
 | `showLegend` | `boolean` | `true` | Show color legend |
@@ -105,7 +105,7 @@ import { ReputationBreakdown } from '@agentidapp/react';
 Displays agent capabilities as styled tags/pills with category-specific colors and icons. Can fetch from the API or accept pre-provided data.
 
 ```tsx
-import { CapabilityList } from '@agentidapp/react';
+import { CapabilityList } from '@countersig/react';
 
 // Fetch from API
 <CapabilityList
@@ -129,7 +129,7 @@ import { CapabilityList } from '@agentidapp/react';
 |------|------|---------|-------------|
 | `agentId` | `string` | — | Agent ID (fetches from API) |
 | `capabilities` | `string[]` | — | Pre-provided capabilities |
-| `apiUrl` | `string` | `https://api.agentidapp.com` | API base URL |
+| `apiUrl` | `string` | `https://api.countersig.com` | API base URL |
 | `theme` | `'light' \| 'dark'` | `'light'` | Visual theme |
 | `showLabel` | `boolean` | `true` | Show "Capabilities" label |
 | `maxDisplay` | `number` | — | Max items to show (with "+N more") |
@@ -142,7 +142,7 @@ import { CapabilityList } from '@agentidapp/react';
 Displays the blockchain/chain type as a compact colored badge.
 
 ```tsx
-import { ChainBadge } from '@agentidapp/react';
+import { ChainBadge } from '@countersig/react';
 
 <ChainBadge chainType="solana-bags" size="md" theme="dark" />
 <ChainBadge chainType="ethereum" size="sm" theme="light" />
@@ -172,7 +172,7 @@ import { ChainBadge } from '@agentidapp/react';
 
 ## Theme Support
 
-All components support `theme="light"` and `theme="dark"`. The dark theme uses dark backgrounds with light text, matching the AgentID platform aesthetic.
+All components support `theme="light"` and `theme="dark"`. The dark theme uses dark backgrounds with light text, matching the Countersig platform aesthetic.
 
 ## Self-Contained Styles
 
@@ -183,13 +183,13 @@ All components use inline CSS styles with no external CSS imports, Tailwind depe
 Full TypeScript type definitions are included. Import component and prop types:
 
 ```typescript
-import type { TrustBadgeProps, ReputationBreakdownProps, CapabilityListProps, ChainBadgeProps } from '@agentidapp/react';
+import type { TrustBadgeProps, ReputationBreakdownProps, CapabilityListProps, ChainBadgeProps } from '@countersig/react';
 ```
 
 ## Links
 
-- [AgentID Platform](https://agentidapp.com)
-- [SDK Package](https://www.npmjs.com/package/@agentidapp/sdk)
+- [Countersig Platform](https://countersig.com)
+- [SDK Package](https://www.npmjs.com/package/@countersig/sdk)
 - [GitHub Repository](https://github.com/RunTimeAdmin/AgentID-2.0-Public)
 
 ## License

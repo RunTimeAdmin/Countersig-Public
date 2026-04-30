@@ -77,7 +77,7 @@ async function getBadgeJSON(agentId) {
     const tier = reputation.score >= config.verifiedThreshold ? 'verified' : 'standard';
     const tierColor = tier === 'verified' ? '#FFD700' : '#3B82F6';
 
-    const widgetUrl = `${config.agentIdBaseUrl}/widget/${agentId}`;
+    const widgetUrl = `${config.countersigBaseUrl}/widget/${agentId}`;
 
     const result = {
       agentId,
@@ -312,7 +312,7 @@ async function getWidgetHTML(agentId) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgentID Badge - ${escapeHtml(badgeData.name)}</title>
+  <title>Countersig Badge - ${escapeHtml(badgeData.name)}</title>
   <style>
     * {
       margin: 0;
@@ -560,7 +560,7 @@ async function getWidgetHTML(agentId) {
     
     <div class="footer">
       <div class="footer-text">
-        Verified by <a href="https://agentid.io" target="_blank">AgentID</a>
+        Verified by <a href="https://countersig.com" target="_blank">Countersig</a>
       </div>
       <div class="live-indicator">
         <span class="live-dot"></span>

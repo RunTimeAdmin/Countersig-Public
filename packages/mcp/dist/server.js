@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createAgentIDServer = createAgentIDServer;
+exports.createCountersigServer = createCountersigServer;
 const index_js_1 = require("@modelcontextprotocol/sdk/server/index.js");
 const types_js_1 = require("@modelcontextprotocol/sdk/types.js");
 const identity_js_1 = require("./tools/identity.js");
@@ -10,8 +10,8 @@ const badge_js_1 = require("./tools/badge.js");
 const attest_js_1 = require("./tools/attest.js");
 const configure_js_1 = require("./tools/configure.js");
 const credential_js_1 = require("./tools/credential.js");
-function createAgentIDServer() {
-    const server = new index_js_1.Server({ name: 'agentid', version: '1.0.0' }, { capabilities: { tools: {} } });
+function createCountersigServer() {
+    const server = new index_js_1.Server({ name: 'countersig', version: '1.0.0' }, { capabilities: { tools: {} } });
     // Collect all tool definitions
     const allTools = [
         ...(0, identity_js_1.registerIdentityTools)(),

@@ -3,11 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AgentIDClient = void 0;
+exports.CountersigClient = void 0;
 const axios_1 = __importDefault(require("axios"));
-class AgentIDClient {
+class CountersigClient {
     constructor(options = {}) {
-        const baseURL = options.apiUrl || 'https://api.agentidapp.com';
+        const baseURL = options.apiUrl || 'https://api.countersig.com';
         const timeout = options.timeout || 10000;
         const headers = {
             'Content-Type': 'application/json'
@@ -37,7 +37,7 @@ class AgentIDClient {
         }
     }
 }
-exports.AgentIDClient = AgentIDClient;
+exports.CountersigClient = CountersigClient;
 class AgentsAPI {
     constructor(http) {
         this.http = http;

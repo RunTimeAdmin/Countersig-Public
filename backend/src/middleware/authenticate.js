@@ -28,7 +28,7 @@ function getCookie(req, name) {
  */
 async function resolveIdentity(req) {
   // 1. Check for access token cookie
-  const accessToken = getCookie(req, 'aid_access');
+  const accessToken = getCookie(req, 'cs_access');
   if (accessToken) {
     try {
       const decoded = verifyAccessToken(accessToken);

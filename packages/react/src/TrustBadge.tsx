@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 
 export interface TrustBadgeProps {
-  /** AgentID agent identifier */
+  /** Countersig agent identifier */
   agentId: string;
-  /** AgentID API base URL */
+  /** Countersig API base URL */
   apiUrl?: string;
   /** Visual theme */
   theme?: 'light' | 'dark';
@@ -175,7 +175,7 @@ function StatusIcon({ status, color, size }: { status: string; color: string; si
 
 export const TrustBadge: React.FC<TrustBadgeProps> = ({
   agentId,
-  apiUrl = 'https://api.agentidapp.com',
+  apiUrl = 'https://api.countersig.com',
   theme = 'light',
   size = 'md',
   showScore = true,

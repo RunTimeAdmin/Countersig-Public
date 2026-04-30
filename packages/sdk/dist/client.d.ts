@@ -1,7 +1,7 @@
 import { AxiosInstance } from 'axios';
 import type { Agent, AgentRegistration, Badge, ReputationScore, A2AToken, VerifiableCredential, Attestation, AttestationResult, FlagResult, AgentListResponse, AgentDetailResponse, DiscoverResponse, ChainsResponse } from './types';
-export interface AgentIDClientOptions {
-    /** API base URL. Default: https://api.agentidapp.com */
+export interface CountersigClientOptions {
+    /** API base URL. Default: https://api.countersig.com */
     apiUrl?: string;
     /** API key for authentication */
     apiKey?: string;
@@ -10,7 +10,7 @@ export interface AgentIDClientOptions {
     /** Request timeout in ms. Default: 10000 */
     timeout?: number;
 }
-export declare class AgentIDClient {
+export declare class CountersigClient {
     private http;
     agents: AgentsAPI;
     badges: BadgesAPI;
@@ -19,7 +19,7 @@ export declare class AgentIDClient {
     credentials: CredentialsAPI;
     chains: ChainsAPI;
     attestations: AttestationsAPI;
-    constructor(options?: AgentIDClientOptions);
+    constructor(options?: CountersigClientOptions);
     /** Update authentication credentials */
     setAuth(options: {
         apiKey?: string;

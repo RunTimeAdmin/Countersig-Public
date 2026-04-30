@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# AgentID One-Shot Deployment Script
+# Countersig One-Shot Deployment Script
 # Automates deployment steps 2-10 from DEPLOYMENT_GUIDE.md
 #
 # Usage:
@@ -15,9 +15,9 @@ set -e  # Exit on any error
 # ============================================================================
 DB_PASSWORD="CHANGE_THIS_STRONG_PASSWORD"  # <-- CHANGE THIS!
 JWT_SECRET="CHANGE_THIS_JWT_SECRET"        # <-- CHANGE THIS! Minimum 32 chars
-DOMAIN="agentid2.provenanceai.network"     # Production domain for AgentID 2.0
+DOMAIN="countersig.com"                      # Production domain for Countersig
 REPO_URL="https://github.com/RunTimeAdmin/AgentID-2.0.git"
-INSTALL_DIR="/var/www/agentid"
+INSTALL_DIR="/var/www/countersig"
 BACKEND_PORT=3002
 
 # Colors for output
@@ -52,7 +52,7 @@ check_command() {
 # PRE-FLIGHT CHECKS
 # ============================================================================
 echo "========================================"
-echo "AgentID Deployment Script"
+echo "Countersig Deployment Script"
 echo "========================================"
 echo ""
 
@@ -121,17 +121,17 @@ echo ""
 log_info "Step 2: Creating PostgreSQL database and user..."
 
 # Create user
-sudo -u postgres psql -c "CREATE USER agentid WITH PASSWORD '$DB_PASSWORD';" 2>/dev/null || {
-    log_warn "User 'agentid' may already exist, continuing..."
+sudo -u postgres psql -c "CREATE USER countersig WITH PASSWORD '$DB_PASSWORD';" 2>/dev/null || {
+    log_warn "User 'countersig' may already exist, continuing..."
 }
 
 # Create database
-sudo -u postgres psql -c "CREATE DATABASE agentid OWNER agentid;" 2>/dev/null || {
-    log_warn "Database 'agentid' may already exist, continuing..."
+sudo -u postgres psql -c "CREATE DATABASE countersig OWNER countersig;" 2>/dev/null || {
+    log_warn "Database 'countersig' may already exist, continuing..."
 }
 
 # Grant privileges
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE agentid TO agentid;"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE countersig TO countersig;"
 
 log_info "Database setup complete"
 
@@ -142,13 +142,13 @@ echo ""
 log_info "Step 3: Cloning repository and installing dependencies..."
 
 cd /var/www
-git clone "$REPO_URL" agentid
+git clone "$REPO_URL" countersig
 
 cd "$INSTALL_DIR/backend"
 npm install --production
 
-# Ensure AgentID 2.0 dependencies are present
-log_info "Verifying AgentID 2.0 dependencies..."
+# Ensure Countersig dependencies are present
+log_info "Verifying Countersig dependencies..."
 npm ls jsonwebtoken bcryptjs uuid > /dev/null 2>&1 || {
     log_warn "Some 2.0 dependencies missing, reinstalling..."
     npm install jsonwebtoken bcryptjs uuid
@@ -169,27 +169,27 @@ log_info "Step 4: Configuring environment files..."
 cat > "$INSTALL_DIR/backend/.env" << EOF
 PORT=$BACKEND_PORT
 NODE_ENV=production
-DATABASE_URL=postgresql://agentid:$DB_PASSWORD@localhost:5432/agentid
+DATABASE_URL=postgresql://countersig:$DB_PASSWORD@localhost:5432/countersig
 REDIS_URL=redis://localhost:6379
 BAGS_API_KEY=bags_prod_mvg-MqxhjYTqlqB0CX8Xps-YC_CyYj9W6R3BrbM6B6U
 SAID_GATEWAY_URL=https://said-identity-gateway.up.railway.app
-# Production CORS origin for AgentID 2.0 dashboard
+# Production CORS origin for Countersig dashboard
 CORS_ORIGIN=https://$DOMAIN
-AGENTID_BASE_URL=https://$DOMAIN
+COUNTERSIG_BASE_URL=https://$DOMAIN
 BADGE_CACHE_TTL=60
 CHALLENGE_EXPIRY_SECONDS=300
 VERIFIED_THRESHOLD=70
-# Authentication (AgentID 2.0)
+# Authentication (Countersig)
 JWT_SECRET=$JWT_SECRET
 JWT_EXPIRY=15m
 JWT_REFRESH_EXPIRY=7d
 DEFAULT_ORG_NAME=Default Organization
-API_KEY_PREFIX=aid_
+API_KEY_PREFIX=cs_
 EOF
 
 # Frontend .env
 cat > "$INSTALL_DIR/frontend/.env" << EOF
-VITE_AGENTID_API_URL=https://$DOMAIN
+VITE_COUNTERSIG_API_URL=https://$DOMAIN
 EOF
 
 # Secure the .env files
@@ -223,10 +223,10 @@ migrate()
 log_info "Database migration complete"
 
 # ============================================================================
-# STEP 5b: RUN V2 MIGRATION (AgentID 2.0)
+# STEP 5b: RUN V2 MIGRATION (Countersig)
 # ============================================================================
 echo ""
-log_info "Step 5b: Running AgentID 2.0 migration..."
+log_info "Step 5b: Running Countersig migration..."
 
 cd "$INSTALL_DIR/backend"
 
@@ -245,7 +245,7 @@ runV2Migration(pool)
   });
 "
 
-log_info "AgentID 2.0 migration complete"
+log_info "Countersig migration complete"
 
 # ============================================================================
 # STEP 6: BUILD FRONTEND
@@ -264,19 +264,19 @@ log_info "Frontend build complete"
 echo ""
 log_info "Step 7: Configuring Nginx..."
 
-cat > /etc/nginx/sites-available/agentid << 'EOF'
+cat > /etc/nginx/sites-available/countersig << 'EOF'
 server {
     listen 80;
-    server_name agentid2.provenanceai.network;
+    server_name countersig.com;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name agentid2.provenanceai.network;
+    server_name countersig.com;
 
     # Frontend (static files)
-    root /var/www/agentid/frontend/dist;
+    root /var/www/countersig/frontend/dist;
     index index.html;
 
     # API proxy to backend
@@ -352,7 +352,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # AgentID 2.0 authenticated routes
+    # Countersig authenticated routes
     location /auth {
         proxy_pass http://127.0.0.1:3002;
         proxy_http_version 1.1;
@@ -425,7 +425,7 @@ server {
 EOF
 
 # Enable site
-ln -sf /etc/nginx/sites-available/agentid /etc/nginx/sites-enabled/
+ln -sf /etc/nginx/sites-available/countersig /etc/nginx/sites-enabled/
 
 # Test and reload
 nginx -t
@@ -457,10 +457,10 @@ log_info "Step 9: Starting backend with PM2..."
 cd "$INSTALL_DIR/backend"
 
 # Stop existing process if running
-pm2 delete agentid 2>/dev/null || true
+pm2 delete countersig 2>/dev/null || true
 
 # Start new process
-pm2 start server.js --name agentid --env production
+pm2 start server.js --name countersig --env production
 
 # Save PM2 config
 pm2 save
@@ -502,12 +502,12 @@ echo "========================================"
 echo "Deployment Complete!"
 echo "========================================"
 echo ""
-echo "AgentID is now deployed at:"
+echo "Countersig is now deployed at:"
 echo "  https://$DOMAIN"
 echo ""
 echo "Useful commands:"
-echo "  pm2 logs agentid       - View application logs"
-echo "  pm2 restart agentid    - Restart the application"
+echo "  pm2 logs countersig       - View application logs"
+echo "  pm2 restart countersig    - Restart the application"
 echo "  pm2 status             - Check application status"
 echo ""
 echo "Next steps:"

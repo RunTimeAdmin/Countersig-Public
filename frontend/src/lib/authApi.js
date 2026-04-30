@@ -7,7 +7,7 @@ const authClient = axios.create({
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
-    'X-Requested-With': 'AgentID'
+    'X-Requested-With': 'Countersig'
   }
 });
 

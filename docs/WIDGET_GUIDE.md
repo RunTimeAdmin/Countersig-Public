@@ -1,4 +1,4 @@
-# AgentID Widget Integration Guide
+﻿# Countersig Widget Integration Guide
 
 **Version:** 1.0.0  
 **Author:** David Cooper (CCIE #14019)
@@ -7,7 +7,7 @@
 
 ## Overview
 
-The AgentID Widget provides a **visual trust indicator** that can be embedded in any web application, documentation, or marketplace listing. It displays real-time reputation data including:
+The Countersig Widget provides a **visual trust indicator** that can be embedded in any web application, documentation, or marketplace listing. It displays real-time reputation data including:
 
 - **Verification status** (Verified, Unverified, Flagged)
 - **Trust score** (0-100 Reputation Score)
@@ -32,12 +32,12 @@ The simplest integration method. Add this HTML to any page:
 
 ```html
 <iframe 
-  src="https://agentid.provenanceai.network/widget/{AGENT_PUBKEY}"
+  src="https://countersig.com/widget/{AGENT_PUBKEY}"
   width="400"
   height="300"
   frameborder="0"
   style="border-radius: 12px; overflow: hidden;"
-  title="AgentID Trust Badge"
+  title="Countersig Trust Badge"
 ></iframe>
 ```
 
@@ -48,12 +48,12 @@ Replace `{AGENT_PUBKEY}` with your agent's public key.
 ```html
 <!-- Example: Trading Agent Widget -->
 <iframe 
-  src="https://agentid.provenanceai.network/widget/AgentPubkey111111111111111111111111111111111"
+  src="https://countersig.com/widget/AgentPubkey111111111111111111111111111111111"
   width="400"
   height="300"
   frameborder="0"
   style="border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);"
-  title="AgentID Trust Badge"
+  title="Countersig Trust Badge"
 ></iframe>
 ```
 
@@ -83,7 +83,7 @@ The widget endpoint accepts these query parameters:
 **Example with parameters:**
 ```html
 <iframe 
-  src="https://agentid.provenanceai.network/widget/{PUBKEY}?theme=dark&compact=true"
+  src="https://countersig.com/widget/{PUBKEY}?theme=dark&compact=true"
   width="320"
   height="200"
   frameborder="0"
@@ -97,7 +97,7 @@ The iframe can be styled via the container:
 ```html
 <div class="widget-container">
   <iframe 
-    src="https://agentid.provenanceai.network/widget/{PUBKEY}"
+    src="https://countersig.com/widget/{PUBKEY}"
     width="400"
     height="300"
     frameborder="0"
@@ -134,7 +134,7 @@ For applications requiring complete control over the widget appearance, you can 
 
 ```javascript
 async function fetchBadgeData(pubkey) {
-  const response = await fetch(`https://agentid.provenanceai.network/badge/${pubkey}`);
+  const response = await fetch(`https://countersig.com/badge/${pubkey}`);
   if (!response.ok) {
     throw new Error('Failed to fetch badge data');
   }
@@ -164,7 +164,7 @@ const badgeData = await fetchBadgeData('AgentPubkey11111111111111111111111111111
   "successRate": 0.94,
   "capabilities": ["trading", "analytics"],
   "tokenMint": "TokenMint1111111111111111111111111111111111",
-  "widgetUrl": "https://agentid.provenanceai.network/widget/AgentPubkey111111111111111111111111111111111"
+  "widgetUrl": "https://countersig.com/widget/AgentPubkey111111111111111111111111111111111"
 }
 ```
 
@@ -203,12 +203,12 @@ const statusConfig = {
 ```jsx
 import { useState, useEffect } from 'react';
 
-function AgentIDWidget({ pubkey }) {
+function CountersigWidget({ pubkey }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`https://agentid.provenanceai.network/badge/${pubkey}`)
+    fetch(`https://countersig.com/badge/${pubkey}`)
       .then(res => res.json())
       .then(data => {
         setData(data);
@@ -217,7 +217,7 @@ function AgentIDWidget({ pubkey }) {
 
     // Auto-refresh every 60 seconds
     const interval = setInterval(() => {
-      fetch(`https://agentid.provenanceai.network/badge/${pubkey}`)
+      fetch(`https://countersig.com/badge/${pubkey}`)
         .then(res => res.json())
         .then(setData);
     }, 60000);
@@ -269,8 +269,8 @@ function AgentIDWidget({ pubkey }) {
 For dynamic applications, use the JavaScript API to fetch badge data:
 
 ```javascript
-class AgentIDWidget {
-  constructor(baseUrl = 'https://agentid.provenanceai.network') {
+class CountersigWidget {
+  constructor(baseUrl = 'https://countersig.com') {
     this.baseUrl = baseUrl;
   }
 
@@ -294,7 +294,7 @@ class AgentIDWidget {
 }
 
 // Usage
-const widget = new AgentIDWidget();
+const widget = new CountersigWidget();
 const badge = await widget.getBadge('AgentPubkey...');
 console.log(badge.score, badge.status);
 ```
@@ -352,7 +352,7 @@ export default {
 For GitHub README, documentation sites, or static pages:
 
 ```markdown
-![AgentID Trust Badge](https://agentid.provenanceai.network/badge/{PUBKEY}/svg)
+![Countersig Trust Badge](https://countersig.com/badge/{PUBKEY}/svg)
 ```
 
 ### Markdown with Link
@@ -360,16 +360,16 @@ For GitHub README, documentation sites, or static pages:
 Link the badge to your agent's profile:
 
 ```markdown
-[![AgentID Trust Badge](https://agentid.provenanceai.network/badge/{PUBKEY}/svg)](https://agentid.provenanceai.network/agents/{PUBKEY})
+[![Countersig Trust Badge](https://countersig.com/badge/{PUBKEY}/svg)](https://countersig.com/agents/{PUBKEY})
 ```
 
 ### HTML with Alt Text
 
 ```html
-<a href="https://agentid.provenanceai.network/agents/{PUBKEY}">
+<a href="https://countersig.com/agents/{PUBKEY}">
   <img 
-    src="https://agentid.provenanceai.network/badge/{PUBKEY}/svg" 
-    alt="AgentID Trust Score: 75/100 - Verified Agent"
+    src="https://countersig.com/badge/{PUBKEY}/svg" 
+    alt="Countersig Trust Score: 75/100 - Verified Agent"
     width="320"
     height="80"
   />
@@ -381,7 +381,7 @@ Link the badge to your agent's profile:
 ```markdown
 # My Trading Agent
 
-[![AgentID](https://agentid.provenanceai.network/badge/AgentPubkey111111111111111111111111111111111/svg)](https://agentid.provenanceai.network/agents/AgentPubkey111111111111111111111111111111111)
+[![Countersig](https://countersig.com/badge/AgentPubkey111111111111111111111111111111111/svg)](https://countersig.com/agents/AgentPubkey111111111111111111111111111111111)
 
 An automated trading agent for Solana DeFi protocols.
 
@@ -402,7 +402,7 @@ An automated trading agent for Solana DeFi protocols.
 **Solution:**
 1. Ensure `CORS_ORIGIN` environment variable includes your domain:
    ```
-   CORS_ORIGIN=https://agentid.provenanceai.network
+   CORS_ORIGIN=https://countersig.com
    ```
 2. For multiple origins, use a comma-separated list:
    ```
@@ -422,7 +422,7 @@ An automated trading agent for Solana DeFi protocols.
 2. Check browser console for 404 errors
 3. Ensure the agent is registered:
    ```bash
-   curl https://agentid.provenanceai.network/badge/{PUBKEY}
+   curl https://countersig.com/badge/{PUBKEY}
    ```
 4. Check that the iframe dimensions are sufficient (min 320x200)
 
@@ -435,7 +435,7 @@ An automated trading agent for Solana DeFi protocols.
 2. Badge data is cached for 60 seconds (configurable via `BADGE_CACHE_TTL`)
 3. Force refresh by adding cache-buster:
    ```html
-   <iframe src="https://agentid.provenanceai.network/widget/{PUBKEY}?t=123456"></iframe>
+   <iframe src="https://countersig.com/widget/{PUBKEY}?t=123456"></iframe>
    ```
 
 ### SVG Not Rendering
@@ -498,13 +498,13 @@ An automated trading agent for Solana DeFi protocols.
 
 1. **Always include a title:**
    ```html
-   <iframe title="AgentID Trust Badge for My Trading Agent" ...></iframe>
+   <iframe title="Countersig Trust Badge for My Trading Agent" ...></iframe>
    ```
 
 2. **Provide fallback content:**
    ```html
    <iframe ...>
-     <p>View trust badge at <a href="...">AgentID</a></p>
+     <p>View trust badge at <a href="...">Countersig</a></p>
    </iframe>
    ```
 
@@ -556,9 +556,9 @@ Returns the badge as an SVG image (320x80px).
 
 For integration support or feature requests:
 
-- **Documentation:** https://agentid.provenanceai.network/docs
-- **API Status:** https://agentid.provenanceai.network/health
-- **GitHub Issues:** https://github.com/RunTimeAdmin/AgentID/issues
+- **Documentation:** https://countersig.com/docs
+- **API Status:** https://countersig.com/health
+- **GitHub Issues:** https://github.com/RunTimeAdmin/AgentID-2.0/issues
 
 ---
 
