@@ -18,6 +18,7 @@ import Settings from './pages/Settings';
 import AuditLog from './pages/AuditLog';
 import AgentGroups from './pages/AgentGroups';
 import Policies from './pages/Policies';
+import WhyAgentID from './pages/WhyAgentID';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 
 class ErrorBoundary extends React.Component {
@@ -90,6 +91,7 @@ function Navigation() {
                 <NavLink to="/policies" active={isActive('/policies')}>Policies</NavLink>
               </>
             )}
+            <NavLink to="/why" active={isActive('/why')}>Why AgentID</NavLink>
             <NavLink to="/" active={isActive('/')}>Registry</NavLink>
             <NavLink to="/discover" active={isActive('/discover')}>Discover</NavLink>
             <NavLink to="/pricing" active={isActive('/pricing')}>Pricing</NavLink>
@@ -157,6 +159,7 @@ function Navigation() {
                   <MobileNavLink to="/policies" active={isActive('/policies')} onClick={handleNavClick}>Policies</MobileNavLink>
                 </>
               )}
+              <MobileNavLink to="/why" active={isActive('/why')} onClick={handleNavClick}>Why AgentID</MobileNavLink>
               <MobileNavLink to="/" active={isActive('/')} onClick={handleNavClick}>Registry</MobileNavLink>
               <MobileNavLink to="/discover" active={isActive('/discover')} onClick={handleNavClick}>Discover</MobileNavLink>
               <MobileNavLink to="/pricing" active={isActive('/pricing')} onClick={handleNavClick}>Pricing</MobileNavLink>
@@ -295,6 +298,7 @@ function App() {
             <ErrorBoundary>
               <Routes>
                 <Route path="/" element={<RouteErrorBoundary><Registry /></RouteErrorBoundary>} />
+                <Route path="/why" element={<RouteErrorBoundary><WhyAgentID /></RouteErrorBoundary>} />
                 <Route path="/agents/:agentId" element={<RouteErrorBoundary><AgentDetail /></RouteErrorBoundary>} />
                 <Route path="/discover" element={<RouteErrorBoundary><Discover /></RouteErrorBoundary>} />
                 <Route path="/demo" element={<RouteErrorBoundary><Demo /></RouteErrorBoundary>} />
