@@ -676,7 +676,7 @@ export default function Security() {
                   <ExternalLinkIcon className="w-3 h-3" />
                 </a>
                 <a 
-                  href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/blob/main/docs/DEVELOPER_GUIDE.md"
+                  href="https://github.com/RunTimeAdmin/Countersig-Public/blob/main/docs/DEVELOPER_GUIDE.md"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-200"
@@ -686,7 +686,7 @@ export default function Security() {
                   <ExternalLinkIcon className="w-3 h-3" />
                 </a>
                 <a 
-                  href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/blob/main/docs/API_REFERENCE.md"
+                  href="https://github.com/RunTimeAdmin/Countersig-Public/blob/main/docs/API_REFERENCE.md"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-200"
@@ -696,7 +696,7 @@ export default function Security() {
                   <ExternalLinkIcon className="w-3 h-3" />
                 </a>
                 <a 
-                  href="https://github.com/RunTimeAdmin/AgentID-2.0-Public"
+                  href="https://github.com/RunTimeAdmin/Countersig-Public"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-200"

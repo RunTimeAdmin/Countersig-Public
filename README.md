@@ -12,7 +12,7 @@ Countersig 2.0 is a production-grade identity and trust platform purpose-built f
 
 - **Frontend**: [countersig.com](https://countersig.com)
 - **API**: [api.countersig.com](https://api.countersig.com/health)
-- **Documentation**: [Wiki](https://github.com/RunTimeAdmin/AgentID-2.0-Public/wiki)
+- **Documentation**: [Wiki](https://github.com/RunTimeAdmin/Countersig-Public/wiki)
 
 ## Key Features
 
@@ -113,8 +113,8 @@ Countersig 2.0 is built around a **pluggable, multi-provider authentication arch
 
 ```bash
 # Clone the repository
-git clone https://github.com/RunTimeAdmin/AgentID-2.0.git
-cd AgentID-2.0
+git clone https://github.com/RunTimeAdmin/Countersig.git
+cd Countersig
 
 # Start infrastructure (PostgreSQL + Redis)
 docker-compose up -d

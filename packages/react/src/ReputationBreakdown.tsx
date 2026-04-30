@@ -94,8 +94,8 @@ export const ReputationBreakdown: React.FC<ReputationBreakdownProps> = ({
   }, [agentId, apiUrl, propBreakdown]);
 
   const breakdown = propBreakdown || reputation?.breakdown;
-  const totalScore = breakdown
-    ? Object.values(breakdown).reduce((a, b) => a + getScore(b, 0), 0)
+  const totalScore: number = breakdown
+    ? Object.values(breakdown).reduce<number>((a, b) => a + getScore(b, 0), 0)
     : 0;
   const maxScore = CATEGORIES.reduce((a, c) => a + c.max, 0);
   const label = reputation?.label || getLabel(totalScore);

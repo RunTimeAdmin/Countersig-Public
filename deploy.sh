@@ -16,7 +16,7 @@ set -e  # Exit on any error
 DB_PASSWORD="CHANGE_THIS_STRONG_PASSWORD"  # <-- CHANGE THIS!
 JWT_SECRET="CHANGE_THIS_JWT_SECRET"        # <-- CHANGE THIS! Minimum 32 chars
 DOMAIN="countersig.com"                      # Production domain for Countersig
-REPO_URL="https://github.com/RunTimeAdmin/AgentID-2.0.git"
+REPO_URL="https://github.com/RunTimeAdmin/Countersig.git"
 INSTALL_DIR="/var/www/countersig"
 BACKEND_PORT=3002
 

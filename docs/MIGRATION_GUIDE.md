@@ -332,5 +332,5 @@ pm2 restart countersig
 ## Support
 
 For migration issues:
-- GitHub Issues: https://github.com/RunTimeAdmin/AgentID-2.0/issues
+- GitHub Issues: https://github.com/RunTimeAdmin/Countersig/issues
 - Documentation: See `/docs` folder in repository

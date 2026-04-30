@@ -558,7 +558,7 @@ For integration support or feature requests:
 
 - **Documentation:** https://countersig.com/docs
 - **API Status:** https://countersig.com/health
-- **GitHub Issues:** https://github.com/RunTimeAdmin/AgentID-2.0/issues
+- **GitHub Issues:** https://github.com/RunTimeAdmin/Countersig/issues
 
 ---
 

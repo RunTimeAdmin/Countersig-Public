@@ -83,7 +83,7 @@ export default function Guides() {
             </div>
 
             <a
-              href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/blob/main/docs/WHY_AGENTID.md"
+              href="https://github.com/RunTimeAdmin/Countersig-Public/blob/main/docs/WHY_AGENTID.md"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-emerald-500/25"
@@ -137,7 +137,7 @@ export default function Guides() {
 
             <div className="flex flex-wrap gap-3">
               <a
-                href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/blob/main/docs/MCP_QUICKSTART.md"
+                href="https://github.com/RunTimeAdmin/Countersig-Public/blob/main/docs/MCP_QUICKSTART.md"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-orange-500/25"
@@ -217,7 +217,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
                   <span>npm</span>
                   <ExternalLinkIcon className="w-3.5 h-3.5" />
                 </a>
-                <a href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/tree/main/packages/sdk" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sky-400 hover:text-sky-300 transition-colors text-sm">
+                <a href="https://github.com/RunTimeAdmin/Countersig-Public/tree/main/packages/sdk" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sky-400 hover:text-sky-300 transition-colors text-sm">
                   <span>GitHub</span>
                   <ExternalLinkIcon className="w-3.5 h-3.5" />
                 </a>
@@ -301,7 +301,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
                   <span>npm</span>
                   <ExternalLinkIcon className="w-3.5 h-3.5" />
                 </a>
-                <a href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/tree/main/packages/mcp" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 transition-colors text-sm">
+                <a href="https://github.com/RunTimeAdmin/Countersig-Public/tree/main/packages/mcp" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 transition-colors text-sm">
                   <span>GitHub</span>
                   <ExternalLinkIcon className="w-3.5 h-3.5" />
                 </a>
@@ -360,7 +360,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
             <h2 className="text-xl font-bold text-white">Deployment Guide</h2>
           </div>
           <p className="text-gray-400 mb-4">Deploy Countersig to production with Docker Compose, configure PostgreSQL, Redis, and Caddy reverse proxy for HTTPS.</p>
-          <a href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/blob/main/docs/DEPLOYMENT_GUIDE.md" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 transition-colors">
+          <a href="https://github.com/RunTimeAdmin/Countersig-Public/blob/main/docs/DEPLOYMENT_GUIDE.md" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 transition-colors">
             <span>Read Guide</span>
             <ExternalLinkIcon className="w-4 h-4" />
           </a>
@@ -388,7 +388,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
             <h2 className="text-xl font-bold text-white">Migration Guide</h2>
           </div>
           <p className="text-gray-400 mb-4">Upgrade between Countersig versions with step-by-step migration instructions, schema changes, and backward compatibility notes.</p>
-          <a href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/blob/main/docs/MIGRATION_GUIDE.md" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors">
+          <a href="https://github.com/RunTimeAdmin/Countersig-Public/blob/main/docs/MIGRATION_GUIDE.md" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors">
             <span>Read Guide</span>
             <ExternalLinkIcon className="w-4 h-4" />
           </a>

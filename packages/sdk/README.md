@@ -224,7 +224,7 @@ import type { Agent, Badge, ReputationScore, A2AToken, VerifiableCredential } fr
 
 - [Countersig Platform](https://countersig.com)
 - [API Documentation](https://countersig.com/docs)
-- [GitHub Repository](https://github.com/RunTimeAdmin/AgentID-2.0-Public)
+- [GitHub Repository](https://github.com/RunTimeAdmin/Countersig-Public)
 
 ## License
 
