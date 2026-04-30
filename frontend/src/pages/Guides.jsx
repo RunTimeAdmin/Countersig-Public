@@ -10,6 +10,7 @@ const PuzzleIcon = ({ className }) => (<svg className={className} fill="none" st
 const ServerIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 01-2 2v4a2 2 0 012 2h14a2 2 0 012-2v-4a2 2 0 01-2-2m-2-4h.01M17 16h.01" /></svg>);
 const LockIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>);
 const RefreshIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>);
+const RocketIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.63 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.841m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-6.233 0c-1.045 1.045-1.44 3.678-1.44 3.678s2.633-.395 3.678-1.44a4.493 4.493 0 000-6.238" /></svg>);
 const PackageIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>);
 const CpuChipIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 005.25 8.25v9a2.25 2.25 0 002.25 2.25z" /></svg>);
 
@@ -36,6 +37,68 @@ export default function Guides() {
       </section>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* MCP Server Quick Start — Primary Onboarding */}
+        <div className="md:col-span-2 lg:col-span-3 glass rounded-2xl p-6 border border-gray-700 hover:border-orange-500/50 transition-colors relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-orange-500/5 to-transparent rounded-bl-full pointer-events-none" />
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                <RocketIcon className="w-6 h-6 text-orange-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">MCP Server Quick Start</h2>
+                <p className="text-sm text-gray-400">Using AgentID with Claude — from zero to daily use</p>
+              </div>
+            </div>
+
+            <p className="text-gray-400 mb-6">Talk to Claude and it handles agent registration, verification, reputation building, and agent-to-agent communication — no code required.</p>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                <div className="text-orange-400 font-bold text-lg mb-1">1</div>
+                <h4 className="text-sm font-semibold text-white mb-1">Get API Key</h4>
+                <p className="text-xs text-gray-400">Create at Settings → API Keys</p>
+              </div>
+              <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                <div className="text-orange-400 font-bold text-lg mb-1">2</div>
+                <h4 className="text-sm font-semibold text-white mb-1">Install MCP</h4>
+                <p className="text-xs text-gray-400"><code>claude mcp add agentid</code></p>
+              </div>
+              <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                <div className="text-orange-400 font-bold text-lg mb-1">3</div>
+                <h4 className="text-sm font-semibold text-white mb-1">Register Agent</h4>
+                <p className="text-xs text-gray-400">"Register an agent called my-bot"</p>
+              </div>
+              <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                <div className="text-orange-400 font-bold text-lg mb-1">4</div>
+                <h4 className="text-sm font-semibold text-white mb-1">Verify & Go</h4>
+                <p className="text-xs text-gray-400">"Verify my agent" → verified ✓</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/blob/main/docs/MCP_QUICKSTART.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-orange-500/25"
+              >
+                <span>Read Full Guide</span>
+                <ArrowRightIcon className="w-4 h-4" />
+              </a>
+              <a
+                href="https://www.npmjs.com/package/@agentidapp/mcp"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl transition-colors border border-gray-600"
+              >
+                <span>npm package</span>
+                <ExternalLinkIcon className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+        </div>
+
         {/* SDK Quick Start */}
         <div className="md:col-span-2 lg:col-span-3 glass rounded-2xl p-6 border border-gray-700 hover:border-sky-500/50 transition-colors">
           <div className="flex items-center gap-3 mb-5">
