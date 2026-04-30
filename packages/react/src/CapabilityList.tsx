@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 
 export interface CapabilityListProps {
-  /** AgentID agent identifier (fetches capabilities from API) */
+  /** Countersig agent identifier (fetches capabilities from API) */
   agentId?: string;
   /** Capabilities array (skips API call if provided) */
   capabilities?: string[];
-  /** AgentID API base URL */
+  /** Countersig API base URL */
   apiUrl?: string;
   /** Visual theme */
   theme?: 'light' | 'dark';
@@ -99,7 +99,7 @@ function CapabilityIcon({ capability, color, size }: { capability: string; color
 export const CapabilityList: React.FC<CapabilityListProps> = ({
   agentId,
   capabilities: propCapabilities,
-  apiUrl = 'https://api.agentidapp.com',
+  apiUrl = 'https://api.countersig.com',
   theme = 'light',
   showLabel = true,
   maxDisplay,

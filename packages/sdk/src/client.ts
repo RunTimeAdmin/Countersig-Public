@@ -7,8 +7,8 @@ import type {
   DiscoverResponse, ChainsResponse
 } from './types';
 
-export interface AgentIDClientOptions {
-  /** API base URL. Default: https://api.agentidapp.com */
+export interface CountersigClientOptions {
+  /** API base URL. Default: https://api.countersig.com */
   apiUrl?: string;
   /** API key for authentication */
   apiKey?: string;
@@ -18,7 +18,7 @@ export interface AgentIDClientOptions {
   timeout?: number;
 }
 
-export class AgentIDClient {
+export class CountersigClient {
   private http: AxiosInstance;
   public agents: AgentsAPI;
   public badges: BadgesAPI;
@@ -28,8 +28,8 @@ export class AgentIDClient {
   public chains: ChainsAPI;
   public attestations: AttestationsAPI;
 
-  constructor(options: AgentIDClientOptions = {}) {
-    const baseURL = options.apiUrl || 'https://api.agentidapp.com';
+  constructor(options: CountersigClientOptions = {}) {
+    const baseURL = options.apiUrl || 'https://api.countersig.com';
     const timeout = options.timeout || 10000;
 
     const headers: Record<string, string> = {

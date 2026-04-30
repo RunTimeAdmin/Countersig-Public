@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'f
 import { homedir, platform } from 'os';
 import { join } from 'path';
 
-const CONFIG_DIR = join(homedir(), '.agentid');
+const CONFIG_DIR = join(homedir(), '.countersig');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
 export interface Config {
@@ -13,15 +13,15 @@ export interface Config {
 }
 
 const DEFAULT_CONFIG: Config = {
-  apiUrl: 'https://api.agentidapp.com',
+  apiUrl: 'https://api.countersig.com',
 };
 
 export function loadConfig(): Config {
   // Environment variables take precedence
   const envConfig: Partial<Config> = {};
-  if (process.env.AGENTID_API_KEY) envConfig.apiKey = process.env.AGENTID_API_KEY;
-  if (process.env.AGENTID_AGENT_ID) envConfig.agentId = process.env.AGENTID_AGENT_ID;
-  if (process.env.AGENTID_API_URL) envConfig.apiUrl = process.env.AGENTID_API_URL;
+  if (process.env.COUNTERSIG_API_KEY) envConfig.apiKey = process.env.COUNTERSIG_API_KEY;
+  if (process.env.COUNTERSIG_AGENT_ID) envConfig.agentId = process.env.COUNTERSIG_AGENT_ID;
+  if (process.env.COUNTERSIG_API_URL) envConfig.apiUrl = process.env.COUNTERSIG_API_URL;
 
   // Read file config if present
   let fileConfig: Partial<Config> = {};

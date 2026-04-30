@@ -1,11 +1,11 @@
-# @agentidapp/verify
+# @countersig/verify
 
-AgentID A2A token verification library. Verify agent-to-agent authentication tokens issued by the AgentID platform.
+Countersig A2A token verification library. Verify agent-to-agent authentication tokens issued by the Countersig platform.
 
 ## Installation
 
 ```bash
-npm install @agentidapp/verify
+npm install @countersig/verify
 ```
 
 For remote verification (no shared secret), also install axios:
@@ -21,9 +21,9 @@ npm install axios
 Fastest method — no network call required.
 
 ```javascript
-const { AgentIDVerifier } = require('@agentidapp/verify');
+const { CountersigVerifier } = require('@countersig/verify');
 
-const verifier = new AgentIDVerifier({
+const verifier = new CountersigVerifier({
   secret: process.env.A2A_TOKEN_SECRET
 });
 
@@ -33,15 +33,15 @@ console.log(payload.caps);   // Agent capabilities
 console.log(payload.score);  // BAGS reputation score
 ```
 
-### Remote Verification (via AgentID API)
+### Remote Verification (via Countersig API)
 
-No shared secret needed — the AgentID API verifies the token server-side.
+No shared secret needed — the Countersig API verifies the token server-side.
 
 ```javascript
-const { AgentIDVerifier } = require('@agentidapp/verify');
+const { CountersigVerifier } = require('@countersig/verify');
 
-const verifier = new AgentIDVerifier({
-  apiUrl: 'https://api.agentidapp.com'
+const verifier = new CountersigVerifier({
+  apiUrl: 'https://api.countersig.com'
 });
 
 const payload = await verifier.verifyRemote(token);
@@ -54,9 +54,9 @@ console.log(payload.name);   // Agent name
 Uses local verification when a secret is available, falls back to remote otherwise.
 
 ```javascript
-const verifier = new AgentIDVerifier({
+const verifier = new CountersigVerifier({
   secret: process.env.A2A_TOKEN_SECRET,          // optional
-  apiUrl: 'https://api.agentidapp.com'           // optional
+  apiUrl: 'https://api.countersig.com'           // optional
 });
 
 const payload = await verifier.verify(token);
@@ -82,8 +82,8 @@ A verified A2A token contains:
 | `chain` | string  | Blockchain type (solana, ethereum) |
 | `caps` | string[] | Agent capabilities                 |
 | `score` | number  | BAGS reputation score              |
-| `iss`  | string   | Issuer (agentidapp.com)            |
-| `aud`  | string   | Audience (agentid-a2a)             |
+| `iss`  | string   | Issuer (countersig.com)            |
+| `aud`  | string   | Audience (countersig-a2a)             |
 | `iat`  | number   | Issued-at timestamp                |
 | `exp`  | number   | Expiration timestamp (60s from iat)|
 

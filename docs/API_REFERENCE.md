@@ -1,14 +1,14 @@
-# AgentID API Reference
+﻿# Countersig API Reference
 
 **Version:** 2.0.0  
-**Base URL:** `https://agentid2.provenanceai.network` (configurable via `AGENTID_BASE_URL`)  
+**Base URL:** `https://countersig.com` (configurable via `COUNTERSIG_BASE_URL`)  
 **Author:** David Cooper (CCIE #14019)
 
 ---
 
 ## Authentication Model
 
-AgentID employs an **Ed25519 signature-based authentication model** for all state-modifying operations. This cryptographic approach ensures non-repudiation and eliminates the need for shared secrets or API tokens.
+Countersig employs an **Ed25519 signature-based authentication model** for all state-modifying operations. This cryptographic approach ensures non-repudiation and eliminates the need for shared secrets or API tokens.
 
 ### Challenge-Response Pattern
 
@@ -58,7 +58,7 @@ const signature = bs58.encode(signatureBytes);
 
 ## Rate Limiting
 
-AgentID implements tiered rate limiting to protect API availability while accommodating different use cases.
+Countersig implements tiered rate limiting to protect API availability while accommodating different use cases.
 
 ### Rate Limit Tiers
 
@@ -126,7 +126,7 @@ All errors follow a consistent JSON structure:
 
 ## Reputation Scoring
 
-The AgentID reputation system computes a **Reputation Score (0-100)** using a weighted 5-factor model. This score determines trust labels and badge status.
+The Countersig reputation system computes a **Reputation Score (0-100)** using a weighted 5-factor model. This score determines trust labels and badge status.
 
 ### 5-Factor Model
 
@@ -235,7 +235,7 @@ Content-Type: application/json
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/register \
+curl -X POST https://countersig.com/register \
   -H "Content-Type: application/json" \
   -d '{
     "pubkey": "AgentPubkey111111111111111111111111111111111",
@@ -312,7 +312,7 @@ AGENTID-UPDATE:{pubkey}:{timestamp}
 
 **Example Request:**
 ```bash
-curl -X PUT https://agentid2.provenanceai.network/agents/AgentPubkey111111111111111111111111111111111/update \
+curl -X PUT https://countersig.com/agents/AgentPubkey111111111111111111111111111111111/update \
   -H "Content-Type: application/json" \
   -d '{
     "signature": "Base58Signature...",
@@ -366,7 +366,7 @@ Content-Type: application/json
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/verify/challenge \
+curl -X POST https://countersig.com/verify/challenge \
   -H "Content-Type: application/json" \
   -d '{"pubkey": "AgentPubkey111111111111111111111111111111111"}'
 ```
@@ -408,7 +408,7 @@ Content-Type: application/json
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/verify/response \
+curl -X POST https://countersig.com/verify/response \
   -H "Content-Type: application/json" \
   -d '{
     "pubkey": "AgentPubkey111111111111111111111111111111111",
@@ -453,7 +453,7 @@ Retrieve trust badge data as JSON.
   "successRate": 0.94,
   "capabilities": ["trading", "analytics"],
   "tokenMint": "TokenMint1111111111111111111111111111111111",
-  "widgetUrl": "https://agentid2.provenanceai.network/widget/AgentPubkey111111111111111111111111111111111"
+  "widgetUrl": "https://countersig.com/widget/AgentPubkey111111111111111111111111111111111"
 }
 ```
 
@@ -471,7 +471,7 @@ Retrieve trust badge data as JSON.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/badge/AgentPubkey111111111111111111111111111111111
+curl https://countersig.com/badge/AgentPubkey111111111111111111111111111111111
 ```
 
 ---
@@ -502,12 +502,12 @@ Retrieve trust badge as an SVG image.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/badge/AgentPubkey111111111111111111111111111111111/svg
+curl https://countersig.com/badge/AgentPubkey111111111111111111111111111111111/svg
 ```
 
 **Markdown Usage:**
 ```markdown
-![Agent Trust Badge](https://agentid2.provenanceai.network/badge/AgentPubkey111111111111111111111111111111111/svg)
+![Agent Trust Badge](https://countersig.com/badge/AgentPubkey111111111111111111111111111111111/svg)
 ```
 
 ---
@@ -560,7 +560,7 @@ Retrieve full reputation breakdown with 5-factor analysis.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/reputation/AgentPubkey111111111111111111111111111111111
+curl https://countersig.com/reputation/AgentPubkey111111111111111111111111111111111
 ```
 
 ---
@@ -614,10 +614,10 @@ List registered agents with optional filters.
 **Example Request:**
 ```bash
 # List all agents
-curl https://agentid2.provenanceai.network/agents
+curl https://countersig.com/agents
 
 # Filter by capability with pagination
-curl "https://agentid2.provenanceai.network/agents?capability=trading&limit=10&offset=0"
+curl "https://countersig.com/agents?capability=trading&limit=10&offset=0"
 ```
 
 ---
@@ -673,7 +673,7 @@ Get detailed information for a single agent including reputation.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/agents/AgentPubkey111111111111111111111111111111111
+curl https://countersig.com/agents/AgentPubkey111111111111111111111111111111111
 ```
 
 ---
@@ -718,7 +718,7 @@ A2A (Agent-to-Agent) discovery - find agents by capability.
 
 **Example Request:**
 ```bash
-curl "https://agentid2.provenanceai.network/discover?capability=analytics"
+curl "https://countersig.com/discover?capability=analytics"
 ```
 
 ---
@@ -765,7 +765,7 @@ Record a successful or failed action for an agent.
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/agents/AgentPubkey111111111111111111111111111111111/attest \
+curl -X POST https://countersig.com/agents/AgentPubkey111111111111111111111111111111111/attest \
   -H "Content-Type: application/json" \
   -d '{
     "success": true,
@@ -820,7 +820,7 @@ Flag suspicious behavior for an agent.
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/agents/AgentPubkey111111111111111111111111111111111/flag \
+curl -X POST https://countersig.com/agents/AgentPubkey111111111111111111111111111111111/flag \
   -H "Content-Type: application/json" \
   -d '{
     "reporterPubkey": "ReporterPubkey111111111111111111111111111111",
@@ -859,7 +859,7 @@ Retrieve action statistics for an agent.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/agents/AgentPubkey111111111111111111111111111111111/attestations
+curl https://countersig.com/agents/AgentPubkey111111111111111111111111111111111/attestations
 ```
 
 ---
@@ -900,7 +900,7 @@ Retrieve all flags for an agent.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/agents/AgentPubkey111111111111111111111111111111111/flags
+curl https://countersig.com/agents/AgentPubkey111111111111111111111111111111111/flags
 ```
 
 ---
@@ -938,13 +938,13 @@ The widget includes:
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/widget/AgentPubkey111111111111111111111111111111111
+curl https://countersig.com/widget/AgentPubkey111111111111111111111111111111111
 ```
 
 **iframe Embed:**
 ```html
 <iframe 
-  src="https://agentid2.provenanceai.network/widget/AgentPubkey111111111111111111111111111111111"
+  src="https://countersig.com/widget/AgentPubkey111111111111111111111111111111111"
   width="400"
   height="300"
   frameborder="0"
@@ -1006,7 +1006,7 @@ Content-Type: application/json
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/auth/register \
+curl -X POST https://countersig.com/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "alice@example.com",
@@ -1061,7 +1061,7 @@ Content-Type: application/json
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/auth/login \
+curl -X POST https://countersig.com/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "alice@example.com",
@@ -1095,7 +1095,7 @@ Refresh the JWT access token using the httpOnly refresh token cookie.
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/auth/refresh \
+curl -X POST https://countersig.com/auth/refresh \
   -H "Cookie: refreshToken=..."
 ```
 
@@ -1120,7 +1120,7 @@ Clear the session cookies and invalidate the refresh token.
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/auth/logout
+curl -X POST https://countersig.com/auth/logout
 ```
 
 ---
@@ -1155,9 +1155,9 @@ Content-Type: application/json
 ```json
 {
   "id": "key-uuid-5678",
-  "rawKey": "aid_abc123xyz789secret",
+  "rawKey": "cs_abc123xyz789secret",
   "name": "CI Deployment Key",
-  "keyPrefix": "aid_abc",
+  "keyPrefix": "cs_abc",
   "scopes": ["read", "write"],
   "createdAt": "2026-04-27T10:30:00.000Z",
   "expiresAt": "2027-04-27T10:30:00.000Z"
@@ -1173,7 +1173,7 @@ Content-Type: application/json
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/api-keys \
+curl -X POST https://countersig.com/api-keys \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -1200,7 +1200,7 @@ List all API keys for the current user's organization.
   {
     "id": "key-uuid-5678",
     "name": "CI Deployment Key",
-    "keyPrefix": "aid_abc",
+    "keyPrefix": "cs_abc",
     "scopes": ["read", "write"],
     "createdAt": "2026-04-27T10:30:00.000Z",
     "expiresAt": "2027-04-27T10:30:00.000Z",
@@ -1215,7 +1215,7 @@ List all API keys for the current user's organization.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/api-keys \
+curl https://countersig.com/api-keys \
   -H "Cookie: token=..."
 ```
 
@@ -1250,7 +1250,7 @@ Revoke and delete an API key.
 
 **Example Request:**
 ```bash
-curl -X DELETE https://agentid2.provenanceai.network/api-keys/key-uuid-5678 \
+curl -X DELETE https://countersig.com/api-keys/key-uuid-5678 \
   -H "Cookie: token=..."
 ```
 
@@ -1298,7 +1298,7 @@ Retrieve organization details.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/orgs/org-uuid-1234 \
+curl https://countersig.com/orgs/org-uuid-1234 \
   -H "Cookie: token=..."
 ```
 
@@ -1350,7 +1350,7 @@ Update organization metadata and settings.
 
 **Example Request:**
 ```bash
-curl -X PUT https://agentid2.provenanceai.network/orgs/org-uuid-1234 \
+curl -X PUT https://countersig.com/orgs/org-uuid-1234 \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -1403,7 +1403,7 @@ List all members of an organization.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/orgs/org-uuid-1234/members \
+curl https://countersig.com/orgs/org-uuid-1234/members \
   -H "Cookie: token=..."
 ```
 
@@ -1450,7 +1450,7 @@ Update a member's role within the organization.
 
 **Example Request:**
 ```bash
-curl -X PUT https://agentid2.provenanceai.network/orgs/org-uuid-1234/members/user-uuid-2222 \
+curl -X PUT https://countersig.com/orgs/org-uuid-1234/members/user-uuid-2222 \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{"role": "manager"}'
@@ -1488,7 +1488,7 @@ Remove a member from the organization.
 
 **Example Request:**
 ```bash
-curl -X DELETE https://agentid2.provenanceai.network/orgs/org-uuid-1234/members/user-uuid-2222 \
+curl -X DELETE https://countersig.com/orgs/org-uuid-1234/members/user-uuid-2222 \
   -H "Cookie: token=..."
 ```
 
@@ -1531,7 +1531,7 @@ Invite a new user to the organization by email.
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/orgs/org-uuid-1234/invite \
+curl -X POST https://countersig.com/orgs/org-uuid-1234/invite \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -1575,7 +1575,7 @@ Retrieve aggregated organization statistics.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/orgs/org-uuid-1234/stats \
+curl https://countersig.com/orgs/org-uuid-1234/stats \
   -H "Cookie: token=..."
 ```
 
@@ -1633,7 +1633,7 @@ List agents scoped to the organization with pagination.
 
 **Example Request:**
 ```bash
-curl "https://agentid2.provenanceai.network/orgs/org-uuid-1234/agents?limit=10&offset=0" \
+curl "https://countersig.com/orgs/org-uuid-1234/agents?limit=10&offset=0" \
   -H "Cookie: token=..."
 ```
 
@@ -1696,7 +1696,7 @@ Query audit logs with filtering and pagination.
 
 **Example Request:**
 ```bash
-curl "https://agentid2.provenanceai.network/orgs/org-uuid-1234/audit?page=1&limit=20&action=AGENT_REGISTERED" \
+curl "https://countersig.com/orgs/org-uuid-1234/audit?page=1&limit=20&action=AGENT_REGISTERED" \
   -H "Cookie: token=..."
 ```
 
@@ -1734,7 +1734,7 @@ Export audit logs as JSON or CSV.
 
 **Example Request:**
 ```bash
-curl "https://agentid2.provenanceai.network/orgs/org-uuid-1234/audit/export?format=csv" \
+curl "https://countersig.com/orgs/org-uuid-1234/audit/export?format=csv" \
   -H "Cookie: token=..." \
   --output audit-export.csv
 ```
@@ -1785,7 +1785,7 @@ If the chain is broken:
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/orgs/org-uuid-1234/audit/verify \
+curl https://countersig.com/orgs/org-uuid-1234/audit/verify \
   -H "Cookie: token=..."
 ```
 
@@ -1831,7 +1831,7 @@ List all policy rules for an organization.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/orgs/org-uuid-1234/policies \
+curl https://countersig.com/orgs/org-uuid-1234/policies \
   -H "Cookie: token=..."
 ```
 
@@ -1881,7 +1881,7 @@ Create a new policy rule.
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/orgs/org-uuid-1234/policies \
+curl -X POST https://countersig.com/orgs/org-uuid-1234/policies \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -1939,7 +1939,7 @@ Update an existing policy rule.
 
 **Example Request:**
 ```bash
-curl -X PUT https://agentid2.provenanceai.network/orgs/org-uuid-1234/policies/policy-uuid-1111 \
+curl -X PUT https://countersig.com/orgs/org-uuid-1234/policies/policy-uuid-1111 \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -1980,7 +1980,7 @@ Delete a policy rule.
 
 **Example Request:**
 ```bash
-curl -X DELETE https://agentid2.provenanceai.network/orgs/org-uuid-1234/policies/policy-uuid-1111 \
+curl -X DELETE https://countersig.com/orgs/org-uuid-1234/policies/policy-uuid-1111 \
   -H "Cookie: token=..."
 ```
 
@@ -2026,7 +2026,7 @@ List all webhooks configured for an organization.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/orgs/org-uuid-1234/webhooks \
+curl https://countersig.com/orgs/org-uuid-1234/webhooks \
   -H "Cookie: token=..."
 ```
 
@@ -2075,7 +2075,7 @@ Create a new webhook subscription.
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/orgs/org-uuid-1234/webhooks \
+curl -X POST https://countersig.com/orgs/org-uuid-1234/webhooks \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -2131,7 +2131,7 @@ Update a webhook subscription.
 
 **Example Request:**
 ```bash
-curl -X PUT https://agentid2.provenanceai.network/orgs/org-uuid-1234/webhooks/webhook-uuid-1111 \
+curl -X PUT https://countersig.com/orgs/org-uuid-1234/webhooks/webhook-uuid-1111 \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -2172,7 +2172,7 @@ Delete a webhook subscription.
 
 **Example Request:**
 ```bash
-curl -X DELETE https://agentid2.provenanceai.network/orgs/org-uuid-1234/webhooks/webhook-uuid-1111 \
+curl -X DELETE https://countersig.com/orgs/org-uuid-1234/webhooks/webhook-uuid-1111 \
   -H "Cookie: token=..."
 ```
 
@@ -2215,7 +2215,7 @@ List all supported blockchain types with metadata.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/chains
+curl https://countersig.com/chains
 ```
 
 ---
@@ -2264,7 +2264,7 @@ List all public agents without authentication. Returns only public-safe fields.
 
 **Example Request:**
 ```bash
-curl "https://agentid2.provenanceai.network/public/agents?capability=trading&limit=10"
+curl "https://countersig.com/public/agents?capability=trading&limit=10"
 ```
 
 ---
@@ -2311,7 +2311,7 @@ Get all agents owned by a specific public key.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/agents/owner/AgentPubkey111111111111111111111111111111111 \
+curl https://countersig.com/agents/owner/AgentPubkey111111111111111111111111111111111 \
   -H "Cookie: token=..."
 ```
 
@@ -2368,7 +2368,7 @@ Revoke an agent, permanently disabling it. Requires ownership verification via E
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/agents/550e8400-e29b-41d4-a716-446655440000/revoke \
+curl -X POST https://countersig.com/agents/550e8400-e29b-41d4-a716-446655440000/revoke \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -2415,7 +2415,7 @@ Issue a short-lived A2A (Agent-to-Agent) authentication JWT token. The token inc
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/agents/550e8400-e29b-41d4-a716-446655440000/issue-token \
+curl -X POST https://countersig.com/agents/550e8400-e29b-41d4-a716-446655440000/issue-token \
   -H "Cookie: token=..."
 ```
 
@@ -2457,7 +2457,7 @@ Verify an A2A token statelessly. No authentication required — receiving agents
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/verify-token \
+curl -X POST https://countersig.com/verify-token \
   -H "Content-Type: application/json" \
   -d '{
     "token": "eyJhbGciOiJIUzI1NiIs..."
@@ -2489,23 +2489,23 @@ Get a W3C Verifiable Credential (JSON-LD) for an agent. No authentication requir
     "https://www.w3.org/2018/credentials/v1",
     "https://w3id.org/security/suites/ed25519-2020/v1",
     {
-      "AgentIDCredential": "https://agentidapp.com/schemas/credential/v1",
-      "agentName": "https://agentidapp.com/schemas/credential/v1#agentName",
-      "chainType": "https://agentidapp.com/schemas/credential/v1#chainType",
-      "reputationScore": "https://agentidapp.com/schemas/credential/v1#reputationScore",
-      "reputationLabel": "https://agentidapp.com/schemas/credential/v1#reputationLabel",
-      "capabilities": "https://agentidapp.com/schemas/credential/v1#capabilities",
-      "verificationStatus": "https://agentidapp.com/schemas/credential/v1#verificationStatus",
-      "registeredAt": "https://agentidapp.com/schemas/credential/v1#registeredAt",
-      "lastVerified": "https://agentidapp.com/schemas/credential/v1#lastVerified"
+      "CountersigCredential": "https://countersig.com/schemas/credential/v1",
+      "agentName": "https://countersig.com/schemas/credential/v1#agentName",
+      "chainType": "https://countersig.com/schemas/credential/v1#chainType",
+      "reputationScore": "https://countersig.com/schemas/credential/v1#reputationScore",
+      "reputationLabel": "https://countersig.com/schemas/credential/v1#reputationLabel",
+      "capabilities": "https://countersig.com/schemas/credential/v1#capabilities",
+      "verificationStatus": "https://countersig.com/schemas/credential/v1#verificationStatus",
+      "registeredAt": "https://countersig.com/schemas/credential/v1#registeredAt",
+      "lastVerified": "https://countersig.com/schemas/credential/v1#lastVerified"
     }
   ],
   "id": "urn:agentid:credential:550e8400-e29b-41d4-a716-446655440000",
   "type": ["VerifiableCredential", "AIAgentIdentityCredential"],
   "issuer": {
-    "id": "did:web:agentidapp.com",
-    "name": "AgentID",
-    "url": "https://agentidapp.com"
+    "id": "did:web:countersig.com",
+    "name": "Countersig",
+    "url": "https://countersig.com"
   },
   "issuanceDate": "2024-01-20T14:22:00.000Z",
   "expirationDate": "2024-01-21T14:22:00.000Z",
@@ -2523,15 +2523,15 @@ Get a W3C Verifiable Credential (JSON-LD) for an agent. No authentication requir
     "lastVerified": "2024-01-20T14:22:00.000Z"
   },
   "credentialStatus": {
-    "id": "https://api.agentidapp.com/agents/550e8400-e29b-41d4-a716-446655440000",
-    "type": "AgentIDStatusCheck2024",
+    "id": "https://api.countersig.com/agents/550e8400-e29b-41d4-a716-446655440000",
+    "type": "CountersigStatusCheck2024",
     "statusPurpose": "revocation"
   },
   "proof": {
     "type": "DataIntegrityProof",
     "cryptosuite": "eddsa-rdfc-2022",
     "created": "2024-01-20T14:22:00.000Z",
-    "verificationMethod": "did:web:agentidapp.com#ed25519-key",
+    "verificationMethod": "did:web:countersig.com#ed25519-key",
     "proofPurpose": "assertionMethod",
     "proofValue": "UNSIGNED_CREDENTIAL_REQUIRES_DID_KEY_CONFIGURATION"
   }
@@ -2544,7 +2544,7 @@ Get a W3C Verifiable Credential (JSON-LD) for an agent. No authentication requir
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/agents/550e8400-e29b-41d4-a716-446655440000/credential \
+curl https://countersig.com/agents/550e8400-e29b-41d4-a716-446655440000/credential \
   -H "Accept: application/vc+ld+json"
 ```
 
@@ -2596,7 +2596,7 @@ Verify an external OAuth2 or Entra ID token and return normalized identity claim
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/auth/verify-external-token \
+curl -X POST https://countersig.com/auth/verify-external-token \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -2656,7 +2656,7 @@ List all configured identity providers for an organization.
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/orgs/org-uuid-1234/identity-providers \
+curl https://countersig.com/orgs/org-uuid-1234/identity-providers \
   -H "Cookie: token=..."
 ```
 
@@ -2714,7 +2714,7 @@ Create a new identity provider configuration.
 
 **Example Request:**
 ```bash
-curl -X POST https://agentid2.provenanceai.network/orgs/org-uuid-1234/identity-providers \
+curl -X POST https://countersig.com/orgs/org-uuid-1234/identity-providers \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -2778,7 +2778,7 @@ Update an existing identity provider configuration.
 
 **Example Request:**
 ```bash
-curl -X PUT https://agentid2.provenanceai.network/orgs/org-uuid-1234/identity-providers/idp-uuid-1111 \
+curl -X PUT https://countersig.com/orgs/org-uuid-1234/identity-providers/idp-uuid-1111 \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -2824,7 +2824,7 @@ Delete an identity provider configuration.
 
 **Example Request:**
 ```bash
-curl -X DELETE https://agentid2.provenanceai.network/orgs/org-uuid-1234/identity-providers/idp-uuid-1111 \
+curl -X DELETE https://countersig.com/orgs/org-uuid-1234/identity-providers/idp-uuid-1111 \
   -H "Cookie: token=..."
 ```
 
@@ -2853,22 +2853,22 @@ JWKS endpoint exposing public key metadata for A2A token verification. The actua
       "alg": "HS256"
     }
   ],
-  "issuer": "agentidapp.com",
-  "documentation": "https://agentidapp.com/docs/a2a-auth",
+  "issuer": "countersig.com",
+  "documentation": "https://countersig.com/docs/a2a-auth",
   "verify_endpoint": "/agents/verify-token"
 }
 ```
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/.well-known/jwks.json
+curl https://countersig.com/.well-known/jwks.json
 ```
 
 ---
 
 #### GET /.well-known/did.json
 
-W3C DID document for `did:web:agentidapp.com`. Exposes verification methods for Ed25519 and SECP256K1 keys, along with service endpoints for AgentID APIs.
+W3C DID document for `did:web:countersig.com`. Exposes verification methods for Ed25519 and SECP256K1 keys, along with service endpoints for Countersig APIs.
 
 **Authentication:** None
 
@@ -2882,45 +2882,45 @@ W3C DID document for `did:web:agentidapp.com`. Exposes verification methods for 
     "https://w3id.org/security/suites/ed25519-2020/v1",
     "https://w3id.org/security/suites/secp256k1-2019/v1"
   ],
-  "id": "did:web:agentidapp.com",
-  "controller": "did:web:agentidapp.com",
+  "id": "did:web:countersig.com",
+  "controller": "did:web:countersig.com",
   "verificationMethod": [
     {
-      "id": "did:web:agentidapp.com#ed25519-key",
+      "id": "did:web:countersig.com#ed25519-key",
       "type": "Ed25519VerificationKey2020",
-      "controller": "did:web:agentidapp.com",
+      "controller": "did:web:countersig.com",
       "publicKeyMultibase": "z_PLACEHOLDER_CONFIGURE_IN_ENV"
     },
     {
-      "id": "did:web:agentidapp.com#secp256k1-key",
+      "id": "did:web:countersig.com#secp256k1-key",
       "type": "EcdsaSecp256k1VerificationKey2019",
-      "controller": "did:web:agentidapp.com",
+      "controller": "did:web:countersig.com",
       "publicKeyMultibase": "z_PLACEHOLDER_CONFIGURE_IN_ENV"
     }
   ],
   "authentication": [
-    "did:web:agentidapp.com#ed25519-key",
-    "did:web:agentidapp.com#secp256k1-key"
+    "did:web:countersig.com#ed25519-key",
+    "did:web:countersig.com#secp256k1-key"
   ],
   "assertionMethod": [
-    "did:web:agentidapp.com#ed25519-key",
-    "did:web:agentidapp.com#secp256k1-key"
+    "did:web:countersig.com#ed25519-key",
+    "did:web:countersig.com#secp256k1-key"
   ],
   "service": [
     {
-      "id": "did:web:agentidapp.com#agentid-api",
-      "type": "AgentIDService",
-      "serviceEndpoint": "https://api.agentidapp.com"
+      "id": "did:web:countersig.com#countersig-api",
+      "type": "CountersigService",
+      "serviceEndpoint": "https://api.countersig.com"
     },
     {
-      "id": "did:web:agentidapp.com#a2a-verify",
+      "id": "did:web:countersig.com#a2a-verify",
       "type": "A2AVerificationService",
-      "serviceEndpoint": "https://api.agentidapp.com/agents/verify-token"
+      "serviceEndpoint": "https://api.countersig.com/agents/verify-token"
     },
     {
-      "id": "did:web:agentidapp.com#credential-issuance",
+      "id": "did:web:countersig.com#credential-issuance",
       "type": "VerifiableCredentialService",
-      "serviceEndpoint": "https://api.agentidapp.com/agents/{agentId}/credential"
+      "serviceEndpoint": "https://api.countersig.com/agents/{agentId}/credential"
     }
   ]
 }
@@ -2928,7 +2928,7 @@ W3C DID document for `did:web:agentidapp.com`. Exposes verification methods for 
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/.well-known/did.json
+curl https://countersig.com/.well-known/did.json
 ```
 
 ---
@@ -2974,7 +2974,7 @@ If services are degraded:
 
 **Example Request:**
 ```bash
-curl https://agentid2.provenanceai.network/health
+curl https://countersig.com/health
 ```
 
 ---
@@ -2987,8 +2987,8 @@ Environment variables for API configuration:
 |----------|---------|-------------|
 | `PORT` | 3002 | Server port |
 | `NODE_ENV` | development | Environment mode |
-| `AGENTID_BASE_URL` | http://localhost:3002 | Base URL for widget/badge links |
-| `DATABASE_URL` | postgresql://user:password@localhost:5432/agentid | PostgreSQL connection |
+| `COUNTERSIG_BASE_URL` | http://localhost:3002 | Base URL for widget/badge links |
+| `DATABASE_URL` | postgresql://user:password@localhost:5432/countersig | PostgreSQL connection |
 | `REDIS_URL` | redis://localhost:6379 | Redis connection |
 | `CORS_ORIGIN` | http://localhost:5173 | Allowed CORS origin |
 | `BADGE_CACHE_TTL` | 60 | Badge cache TTL in seconds |

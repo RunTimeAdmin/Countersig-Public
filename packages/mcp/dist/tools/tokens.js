@@ -7,7 +7,7 @@ function registerTokenTools() {
         // ─── issue_a2a_token ──────────────────────────────────────────────
         {
             name: 'issue_a2a_token',
-            description: 'Issue a short-lived (60-second) A2A JWT that proves this agent\'s identity to another AgentID-integrated service. Issue immediately before use — do not cache tokens.',
+            description: 'Issue a short-lived (60-second) A2A JWT that proves this agent\'s identity to another Countersig-integrated service. Issue immediately before use — do not cache tokens.',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -31,7 +31,7 @@ function registerTokenTools() {
                                     expiresIn: result.expiresIn,
                                     agentId: result.agentId,
                                     issuedAt: result.issuedAt,
-                                    usage: "Attach this token as 'Authorization: Bearer <token>' or 'X-AgentID-Token: <token>' on your next request",
+                                    usage: "Attach this token as 'Authorization: Bearer <token>' or 'X-Countersig-Token: <token>' on your next request",
                                 }, null, 2),
                             },
                         ],

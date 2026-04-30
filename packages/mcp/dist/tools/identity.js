@@ -15,7 +15,7 @@ function registerIdentityTools() {
         // ─── register_agent ───────────────────────────────────────────────
         {
             name: 'register_agent',
-            description: 'Register this AI agent with the AgentID platform and obtain a permanent cryptographic identity. Generates an Ed25519 keypair automatically. Call once on first use.',
+            description: 'Register this AI agent with the Countersig platform and obtain a permanent cryptographic identity. Generates an Ed25519 keypair automatically. Call once on first use.',
             inputSchema: {
                 type: 'object',
                 properties: {

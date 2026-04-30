@@ -1,8 +1,8 @@
-# MCP Server Quick Start — Using AgentID with Claude
+﻿# MCP Server Quick Start — Using Countersig with Claude
 
 ## Overview
 
-AgentID's MCP server lets AI agents (Claude, etc.) register identities, build reputation, issue verifiable credentials, and communicate agent-to-agent — all through natural conversation. Instead of writing code or calling APIs manually, you simply talk to Claude and it handles everything behind the scenes.
+Countersig's MCP server lets AI agents (Claude, etc.) register identities, build reputation, issue verifiable credentials, and communicate agent-to-agent — all through natural conversation. Instead of writing code or calling APIs manually, you simply talk to Claude and it handles everything behind the scenes.
 
 ---
 
@@ -10,18 +10,18 @@ AgentID's MCP server lets AI agents (Claude, etc.) register identities, build re
 
 - **Claude Desktop** or **Claude Code** installed
 - **Node.js 18+** (for `npx`)
-- An **AgentID account** — [agentidapp.com/signup](https://agentidapp.com/signup)
+- An **Countersig account** — [countersig.com/signup](https://countersig.com/signup)
 
 ---
 
 ## Step 1: Create Your API Key
 
-1. Log into [agentidapp.com](https://agentidapp.com)
+1. Log into [countersig.com](https://countersig.com)
 2. Go to **Settings → API Keys**
 3. Click **"Create API Key"**
 4. Set a name (e.g., `Claude MCP`) and scope: `read,write`
 5. **Copy the key immediately** — it's only shown once
-6. Key format: `aid_xxxxxxxxxxxxxxx`
+6. Key format: `cs_xxxxxxxxxxxxxxx`
 
 > ⚠️ Store your API key securely. If you lose it, you'll need to generate a new one.
 
@@ -32,7 +32,7 @@ AgentID's MCP server lets AI agents (Claude, etc.) register identities, build re
 ### Claude Code (one command)
 
 ```bash
-claude mcp add agentid -- npx -y @agentidapp/mcp
+claude mcp add countersig -- npx -y @countersig/mcp
 ```
 
 ### Claude Desktop
@@ -42,11 +42,11 @@ Add to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "agentid": {
+    "countersig": {
       "command": "npx",
-      "args": ["-y", "@agentidapp/mcp"],
+      "args": ["-y", "@countersig/mcp"],
       "env": {
-        "AGENTID_API_KEY": "aid_xxxxxxxxxxxxxxx"
+        "COUNTERSIG_API_KEY": "cs_xxxxxxxxxxxxxxx"
       }
     }
   }
@@ -56,10 +56,10 @@ Add to your `claude_desktop_config.json`:
 ### Environment Variable (alternative)
 
 ```bash
-export AGENTID_API_KEY=aid_xxxxxxxxxxxxxxx
+export COUNTERSIG_API_KEY=cs_xxxxxxxxxxxxxxx
 ```
 
-Configuration is stored in `~/.agentid/config.json`.
+Configuration is stored in `~/.countersig/config.json`.
 
 ---
 
@@ -67,10 +67,10 @@ Configuration is stored in `~/.agentid/config.json`.
 
 Tell Claude:
 
-> "Configure my AgentID with API key `aid_xxxxx`"
+> "Configure my Countersig with API key `cs_xxxxx`"
 
 - Claude calls the `configure` tool
-- Config saved locally to `~/.agentid/config.json`
+- Config saved locally to `~/.countersig/config.json`
 - **Only needed once** — persists across sessions
 
 ---
@@ -107,7 +107,7 @@ What happens:
 
 | Tool | What It Does | Requires Auth | Example Prompt |
 |------|-------------|---------------|----------------|
-| `configure` | Set API key and agent ID | No | "Configure my AgentID with key aid_xxx" |
+| `configure` | Set API key and agent ID | No | "Configure my Countersig with key cs_xxx" |
 | `register_agent` | Create new agent identity | Yes | "Register an agent called my-bot" |
 | `verify_agent` | Complete PKI verification | Yes + Key | "Verify my agent" |
 | `get_agent` | Check agent status & reputation | Yes | "What's my agent's status?" |
@@ -151,7 +151,7 @@ Claude: ✓ Response (200): { "verified": true, "agent": "my-research-bot" }
 ```
 You: "Export my verifiable credential"
 Claude: Here's your W3C Verifiable Credential:
-        - Issuer: did:web:agentidapp.com
+        - Issuer: did:web:countersig.com
         - Subject: your-agent-id
         - Status: verified
         - BAGS Score: 72
@@ -183,9 +183,9 @@ These work without any configuration:
 
 | Setting | Environment Variable | Config File Key | Default |
 |---------|---------------------|-----------------|---------|
-| API Key | `AGENTID_API_KEY` | `apiKey` | *(required)* |
-| Agent ID | `AGENTID_AGENT_ID` | `agentId` | *(set after registration)* |
-| API URL | `AGENTID_API_URL` | `apiUrl` | `https://api.agentidapp.com` |
+| API Key | `COUNTERSIG_API_KEY` | `apiKey` | *(required)* |
+| Agent ID | `COUNTERSIG_AGENT_ID` | `agentId` | *(set after registration)* |
+| API URL | `COUNTERSIG_API_URL` | `apiUrl` | `https://api.countersig.com` |
 | Private Key | — | `privateKey` | *(generated on registration)* |
 
 > Environment variables override config file values.
@@ -196,18 +196,18 @@ These work without any configuration:
 
 | Error | Solution |
 |-------|----------|
-| "API key not configured" | Run `configure` tool or set `AGENTID_API_KEY` |
+| "API key not configured" | Run `configure` tool or set `COUNTERSIG_API_KEY` |
 | "Agent not found" | Run `register_agent` first |
 | "Verification failed" | Agent must be registered first; private key must exist in config |
-| "Invalid API key format" | Keys must start with `aid_` |
+| "Invalid API key format" | Keys must start with `cs_` |
 | "HTTPS required" | API URLs must use HTTPS (localhost exempt for development) |
 
 ---
 
 ## Security Notes
 
-- Private keys stored in `~/.agentid/config.json` (Unix: mode `0600`)
-- API keys validated for format (`aid_*` prefix)
+- Private keys stored in `~/.countersig/config.json` (Unix: mode `0600`)
+- API keys validated for format (`cs_*` prefix)
 - `authenticated_fetch` blocks private/internal IP addresses (SSRF protection)
 - A2A tokens expire after 60 seconds
 - All API communication uses HTTPS
@@ -218,10 +218,10 @@ These work without any configuration:
 
 **Packages:**
 
-- **SDK:** `npm install @agentidapp/sdk` | [npm](https://www.npmjs.com/package/@agentidapp/sdk) | [Source](https://github.com/RunTimeAdmin/AgentID-2.0-Public/tree/main/packages/sdk)
-- **MCP Server:** `npx -y @agentidapp/mcp` | [npm](https://www.npmjs.com/package/@agentidapp/mcp) | [Source](https://github.com/RunTimeAdmin/AgentID-2.0-Public/tree/main/packages/mcp)
-- **React Components:** `npm install @agentidapp/react` | [npm](https://www.npmjs.com/package/@agentidapp/react)
-- **Verifier:** `npm install @agentidapp/verify` | [npm](https://www.npmjs.com/package/@agentidapp/verify)
+- **SDK:** `npm install @countersig/sdk` | [npm](https://www.npmjs.com/package/@countersig/sdk) | [Source](https://github.com/RunTimeAdmin/AgentID-2.0-Public/tree/main/packages/sdk)
+- **MCP Server:** `npx -y @countersig/mcp` | [npm](https://www.npmjs.com/package/@countersig/mcp) | [Source](https://github.com/RunTimeAdmin/AgentID-2.0-Public/tree/main/packages/mcp)
+- **React Components:** `npm install @countersig/react` | [npm](https://www.npmjs.com/package/@countersig/react)
+- **Verifier:** `npm install @countersig/verify` | [npm](https://www.npmjs.com/package/@countersig/verify)
 
 **Guides:**
 

@@ -1,11 +1,11 @@
 {
-  "name": "@agentidapp/verify",
+  "name": "@countersig/verify",
   "version": "1.0.0",
-  "description": "AgentID A2A token verification library",
+  "description": "Countersig A2A token verification library",
   "main": "index.js",
   "types": "index.d.ts",
   "license": "MIT",
-  "keywords": ["agentid", "a2a", "agent", "verification", "nhi", "identity"],
+  "keywords": ["countersig", "a2a", "agent", "verification", "nhi", "identity"],
   "repository": {
     "type": "git",
     "url": "https://github.com/RunTimeAdmin/AgentID-2.0-Public"

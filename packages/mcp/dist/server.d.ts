@@ -11,5 +11,5 @@ export interface ToolDefinition {
         isError?: boolean;
     }>;
 }
-export declare function createAgentIDServer(): Server;
+export declare function createCountersigServer(): Server;
 //# sourceMappingURL=server.d.ts.map

@@ -1,12 +1,12 @@
 {
-  "name": "@agentidapp/sdk",
+  "name": "@countersig/sdk",
   "version": "1.0.0",
-  "description": "AgentID SDK - TypeScript client for the AgentID NHI platform",
+  "description": "Countersig SDK - TypeScript client for the Countersig NHI platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist/"],
   "license": "MIT",
-  "keywords": ["agentid", "nhi", "identity", "agent", "trust", "verification", "web3", "solana", "ethereum"],
+  "keywords": ["countersig", "nhi", "identity", "agent", "trust", "verification", "web3", "solana", "ethereum"],
   "repository": {
     "type": "git",
     "url": "https://github.com/RunTimeAdmin/AgentID-2.0-Public"

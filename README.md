@@ -1,12 +1,12 @@
-# AgentID 2.0
+# Countersig
 
 **Universal Identity for AI Agents**
 
-AgentID is a production-grade identity, verification, and reputation platform for AI agents. It provides wallet-signed registration, W3C Verifiable Credentials, multi-chain support, and enterprise authentication — all in one platform.
+Countersig is a production-grade identity, verification, and reputation platform for AI agents. It provides wallet-signed registration, W3C Verifiable Credentials, multi-chain support, and enterprise authentication — all in one platform.
 
-![AgentID Logo](AgentIDLogo.png)
+![Countersig Logo](CountersigLogo.png)
 
-## What AgentID Does
+## What Countersig Does
 
 - **Identity Issuance** — Register AI agents with cryptographic identity (Ed25519, OAuth2, Entra ID, API Keys)
 - **Verification** — Challenge-response proof of ownership, W3C Verifiable Credentials, DID documents
@@ -16,24 +16,24 @@ AgentID is a production-grade identity, verification, and reputation platform fo
 
 ## Live Platform
 
-- **Website:** [agentidapp.com](https://agentidapp.com)
-- **API:** [api.agentidapp.com](https://api.agentidapp.com)
-- **Interactive Demo:** [agentidapp.com/demo](https://agentidapp.com/demo)
-- **Pricing:** [agentidapp.com/pricing](https://agentidapp.com/pricing)
+- **Website:** [countersig.com](https://countersig.com)
+- **API:** [api.countersig.com](https://api.countersig.com)
+- **Interactive Demo:** [countersig.com/demo](https://countersig.com/demo)
+- **Pricing:** [countersig.com/pricing](https://countersig.com/pricing)
 
 ## Client Libraries
 
 | Package | Description | Install |
 |---------|-------------|---------|
-| [@agentidapp/sdk](https://www.npmjs.com/package/@agentidapp/sdk) | TypeScript SDK | `npm install @agentidapp/sdk` |
-| [@agentidapp/mcp](https://www.npmjs.com/package/@agentidapp/mcp) | MCP Server for Claude | `npx -y @agentidapp/mcp` |
-| [@agentidapp/react](https://www.npmjs.com/package/@agentidapp/react) | React Components | `npm install @agentidapp/react` |
-| [@agentidapp/verify](https://www.npmjs.com/package/@agentidapp/verify) | Standalone Verifier | `npm install @agentidapp/verify` |
+| [@countersig/sdk](https://www.npmjs.com/package/@countersig/sdk) | TypeScript SDK | `npm install @countersig/sdk` |
+| [@countersig/mcp](https://www.npmjs.com/package/@countersig/mcp) | MCP Server for Claude | `npx -y @countersig/mcp` |
+| [@countersig/react](https://www.npmjs.com/package/@countersig/react) | React Components | `npm install @countersig/react` |
+| [@countersig/verify](https://www.npmjs.com/package/@countersig/verify) | Standalone Verifier | `npm install @countersig/verify` |
 
 ## Quick Start with Claude
 
 ```bash
-claude mcp add agentid -- npx -y @agentidapp/mcp
+claude mcp add countersig -- npx -y @countersig/mcp
 ```
 
 Then ask Claude: "List all registered agents" or "Register a new agent called my-bot"
@@ -41,10 +41,10 @@ Then ask Claude: "List all registered agents" or "Register a new agent called my
 ## Quick Start with SDK
 
 ```typescript
-import { AgentIDClient } from '@agentidapp/sdk';
+import { CountersigClient } from '@countersig/sdk';
 
-const client = new AgentIDClient({
-  baseUrl: 'https://api.agentidapp.com'
+const client = new CountersigClient({
+  baseUrl: 'https://api.countersig.com'
 });
 
 // List verified agents
@@ -66,7 +66,7 @@ const rep = await client.getReputation(agentPublicKey);
 
 ## Architecture
 
-AgentID provides three core capabilities:
+Countersig provides three core capabilities:
 
 1. **Identity Issuer** — Wallet-signed registration, W3C Verifiable Credentials, JWKS endpoint, did:web document, multi-chain support (Solana BAGS, Solana generic, Ethereum, Base, Polygon)
 2. **Management Plane** — Organizations, RBAC, API keys with scopes, audit logs with hash chaining, policy engine, webhooks, heartbeat monitoring, attestations and reputation scoring
@@ -92,7 +92,7 @@ AgentID provides three core capabilities:
 | Professional | $99/mo | 50,000 | 10,000 | 100,000 | 10,000 |
 | Enterprise | Custom | Unlimited | Unlimited | Unlimited | Unlimited |
 
-See [agentidapp.com/pricing](https://agentidapp.com/pricing) for full details.
+See [countersig.com/pricing](https://countersig.com/pricing) for full details.
 
 ## License
 
@@ -100,5 +100,5 @@ MIT — see [LICENSE](LICENSE)
 
 ## Contact
 
-- **Enterprise:** enterprise@agentidapp.com
-- **Website:** [agentidapp.com](https://agentidapp.com)
+- **Enterprise:** enterprise@countersig.com
+- **Website:** [countersig.com](https://countersig.com)

@@ -1,18 +1,18 @@
-import { AgentIDClient } from '@agentidapp/sdk';
+import { CountersigClient } from '@countersig/sdk';
 import { loadConfig } from './config.js';
 
-export function getClient(): AgentIDClient {
+export function getClient(): CountersigClient {
   const config = loadConfig();
 
   if (!config.apiKey) {
     throw new Error(
-      'AgentID API key not configured. ' +
-      'Call the configure tool with your API key from agentidapp.com/settings/api-keys, ' +
-      'or set AGENTID_API_KEY environment variable.'
+      'Countersig API key not configured. ' +
+      'Call the configure tool with your API key from countersig.com/settings/api-keys, ' +
+      'or set COUNTERSIG_API_KEY environment variable.'
     );
   }
 
-  return new AgentIDClient({
+  return new CountersigClient({
     apiKey: config.apiKey,
     apiUrl: config.apiUrl,
   });

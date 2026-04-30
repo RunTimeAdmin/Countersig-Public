@@ -28,7 +28,7 @@ export function registerFetchTool(): ToolDefinition[] {
     {
       name: 'authenticated_fetch',
       description:
-        "Make an HTTP request with the agent's A2A token automatically attached. Use instead of generic HTTP fetch when calling services that accept X-AgentID-Token for identity verification.",
+        "Make an HTTP request with the agent's A2A token automatically attached. Use instead of generic HTTP fetch when calling services that accept X-Countersig-Token for identity verification.",
       inputSchema: {
         type: 'object',
         properties: {
@@ -48,7 +48,7 @@ export function registerFetchTool(): ToolDefinition[] {
           },
           headers: {
             type: 'object',
-            description: 'Additional headers. X-AgentID-Token is added automatically.',
+            description: 'Additional headers. X-Countersig-Token is added automatically.',
           },
           timeout: {
             type: 'number',
@@ -122,7 +122,7 @@ export function registerFetchTool(): ToolDefinition[] {
 
           const mergedHeaders: Record<string, string> = {
             ...userHeaders,
-            'X-AgentID-Token': token.token,
+            'X-Countersig-Token': token.token,
             Authorization: 'Bearer ' + token.token,
           };
 

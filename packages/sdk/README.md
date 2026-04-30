@@ -1,26 +1,26 @@
-# @agentidapp/sdk
+# @countersig/sdk
 
 > **Status: In Development** — This package is not yet published to npm.
 
-This package will provide a TypeScript client library for the AgentID NHI platform. It is under active development as part of AgentID 2.0.
+This package will provide a TypeScript client library for the Countersig NHI platform. It is under active development as part of Countersig 2.0.
 
 For current integration, use the REST API directly. See the [API Reference](../../docs/API_REFERENCE.md).
 
-TypeScript client library for the [AgentID](https://agentidapp.com) Non-Human Identity (NHI) platform. Register agents, verify identities, manage trust scores, and issue A2A tokens.
+TypeScript client library for the [Countersig](https://countersig.com) Non-Human Identity (NHI) platform. Register agents, verify identities, manage trust scores, and issue A2A tokens.
 
 ## Installation
 
 ```bash
-npm install @agentidapp/sdk
+npm install @countersig/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { AgentIDClient } from '@agentidapp/sdk';
+import { CountersigClient } from '@countersig/sdk';
 
-const client = new AgentIDClient({
-  apiUrl: 'https://api.agentidapp.com',
+const client = new CountersigClient({
+  apiUrl: 'https://api.countersig.com',
   apiKey: 'your-api-key'
 });
 
@@ -40,13 +40,13 @@ The SDK supports two authentication methods:
 ### API Key
 
 ```typescript
-const client = new AgentIDClient({ apiKey: 'your-api-key' });
+const client = new CountersigClient({ apiKey: 'your-api-key' });
 ```
 
 ### JWT Access Token
 
 ```typescript
-const client = new AgentIDClient({ accessToken: 'your-jwt-token' });
+const client = new CountersigClient({ accessToken: 'your-jwt-token' });
 ```
 
 ### Updating Credentials
@@ -140,7 +140,7 @@ Export a W3C Verifiable Credential for an agent:
 ```typescript
 const vc = await client.credentials.get('agent-id');
 console.log(vc.type);        // ['VerifiableCredential', 'AIAgentIdentityCredential']
-console.log(vc.issuer.name); // 'AgentID'
+console.log(vc.issuer.name); // 'Countersig'
 console.log(vc.credentialSubject.reputationScore);
 ```
 
@@ -208,22 +208,22 @@ const flags = await client.attestations.getFlags('agent-id');
 This package is written in TypeScript and ships with full type definitions. No `@types/` package needed.
 
 ```typescript
-import type { Agent, Badge, ReputationScore, A2AToken, VerifiableCredential } from '@agentidapp/sdk';
+import type { Agent, Badge, ReputationScore, A2AToken, VerifiableCredential } from '@countersig/sdk';
 ```
 
 ## Configuration
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `apiUrl` | `https://api.agentidapp.com` | API base URL |
+| `apiUrl` | `https://api.countersig.com` | API base URL |
 | `apiKey` | — | API key for auth |
 | `accessToken` | — | JWT access token |
 | `timeout` | `10000` | Request timeout (ms) |
 
 ## Links
 
-- [AgentID Platform](https://agentidapp.com)
-- [API Documentation](https://agentidapp.com/docs)
+- [Countersig Platform](https://countersig.com)
+- [API Documentation](https://countersig.com/docs)
 - [GitHub Repository](https://github.com/RunTimeAdmin/AgentID-2.0-Public)
 
 ## License

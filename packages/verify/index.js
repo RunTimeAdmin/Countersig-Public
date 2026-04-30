@@ -1,7 +1,7 @@
 /**
- * @agentidapp/verify — A2A Token Verification SDK
+ * @countersig/verify — A2A Token Verification SDK
  * 
- * Verifies AgentID A2A tokens using Ed25519 asymmetric cryptography.
+ * Verifies Countersig A2A tokens using Ed25519 asymmetric cryptography.
  * No shared secret required — only the public key or JWKS endpoint.
  */
 
@@ -11,24 +11,24 @@ function getJose() {
     try {
       jose = require('jose');
     } catch {
-      throw new Error('@agentidapp/verify requires the jose library. Run: npm install jose');
+      throw new Error('@countersig/verify requires the jose library. Run: npm install jose');
     }
   }
   return jose;
 }
 
-class AgentIDVerifier {
+class CountersigVerifier {
   /**
    * @param {Object} options
    * @param {string} [options.publicKey] - PEM-encoded Ed25519 public key (SPKI format)
    * @param {Object} [options.jwk] - JWK-formatted Ed25519 public key
-   * @param {string} [options.apiUrl] - AgentID API URL for remote/JWKS verification
+   * @param {string} [options.apiUrl] - Countersig API URL for remote/JWKS verification
    * @param {string} [options.secret] - DEPRECATED: HMAC secret (backward compat, dev only)
    */
   constructor(options = {}) {
-    this.apiUrl = options.apiUrl || 'https://api.agentidapp.com';
-    this.issuer = 'agentidapp.com';
-    this.audience = 'agentid-a2a';
+    this.apiUrl = options.apiUrl || 'https://api.countersig.com';
+    this.issuer = 'countersig.com';
+    this.audience = 'countersig-a2a';
     this._publicKeyPem = options.publicKey || null;
     this._jwk = options.jwk || null;
     this._secret = options.secret || null;
@@ -36,7 +36,7 @@ class AgentIDVerifier {
     this._jwksSet = null;
 
     if (this._secret) {
-      console.warn('[AgentIDVerifier] HMAC secret verification is deprecated. Migrate to Ed25519 public key or JWKS.');
+      console.warn('[CountersigVerifier] HMAC secret verification is deprecated. Migrate to Ed25519 public key or JWKS.');
     }
   }
 
@@ -69,7 +69,7 @@ class AgentIDVerifier {
   }
 
   /**
-   * Verify token using JWKS fetched from the AgentID API.
+   * Verify token using JWKS fetched from the Countersig API.
    * @param {string} token - JWT token string
    * @returns {Promise<Object>} Decoded payload
    */
@@ -86,7 +86,7 @@ class AgentIDVerifier {
   }
 
   /**
-   * Verify token via AgentID HTTP API (POST /agents/verify-token).
+   * Verify token via Countersig HTTP API (POST /agents/verify-token).
    * @param {string} token - JWT token string
    * @returns {Promise<Object>} Decoded payload
    */
@@ -144,4 +144,4 @@ class AgentIDVerifier {
   }
 }
 
-module.exports = { AgentIDVerifier };
+module.exports = { CountersigVerifier };

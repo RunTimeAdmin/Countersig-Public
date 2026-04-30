@@ -1,12 +1,12 @@
-# AgentID Production Deployment Guide
+﻿# Countersig Production Deployment Guide
 
-Complete guide for deploying AgentID 2.0 in production.
+Complete guide for deploying Countersig 2.0 in production.
 
 ---
 
 ## v2.0 Changes
 
-AgentID 2.0 introduces significant platform upgrades over v1:
+Countersig 2.0 introduces significant platform upgrades over v1:
 
 - **JWT-based authentication** with access/refresh token rotation and Redis-backed session management
 - **RBAC with org-scoped roles**: viewer, member, manager, admin
@@ -55,10 +55,10 @@ Key variables for Docker Compose production:
 
 ```bash
 # Database
-POSTGRES_USER=agentid
+POSTGRES_USER=countersig
 POSTGRES_PASSWORD=<strong-random-password>
-POSTGRES_DB=agentid
-DATABASE_URL=postgresql://agentid:<password>@postgres:5432/agentid
+POSTGRES_DB=countersig
+DATABASE_URL=postgresql://countersig:<password>@postgres:5432/countersig
 
 # Redis
 REDIS_PASSWORD=<strong-random-password>
@@ -69,8 +69,8 @@ REDIS_PORT=6379
 NODE_ENV=production
 PORT=3002
 JWT_SECRET=<64-char-hex-secret>
-CORS_ORIGIN=https://agentidapp.com
-AGENTID_BASE_URL=https://api.agentidapp.com
+CORS_ORIGIN=https://countersig.com
+COUNTERSIG_BASE_URL=https://api.countersig.com
 
 # Stripe (if billing enabled)
 STRIPE_SECRET_KEY=sk_live_...
@@ -99,7 +99,7 @@ docker compose -f docker-compose.prod.yml down
 
 ```bash
 # Verify the API is running behind Caddy with valid TLS
-curl https://api.agentidapp.com/health
+curl https://api.countersig.com/health
 # Expected: {"status":"ok"}
 ```
 
@@ -114,9 +114,9 @@ curl https://api.agentidapp.com/health
 | **Redis** | v7 (via Docker or native) |
 | **Node.js** | v20+ |
 | **Port 3002** | Backend API |
-| **Domain (API)** | api.agentidapp.com |
-| **Domain (Frontend)** | agentidapp.com |
-| **GitHub** | https://github.com/RunTimeAdmin/AgentID-2.0-Public |
+| **Domain (API)** | api.countersig.com |
+| **Domain (Frontend)** | countersig.com |
+| **GitHub** | https://github.com/RunTimeAdmin/AgentID-2.0 |
 
 ---
 
@@ -130,7 +130,7 @@ docker --version
 docker compose version
 
 # Check DNS resolution
-dig +short api.agentidapp.com
+dig +short api.countersig.com
 # Should return your VPS IP address
 
 # Confirm port 443 is available
@@ -143,20 +143,20 @@ sudo netstat -tlnp | grep 443 || echo "Port 443 is free"
 
 > **Note:** If using Docker Compose (recommended), the database is created automatically. This section is for bare-metal installations only.
 
-Create the database and user for AgentID:
+Create the database and user for Countersig:
 
 ```bash
 # Create database user (replace CHANGE_THIS_STRONG_PASSWORD with a secure password)
-sudo -u postgres psql -c "CREATE USER agentid WITH PASSWORD 'CHANGE_THIS_STRONG_PASSWORD';"
+sudo -u postgres psql -c "CREATE USER countersig WITH PASSWORD 'CHANGE_THIS_STRONG_PASSWORD';"
 
 # Create database
-sudo -u postgres psql -c "CREATE DATABASE agentid OWNER agentid;"
+sudo -u postgres psql -c "CREATE DATABASE countersig OWNER countersig;"
 
 # Grant privileges
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE agentid TO agentid;"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE countersig TO countersig;"
 
 # Verify database was created
-sudo -u postgres psql -l | grep agentid
+sudo -u postgres psql -l | grep countersig
 ```
 
 > **Security Note:** Replace `CHANGE_THIS_STRONG_PASSWORD` with a strong, unique password. Store it securely as you'll need it for the environment configuration.
@@ -170,10 +170,10 @@ sudo -u postgres psql -l | grep agentid
 cd /var/www
 
 # Clone the repository
-git clone https://github.com/RunTimeAdmin/AgentID-2.0-Public.git agentid
+git clone https://github.com/RunTimeAdmin/AgentID-2.0.git countersig
 
 # Install backend dependencies
-cd agentid/backend
+cd countersig/backend
 npm install --production
 
 # Install frontend dependencies
@@ -190,13 +190,13 @@ npm install
 Create the backend `.env` file:
 
 ```bash
-cat > /var/www/agentid/backend/.env << 'EOF'
+cat > /var/www/countersig/backend/.env << 'EOF'
 PORT=3002
 NODE_ENV=production
-DATABASE_URL=postgresql://agentid:CHANGE_THIS_STRONG_PASSWORD@localhost:5432/agentid
+DATABASE_URL=postgresql://countersig:CHANGE_THIS_STRONG_PASSWORD@localhost:5432/countersig
 REDIS_URL=redis://localhost:6379
-CORS_ORIGIN=https://agentidapp.com
-AGENTID_BASE_URL=https://api.agentidapp.com
+CORS_ORIGIN=https://countersig.com
+COUNTERSIG_BASE_URL=https://api.countersig.com
 JWT_SECRET=<generate-a-64-char-hex-secret>
 BADGE_CACHE_TTL=60
 CHALLENGE_EXPIRY_SECONDS=300
@@ -217,8 +217,8 @@ EOF
 Create the frontend `.env` file:
 
 ```bash
-cat > /var/www/agentid/frontend/.env << 'EOF'
-VITE_API_URL=https://api.agentidapp.com
+cat > /var/www/countersig/frontend/.env << 'EOF'
+VITE_API_URL=https://api.countersig.com
 EOF
 ```
 
@@ -229,7 +229,7 @@ EOF
 Initialize the database schema:
 
 ```bash
-cd /var/www/agentid/backend
+cd /var/www/countersig/backend
 
 node -e "require('dotenv').config(); const { migrate } = require('./src/models/migrate'); migrate().then(() => { console.log('Migration complete'); process.exit(0); }).catch(e => { console.error(e); process.exit(1); });"
 ```
@@ -241,11 +241,11 @@ Expected output: `Migration complete`
 ## 6. Build Frontend for Production
 
 ```bash
-cd /var/www/agentid/frontend
+cd /var/www/countersig/frontend
 npm run build
 ```
 
-The production build will be created in `/var/www/agentid/frontend/dist/`.
+The production build will be created in `/var/www/countersig/frontend/dist/`.
 
 ---
 
@@ -256,23 +256,23 @@ The production build will be created in `/var/www/agentid/frontend/dist/`.
 Create the Nginx site configuration:
 
 ```bash
-sudo tee /etc/nginx/sites-available/agentid << 'EOF'
+sudo tee /etc/nginx/sites-available/countersig << 'EOF'
 server {
     listen 80;
-    server_name api.agentidapp.com;
+    server_name api.countersig.com;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name api.agentidapp.com;
+    server_name api.countersig.com;
 
     # SSL will be configured by certbot
-    # ssl_certificate /etc/letsencrypt/live/api.agentidapp.com/fullchain.pem;
-    # ssl_certificate_key /etc/letsencrypt/live/api.agentidapp.com/privkey.pem;
+    # ssl_certificate /etc/letsencrypt/live/api.countersig.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/api.countersig.com/privkey.pem;
 
     # Frontend (static files)
-    root /var/www/agentid/frontend/dist;
+    root /var/www/countersig/frontend/dist;
     index index.html;
 
     # API proxy to backend
@@ -370,7 +370,7 @@ Enable the site:
 
 ```bash
 # Create symlink to enable site
-sudo ln -s /etc/nginx/sites-available/agentid /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/countersig /etc/nginx/sites-enabled/
 
 # Test Nginx configuration
 sudo nginx -t
@@ -388,7 +388,7 @@ sudo systemctl reload nginx
 Obtain and configure SSL certificate using Certbot:
 
 ```bash
-sudo certbot --nginx -d api.agentidapp.com
+sudo certbot --nginx -d api.countersig.com
 ```
 
 Follow the interactive prompts. Certbot will automatically:
@@ -403,10 +403,10 @@ Follow the interactive prompts. Certbot will automatically:
 > **Note:** If using Docker Compose, the backend starts automatically. This step is for bare-metal deployments only.
 
 ```bash
-cd /var/www/agentid/backend
+cd /var/www/countersig/backend
 
 # Start the application
-pm2 start server.js --name agentid --env production
+pm2 start server.js --name countersig --env production
 
 # Save PM2 configuration
 pm2 save
@@ -423,10 +423,10 @@ Run these checks to confirm everything is working:
 
 ```bash
 # Health check
-curl https://api.agentidapp.com/health
+curl https://api.countersig.com/health
 
 # Check agents endpoint
-curl https://api.agentidapp.com/agents
+curl https://api.countersig.com/agents
 
 # Check PM2 status (bare-metal only)
 pm2 list
@@ -435,17 +435,17 @@ pm2 list
 docker compose -f docker-compose.prod.yml ps
 
 # Check recent logs
-pm2 logs agentid --lines 20                              # bare-metal
+pm2 logs countersig --lines 20                              # bare-metal
 docker compose -f docker-compose.prod.yml logs backend    # Docker
 
 # Test the main site
-curl -I https://agentidapp.com
+curl -I https://countersig.com
 ```
 
 Expected responses:
 - `/health` should return `{"status":"ok"}`
 - `/agents` should return a JSON array (empty `[]` initially)
-- PM2 list should show `agentid` as `online` (bare-metal) or Docker shows all containers healthy
+- PM2 list should show `countersig` as `online` (bare-metal) or Docker shows all containers healthy
 
 ---
 
@@ -455,22 +455,22 @@ After successful deployment:
 
 1. **Register your first agent** — Use the registration flow to add your first verified agent
 
-2. **Test the frontend** — Visit https://agentidapp.com
+2. **Test the frontend** — Visit https://countersig.com
 
 3. **Test badge endpoint** — Try `/badge/{agentId}` with a registered agent
 
 4. **Test widget** — Try `/widget/{agentId}` to verify widget rendering
 
-5. **Set up monitoring** — Consider adding AgentID to your existing monitoring infrastructure
+5. **Set up monitoring** — Consider adding Countersig to your existing monitoring infrastructure
 
 ---
 
-## Updating AgentID (Future Deployments)
+## Updating Countersig (Future Deployments)
 
 ### Docker Compose (Recommended)
 
 ```bash
-cd /var/www/agentid
+cd /var/www/countersig
 
 # Pull latest changes
 git pull origin main
@@ -479,13 +479,13 @@ git pull origin main
 docker compose -f docker-compose.prod.yml up -d --build
 
 # Verify health
-curl https://api.agentidapp.com/health
+curl https://api.countersig.com/health
 ```
 
 ### Bare-Metal
 
 ```bash
-cd /var/www/agentid
+cd /var/www/countersig
 
 # Pull latest changes
 git pull origin main
@@ -497,10 +497,10 @@ cd backend && npm install --production
 cd ../frontend && npm install && npm run build
 
 # Restart the application
-pm2 restart agentid
+pm2 restart countersig
 
 # Verify it's running
-pm2 logs agentid --lines 10
+pm2 logs countersig --lines 10
 ```
 
 ---
@@ -511,8 +511,8 @@ pm2 logs agentid --lines 10
 
 ```bash
 # View application logs (bare-metal)
-pm2 logs agentid
-pm2 logs agentid --lines 100
+pm2 logs countersig
+pm2 logs countersig --lines 100
 pm2 monit
 
 # View application logs (Docker)
@@ -520,7 +520,7 @@ docker compose -f docker-compose.prod.yml logs -f backend
 docker compose -f docker-compose.prod.yml logs -f caddy
 
 # Restart application
-pm2 restart agentid                                          # bare-metal
+pm2 restart countersig                                          # bare-metal
 docker compose -f docker-compose.prod.yml restart backend    # Docker
 ```
 
@@ -541,16 +541,16 @@ sudo systemctl reload nginx
 
 ```bash
 # Check database connection
-sudo -u postgres psql -d agentid -c "SELECT version();"
+sudo -u postgres psql -d countersig -c "SELECT version();"
 
 # Check table counts
-sudo -u postgres psql -d agentid -c "SELECT count(*) FROM agent_identities;"
+sudo -u postgres psql -d countersig -c "SELECT count(*) FROM agent_identities;"
 
 # List all tables
-sudo -u postgres psql -d agentid -c "\dt"
+sudo -u postgres psql -d countersig -c "\dt"
 
 # Docker: connect to database container
-docker compose -f docker-compose.prod.yml exec postgres psql -U agentid -d agentid -c "\dt"
+docker compose -f docker-compose.prod.yml exec postgres psql -U countersig -d countersig -c "\dt"
 ```
 
 ### Backend Direct Test
@@ -571,9 +571,9 @@ curl http://localhost:3002/discover
 | `ECONNREFUSED` on port 3002 | Check if backend is running: `pm2 list` or `docker compose ps` |
 | Database connection errors | Verify `.env` DATABASE_URL and PostgreSQL status |
 | 502 Bad Gateway | Check backend is running and proxy config is correct |
-| SSL errors (Nginx) | Run `sudo certbot --nginx -d api.agentidapp.com` |
+| SSL errors (Nginx) | Run `sudo certbot --nginx -d api.countersig.com` |
 | SSL errors (Caddy) | Check Caddy logs: `docker compose logs caddy` — ensure DNS A record points to VPS |
-| Permission denied on `/var/www/agentid` | Check ownership: `sudo chown -R $USER:$USER /var/www/agentid` |
+| Permission denied on `/var/www/countersig` | Check ownership: `sudo chown -R $USER:$USER /var/www/countersig` |
 | Caddy not getting certificate | Ensure port 80 and 443 are open and DNS resolves correctly |
 
 ---
@@ -595,5 +595,5 @@ curl http://localhost:3002/discover
 ## Support
 
 For issues or questions:
-- GitHub Issues: https://github.com/RunTimeAdmin/AgentID-2.0-Public/issues
+- GitHub Issues: https://github.com/RunTimeAdmin/AgentID-2.0/issues
 - Documentation: See `/docs` folder in repository

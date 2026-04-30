@@ -14,7 +14,7 @@ export function registerConfigureTool(): ToolDefinition[] {
           apiKey: {
             type: 'string',
             description:
-              "Your AgentID API key from agentidapp.com/settings/api-keys (starts with 'aid_')",
+              "Your Countersig API key from countersig.com/settings/api-keys (starts with 'cs_')",
           },
           agentId: {
             type: 'string',
@@ -24,7 +24,7 @@ export function registerConfigureTool(): ToolDefinition[] {
           apiUrl: {
             type: 'string',
             description:
-              'Override the API base URL. Default: https://api.agentidapp.com',
+              'Override the API base URL. Default: https://api.countersig.com',
           },
         },
       },
@@ -34,13 +34,13 @@ export function registerConfigureTool(): ToolDefinition[] {
           const agentId = args.agentId as string | undefined;
           const apiUrl = args.apiUrl as string | undefined;
 
-          if (apiKey && !apiKey.startsWith('aid_')) {
+          if (apiKey && !apiKey.startsWith('cs_')) {
             return {
               content: [
                 {
                   type: 'text',
                   text: JSON.stringify({
-                    error: "Invalid API key format. Keys must start with 'aid_'.",
+                    error: "Invalid API key format. Keys must start with 'cs_'.",
                   }),
                 },
               ],

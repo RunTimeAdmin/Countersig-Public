@@ -1,5 +1,5 @@
-export { AgentIDClient } from './client';
-export type { AgentIDClientOptions } from './client';
+export { CountersigClient } from './client';
+export type { CountersigClientOptions } from './client';
 export type {
   Agent,
   AgentRegistration,
