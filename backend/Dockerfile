@@ -24,4 +24,4 @@ USER appuser
 
 EXPOSE 3002
 
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "node src/models/migrate.js && node server.js"]

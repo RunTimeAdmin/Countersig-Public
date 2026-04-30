@@ -87,6 +87,8 @@ services:
       PORT: 3002
       DATABASE_URL: postgresql://${POSTGRES_USER:-countersig}:${POSTGRES_PASSWORD}@postgres:5432/countersig
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY: 15m
       JWT_REFRESH_EXPIRY: 7d
