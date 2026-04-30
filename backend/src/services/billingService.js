@@ -125,10 +125,29 @@ async function createPortalSession(orgId, returnUrl) {
   return { url: session.url };
 }
 
+let _accountWarningLogged = false;
+
 /**
  * Handle Stripe webhook events
  */
 async function handleWebhookEvent(event) {
+  // Verify event is from expected environment (live vs test)
+  const expectedLivemode = process.env.NODE_ENV === 'production';
+  if (event.livemode !== expectedLivemode) {
+    throw new Error(`Stripe event livemode mismatch: got ${event.livemode}, expected ${expectedLivemode}`);
+  }
+
+  // Verify event belongs to expected Stripe account (Connect guard)
+  const expectedAccount = config.stripeAccountId;
+  if (expectedAccount) {
+    if (event.account && event.account !== expectedAccount) {
+      throw new Error(`Stripe event account mismatch: got ${event.account}, expected ${expectedAccount}`);
+    }
+  } else if (!_accountWarningLogged) {
+    console.warn('[billing] WARNING: STRIPE_ACCOUNT_ID not set — skipping account ownership check');
+    _accountWarningLogged = true;
+  }
+
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object;

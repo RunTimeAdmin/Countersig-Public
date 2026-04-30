@@ -21,6 +21,8 @@ const { authLimiter, registrationLimiter } = require('../middleware/rateLimit');
 const { authenticate } = require('../middleware/authenticate');
 const authManager = require('../auth/authManager');
 const authConfig = require('../auth/authConfig');
+const { getLogger } = require('../utils/logger');
+const { logAction } = require('../services/auditService');
 
 const router = express.Router();
 
@@ -195,6 +197,19 @@ router.post('/auth/login', authLimiter, async (req, res, next) => {
             [email.toLowerCase().trim(), req.ip, req.get('user-agent')]
           );
         } catch (e) { /* fire and forget */ }
+        // Audit trail for unknown-user credential stuffing visibility
+        try {
+          await logAction({
+            orgId: null,
+            actorId: null,
+            actorType: 'unknown_user',
+            action: 'login_failed',
+            resourceType: 'auth',
+            resourceId: email.toLowerCase().trim(),
+            changes: null,
+            metadata: { ip: req.ip, userAgent: req.headers['user-agent'], reason: 'unknown_user' }
+          });
+        } catch (auditErr) { /* fire and forget */ }
       }
 
       // Track failed login attempt if we found a user
@@ -212,12 +227,11 @@ router.post('/auth/login', authLimiter, async (req, res, next) => {
             [user.id]
           );
         } catch (trackErr) {
-          console.error('Failed to track login attempt:', trackErr.message);
+          getLogger().error({ err: trackErr }, 'Failed to track login attempt');
         }
 
         // Audit log for failed login
         try {
-          const { logAction } = require('../services/auditService');
           await logAction({
             orgId: user.org_id,
             actorId: user.id,
@@ -229,7 +243,7 @@ router.post('/auth/login', authLimiter, async (req, res, next) => {
             metadata: { ip: req.ip, userAgent: req.get('user-agent'), email }
           });
         } catch (auditErr) {
-          console.error('Failed to audit login failure:', auditErr.message);
+          getLogger().error({ err: auditErr }, 'Failed to audit login failure');
         }
       }
       return res.status(401).json({ error: 'Invalid email or password' });
@@ -407,7 +421,7 @@ router.post('/auth/verify-external-token', authenticate, async (req, res) => {
       identity: result.identity,
     });
   } catch (err) {
-    console.error('External token verification error:', err);
+    getLogger().error({ err }, 'External token verification error');
     return res.status(500).json({ error: 'Token verification failed' });
   }
 });

@@ -10,6 +10,7 @@ const axios = require('axios');
 const config = require('../../config');
 const queries = require('../../models/agentQueries');
 const { getCache, setCache } = require('../../models/redis');
+const { getLogger } = require('../../utils/logger');
 
 const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1/agent/v2';
 
@@ -64,7 +65,7 @@ module.exports = {
       const pubkeyBytes = bs58.decode(pubkey);
       return nacl.sign.detached.verify(messageBytes, signatureBytes, pubkeyBytes);
     } catch (err) {
-      console.error('[SolanaBAGS] Signature verification error:', err.message);
+      getLogger().error({ err }, '[SolanaBAGS] Signature verification error');
       return false;
     }
   },

@@ -15,6 +15,8 @@
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');
 const { computeReputation, calcSuccessRate, calcAgeFactor, calcFlagFactor } = require('../reputationScorer');
+const { challengeStore } = require('../../models/challengeStore');
+const { getLogger } = require('../../utils/logger');
 
 module.exports = {
   getChainMeta() {
@@ -40,18 +42,39 @@ module.exports = {
     const nonce = require('crypto').randomBytes(32).toString('hex');
     const timestamp = Date.now();
     const message = `AGENTID-VERIFY:${pubkey}:${nonce}:${timestamp}`;
+    // Store nonce to prevent replay attacks (5-min TTL)
+    const storeKey = `solana-nonce:${pubkey}:${nonce}`;
+    await challengeStore.setChallenge(storeKey, JSON.stringify({ pubkey, nonce, timestamp }), 300);
     return { message, nonce };
   },
 
   async verifyOwnership(pubkey, signature, challenge) {
     try {
+      // Extract nonce from challenge message (format: AGENTID-VERIFY:{pubkey}:{nonce}:{timestamp})
+      const parts = challenge.split(':');
+      if (parts.length < 4) throw new Error('Invalid challenge format');
+      const nonce = parts[2];
+
+      // Verify the nonce exists and hasn't been consumed
+      const storeKey = `solana-nonce:${pubkey}:${nonce}`;
+      const stored = await challengeStore.getChallenge(storeKey);
+      if (!stored) throw new Error('Challenge expired or already used');
+
       // For generic Solana, challenge is a UTF-8 string that was signed
       const messageBytes = new TextEncoder().encode(challenge);
       const signatureBytes = bs58.decode(signature);
       const pubkeyBytes = bs58.decode(pubkey);
-      return nacl.sign.detached.verify(messageBytes, signatureBytes, pubkeyBytes);
+      const valid = nacl.sign.detached.verify(messageBytes, signatureBytes, pubkeyBytes);
+
+      // Consume nonce on successful verification to prevent replay
+      if (valid) {
+        await challengeStore.deleteChallenge(storeKey);
+        await challengeStore.markNonceUsed(nonce, 300);
+      }
+
+      return valid;
     } catch (err) {
-      console.error('[SolanaGeneric] Signature verification error:', err.message);
+      getLogger().error({ err }, '[SolanaGeneric] Signature verification error');
       return false;
     }
   },

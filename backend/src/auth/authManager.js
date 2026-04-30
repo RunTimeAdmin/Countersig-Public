@@ -20,13 +20,15 @@ class AuthManager {
 
     // OAuth2 — only if enabled
     if (authConfig.isStrategyEnabled('oauth2')) {
-      this.registerStrategy(new OAuth2AuthStrategy());
+      const oauth2Config = authConfig.getStrategyConfig('oauth2');
+      this.registerStrategy(new OAuth2AuthStrategy(oauth2Config));
     }
 
     // Entra ID — only if enabled
     if (authConfig.isStrategyEnabled('entra_id')) {
+      const entraConfig = authConfig.getStrategyConfig('entra_id');
       const { EntraIdAuthStrategy } = require('./strategies/entraId');
-      this.registerStrategy(new EntraIdAuthStrategy());
+      this.registerStrategy(new EntraIdAuthStrategy(entraConfig));
     }
   }
 

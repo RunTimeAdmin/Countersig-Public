@@ -29,6 +29,7 @@ const { validate } = require('../middleware/validate');
 const { attestationSchema } = require('../schemas');
 const { meterEvent } = require('../middleware/billingMeter');
 const { enforceQuota } = require('../middleware/quotaEnforcement');
+const { getLogger } = require('../utils/logger');
 
 const router = express.Router();
 
@@ -67,7 +68,7 @@ router.post('/agents/:agentId/attest', authenticate, requireScope('write'), enfo
         await refreshAndStoreScore(agentId);
       } catch (scoreError) {
         // Log but don't fail the request
-        console.warn('Failed to refresh score after successful action:', scoreError.message);
+        getLogger().warn({ err: scoreError }, 'Failed to refresh score after successful action');
       }
     }
 

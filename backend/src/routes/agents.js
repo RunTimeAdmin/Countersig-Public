@@ -25,6 +25,7 @@ const { agentUpdateSchema } = require('../schemas');
 const { NotFoundError, AuthorizationError, GoneError } = require('../utils/errors');
 const { meterEvent } = require('../middleware/billingMeter');
 const { enforceQuota } = require('../middleware/quotaEnforcement');
+const { getLogger } = require('../utils/logger');
 
 const router = express.Router();
 
@@ -309,7 +310,7 @@ router.get('/agents/:agentId/credential', defaultLimiter, async (req, res) => {
     res.setHeader('Content-Type', 'application/vc+ld+json');
     res.json(credential);
   } catch (err) {
-    console.error('[VC] Credential generation error:', err.message);
+    getLogger().error({ err }, '[VC] Credential generation error');
     res.status(500).json({ error: 'Failed to generate credential' });
   }
 });
@@ -578,7 +579,7 @@ router.put('/agents/:agentId/update', authenticate, requireScope('write'), enfor
         }
       }
     } catch (sigError) {
-      console.error('Signature verification error:', sigError.message);
+      getLogger().error({ err: sigError }, 'Signature verification error');
       return res.status(401).json({
         error: 'Invalid signature format'
       });
@@ -755,7 +756,7 @@ router.post('/agents/:agentId/revoke', authenticate, requireScope('write'), enfo
 
       isSignatureValid = nacl.sign.detached.verify(messageBytes, sigBytes, pubkeyBytes);
     } catch (sigError) {
-      console.error('Signature verification error:', sigError.message);
+      getLogger().error({ err: sigError }, 'Signature verification error');
       return res.status(401).json({
         error: 'Invalid signature format'
       });

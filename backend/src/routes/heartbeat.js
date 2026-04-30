@@ -7,7 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../models/db');
 const { authenticate } = require('../middleware/authenticate');
-const { requireScope } = require('../middleware/authorize');
+const { requireScope, authorize, ROLES } = require('../middleware/authorize');
 const { getLogger } = require('../utils/logger');
 
 /**
@@ -16,6 +16,7 @@ const { getLogger } = require('../utils/logger');
  */
 router.post('/agents/:agentId/heartbeat',
   authenticate,
+  authorize(ROLES.MEMBER),
   requireScope('write'),
   async (req, res, next) => {
     try {

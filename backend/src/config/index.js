@@ -53,8 +53,19 @@ const config = {
   // Stripe billing configuration
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+  stripeAccountId: process.env.STRIPE_ACCOUNT_ID || '',
   stripePriceStarterId: process.env.STRIPE_PRICE_STARTER_ID || '',
   stripePriceProfessionalId: process.env.STRIPE_PRICE_PROFESSIONAL_ID || '',
 };
 
 module.exports = config;
+
+// Startup validation: fail-fast for misconfigured auth strategies
+if (config.oauth2Enabled && config.oauth2AllowedIssuers.length === 0) {
+  console.error('FATAL: OAUTH2_ENABLED is true but OAUTH2_ALLOWED_ISSUERS is empty. OAuth2 strategy will fail to initialise.');
+  process.exit(1);
+}
+if (config.entraIdEnabled && !config.entraTenantId) {
+  console.error('FATAL: ENTRA_ID_ENABLED is true but ENTRA_TENANT_ID is empty. Entra ID strategy will fail to initialise.');
+  process.exit(1);
+}

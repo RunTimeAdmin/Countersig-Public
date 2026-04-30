@@ -7,6 +7,7 @@ const axios = require('axios');
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');
 const config = require('../config');
+const { getLogger } = require('../utils/logger');
 
 const BAGS_API_BASE = 'https://public-api-v2.bags.fm/api/v1/agent/v2';
 
@@ -51,7 +52,7 @@ function verifyBagsSignature(message, signature, pubkey) {
     // Verify the signature
     return nacl.sign.detached.verify(messageBytes, sigBytes, pubkeyBytes);
   } catch (error) {
-    console.error('Signature verification error:', error.message);
+    getLogger().error({ err: error }, 'Signature verification error');
     return false;
   }
 }

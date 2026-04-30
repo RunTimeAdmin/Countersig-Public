@@ -41,5 +41,18 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - name: Install dependencies
         run: cd backend && npm ci
+
+      - name: Lint
+        run: cd backend && npx eslint src/ --max-warnings=0 || true
+        # Advisory — show lint issues without failing the build
+
+      - name: Security audit
+        run: cd backend && npm audit --audit-level=high --production || true
+        # Advisory — report high/critical vulnerabilities
+
+      - name: OpenAPI lint
+        run: npx @stoplight/spectral-cli lint backend/openapi.yaml || true
+        # Advisory — validate OpenAPI spec
+
       - name: Run tests
         run: cd backend && npm test

@@ -4,7 +4,7 @@ const { logger, getLogger } = require('./src/utils/logger');
 const requestLogger = require('./src/middleware/requestLogger');
 
 // Required environment variables - server will not start without these
-const required = ['DATABASE_URL', 'BAGS_API_KEY', 'JWT_SECRET'];
+const required = ['DATABASE_URL', 'JWT_SECRET'];
 const missing = required.filter(key => !process.env[key]);
 
 // Redis: accept either REDIS_URL or REDIS_HOST (redis.js handles both formats)
@@ -15,6 +15,10 @@ if (!process.env.REDIS_URL && !process.env.REDIS_HOST) {
 if (missing.length > 0) {
   logger.fatal({ missing }, 'Missing required environment variables. Copy .env.example to .env and configure.');
   process.exit(1);
+}
+
+if (!process.env.BAGS_API_KEY) {
+  logger.warn('WARNING: BAGS_API_KEY not set. BAGS chain authentication will be unavailable.');
 }
 
 // Recommended environment variables - warn but allow startup
@@ -104,9 +108,9 @@ app.use(cors({
   credentials: true
 }));
 
-// Billing routes — mounted BEFORE global JSON body parser so the
-// webhook endpoint receives the raw body required for Stripe signature verification.
-// Non-webhook routes include their own express.json() middleware.
+// IMPORTANT: Billing routes (especially /billing/webhook) MUST be mounted
+// BEFORE express.json() because Stripe webhook signature verification
+// requires the raw request body. Do NOT move this or add billing to v1Router.
 app.use('/billing', billingRoutes);
 
 // Body parsing middleware
@@ -239,7 +243,7 @@ app.use((req, res, next) => {
     // - /health   : health check (never mutates state)
     // - /verify-token : A2A token verification (unauthenticated, called by external agents
     //                    that do not send the X-Requested-With header)
-    const csrfSkipExact = ['/health', '/verify-token', '/.well-known/jwks.json', '/v1/verify-token', '/credentials/verify', '/v1/credentials/verify', '/openapi.yaml', '/docs', '/billing/webhook'];
+    const csrfSkipExact = ['/health', '/agents/verify-token', '/.well-known/jwks.json', '/v1/agents/verify-token', '/credentials/verify', '/v1/credentials/verify', '/openapi.yaml', '/docs', '/billing/webhook'];
     const csrfSkipPrefix = ['/public/', '/badge/', '/widget/', '/v1/public/', '/v1/badge/', '/v1/widget/'];
     if (csrfSkipExact.includes(req.path) || csrfSkipPrefix.some(p => req.path.startsWith(p))) {
       return next();
@@ -294,6 +298,10 @@ app.get('/.well-known/jwks.json', async (req, res) => {
 
 // DID Document endpoint — public, no auth required
 // Exposes W3C DID document for did:web:agentidapp.com
+let cachedDIDDoc = null;
+let didDocCachedAt = 0;
+const DID_DOC_CACHE_TTL = 3600000; // 1 hour in ms
+
 app.get('/.well-known/did.json', (req, res) => {
   const pubkey = process.env.DID_ED25519_PUBLIC_KEY;
 
@@ -303,10 +311,16 @@ app.get('/.well-known/did.json', (req, res) => {
     });
   }
 
+  const now = Date.now();
+  if (cachedDIDDoc && (now - didDocCachedAt) < DID_DOC_CACHE_TTL) {
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.json(cachedDIDDoc);
+  }
+
   const didDomain = new URL(config.agentIdBaseUrl).hostname;
   const didId = `did:web:${didDomain}`;
 
-  res.json({
+  const document = {
     '@context': [
       'https://www.w3.org/ns/did/v1',
       'https://w3id.org/security/suites/ed25519-2020/v1',
@@ -319,7 +333,6 @@ app.get('/.well-known/did.json', (req, res) => {
         id: `${didId}#ed25519-key`,
         type: 'Ed25519VerificationKey2020',
         controller: didId,
-        // Public key would be populated from env in production
         publicKeyMultibase: process.env.DID_ED25519_PUBLIC_KEY || 'z_PLACEHOLDER_CONFIGURE_IN_ENV'
       },
       {
@@ -346,7 +359,7 @@ app.get('/.well-known/did.json', (req, res) => {
       {
         id: `${didId}#a2a-verify`,
         type: 'A2AVerificationService',
-        serviceEndpoint: `${config.agentIdBaseUrl}/verify-token`
+        serviceEndpoint: `${config.agentIdBaseUrl}/agents/verify-token`
       },
       {
         id: `${didId}#credential-issuance`,
@@ -354,7 +367,12 @@ app.get('/.well-known/did.json', (req, res) => {
         serviceEndpoint: `${config.agentIdBaseUrl}/agents/{agentId}/credential`
       }
     ]
-  });
+  };
+
+  cachedDIDDoc = document;
+  didDocCachedAt = now;
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json(document);
 });
 
 // Deprecation headers for unversioned API routes
@@ -424,7 +442,10 @@ v1Router.use('/', webhookRoutes);
 v1Router.use('/', heartbeatRoutes);
 v1Router.use('/', credentialRoutes);
 v1Router.use('/', usageRoutes);
-v1Router.use('/billing', billingRoutes);
+// NOTE: Billing routes are intentionally excluded from v1Router.
+// The /billing/webhook endpoint requires raw body parsing (before express.json()),
+// and the webhook URL is configured directly in the Stripe dashboard.
+// Billing is mounted at /billing above the JSON parser — see comment there.
 app.use('/v1', v1Router);
 
 // 404 handler for undefined routes
@@ -440,7 +461,17 @@ app.use(errorHandler);
 
 // Start server
 if (require.main === module) {
-  app.listen(config.port, () => {
+  (async () => {
+    // Ensure A2A keys are ready before accepting traffic
+    try {
+      const { a2aKeysReady } = require('./src/services/authService');
+      await a2aKeysReady;
+    } catch (err) {
+      console.error('FATAL: A2A key initialization failed:', err.message);
+      process.exit(1);
+    }
+
+    app.listen(config.port, () => {
     logger.info({ port: config.port, env: config.nodeEnv }, 'AgentID API server running');
 
     // Non-blocking SAID Gateway connectivity check
@@ -501,7 +532,7 @@ if (require.main === module) {
     async function computeTrustScoresWithLock() {
       try {
         if (redis && redis.status === 'ready') {
-          const locked = await redis.set('lock:trust-scores', '1', 'NX', 'EX', 840); // 14min lock
+          const locked = await redis.set('lock:trust-scores', '1', 'NX', 'EX', 900); // 15min lock (matches interval)
           if (locked) {
             await computeTrustScores();
           }
@@ -523,6 +554,7 @@ if (require.main === module) {
     initPolicyListeners();
     initWebhookListeners();
   });
+  })();
 }
 
 module.exports = app;

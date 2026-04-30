@@ -1,4 +1,5 @@
 const { pool } = require('../models/db');
+const { getLogger } = require('../utils/logger');
 
 // Tier limits per monthly period
 const TIER_LIMITS = {
@@ -24,7 +25,7 @@ function meterEvent(operationType) {
       'INSERT INTO billing_events (org_id, api_key_id, user_id, operation_type, endpoint) VALUES ($1, $2, $3, $4, $5)',
       [orgId, apiKeyId, userId, operationType, endpoint]
     ).catch(err => {
-      console.error('[billing-meter] Failed to log event:', err.message);
+      getLogger().error({ err }, '[billing-meter] Failed to log event');
     });
 
     next();

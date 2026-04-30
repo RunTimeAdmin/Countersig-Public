@@ -6,6 +6,7 @@
 const crypto = require('crypto');
 const { computeReputation, calcSuccessRate, calcAgeFactor, calcFlagFactor } = require('../reputationScorer');
 const { logger } = require('../../utils/logger');
+const { challengeStore } = require('../../models/challengeStore');
 
 // Eager dependency check — fail fast if ethers is missing
 let ethers;
@@ -64,15 +65,36 @@ function createEVMAdapter(chainKey) {
       const nonce = crypto.randomBytes(32).toString('hex');
       const timestamp = Date.now();
       const message = `AGENTID-VERIFY:${address}:${nonce}:${timestamp}`;
+      // Store nonce to prevent replay attacks (5-min TTL)
+      const storeKey = `evm-nonce:${address}:${nonce}`;
+      await challengeStore.setChallenge(storeKey, JSON.stringify({ address, nonce, timestamp }), 300);
       return { message, nonce };
     },
 
     async verifyOwnership(address, signature, challenge) {
       if (!ethers) throw new Error('EVM operations require the ethers package');
       try {
+        // Extract nonce from challenge message (format: AGENTID-VERIFY:{address}:{nonce}:{timestamp})
+        const parts = challenge.split(':');
+        if (parts.length < 4) throw new Error('Invalid challenge format');
+        const nonce = parts[2];
+
+        // Verify the nonce exists and hasn't been consumed
+        const storeKey = `evm-nonce:${address}:${nonce}`;
+        const stored = await challengeStore.getChallenge(storeKey);
+        if (!stored) throw new Error('Challenge expired or already used');
+
         // EIP-191 personal_sign verification
         const recoveredAddress = ethers.verifyMessage(challenge, signature);
-        return recoveredAddress.toLowerCase() === address.toLowerCase();
+        const valid = recoveredAddress.toLowerCase() === address.toLowerCase();
+
+        // Consume nonce on successful verification to prevent replay
+        if (valid) {
+          await challengeStore.deleteChallenge(storeKey);
+          await challengeStore.markNonceUsed(nonce, 300);
+        }
+
+        return valid;
       } catch (err) {
         logger.error({ err, chain: chainConfig.name }, 'EVM signature verification error');
         return false;

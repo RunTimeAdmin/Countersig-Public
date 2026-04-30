@@ -3,6 +3,8 @@
  * Role-based access control using a hierarchy of roles
  */
 
+const { getLogger } = require('../utils/logger');
+
 const ROLE_HIERARCHY = {
   admin: 4,
   manager: 3,
@@ -31,7 +33,7 @@ function authorize(...allowedRoles) {
       }
 
       if (!ROLE_HIERARCHY.hasOwnProperty(req.user.role)) {
-        console.warn(`[authorize] Unknown role encountered: ${req.user.role} for user ${req.user.userId}`);
+        getLogger().warn(`[authorize] Unknown role encountered: ${req.user.role} for user ${req.user.userId}`);
       }
       const userRoleLevel = ROLE_HIERARCHY[req.user.role] || 0;
       const minRequiredLevel = Math.min(

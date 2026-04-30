@@ -17,6 +17,7 @@ const eventBus = require('../services/eventBus');
 const { cryptoRegistrationSchema, oauthRegistrationSchema } = require('../schemas');
 const { meterEvent } = require('../middleware/billingMeter');
 const { enforceQuota } = require('../middleware/quotaEnforcement');
+const { getLogger } = require('../utils/logger');
 
 const router = express.Router();
 
@@ -148,7 +149,7 @@ router.post('/register', authenticate, enforceQuota('attestation'), meterEvent('
             }
           } catch (saidError) {
             // Log warning but continue with registration
-            console.warn('SAID binding failed during registration:', saidError.message);
+            getLogger().warn({ err: saidError }, 'SAID binding failed during registration');
             saidStatus = { registered: false, error: saidError.message };
           }
         }
@@ -188,7 +189,7 @@ router.post('/register', authenticate, enforceQuota('attestation'), meterEvent('
         try {
           await redis.decr(pubkeyThrottleKey);
         } catch (decrErr) {
-          console.warn('Failed to decrement registration rate limit:', decrErr.message);
+          getLogger().warn({ err: decrErr }, 'Failed to decrement registration rate limit');
         }
         throw err;
       }
@@ -213,6 +214,7 @@ router.post('/register', authenticate, enforceQuota('attestation'), meterEvent('
         token,
         allowedIssuers: strategyConfig?.allowedIssuers || [],
         expectedAudience: strategyConfig?.allowedAudiences || undefined,
+        expectedTenantId: strategyConfig?.tenantId,
       });
 
       if (!result.verified || !result.identity) {

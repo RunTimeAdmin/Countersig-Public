@@ -5,6 +5,7 @@
 
 const axios = require('axios');
 const config = require('../config/index.js');
+const { getLogger } = require('../utils/logger');
 
 /**
  * Register an agent with the SAID Identity Gateway
@@ -48,7 +49,7 @@ async function registerWithSAID({ pubkey, timestamp, signature, name, descriptio
 
     return response.data;
   } catch (error) {
-    console.warn('SAID registration unavailable:', error.message);
+    getLogger().warn({ err: error }, 'SAID registration unavailable');
     return null;
   }
 }
@@ -81,7 +82,7 @@ async function getSAIDTrustScore(pubkey) {
 
     return { score: 0, label: 'UNKNOWN' };
   } catch (error) {
-    console.warn('SAID trust score unavailable:', error.message);
+    getLogger().warn({ err: error }, 'SAID trust score unavailable');
     return { score: 0, label: 'UNKNOWN' };
   }
 }
@@ -106,7 +107,7 @@ async function discoverSAIDAgents(capability) {
 
     return response.data?.agents || [];
   } catch (error) {
-    console.warn('SAID discovery unavailable:', error.message);
+    getLogger().warn({ err: error }, 'SAID discovery unavailable');
     return [];
   }
 }

@@ -1,5 +1,6 @@
 const { pool } = require('../models/db');
 const { TIER_LIMITS } = require('./billingMeter');
+const { getLogger } = require('../utils/logger');
 
 /**
  * Creates quota enforcement middleware.
@@ -54,7 +55,7 @@ function enforceQuota(operationType) {
 
       next();
     } catch (err) {
-      console.error('[quota-enforcement] CRITICAL - Quota check failed, allowing request:', err.message, { orgId: req.user?.orgId, operationType });
+      getLogger().error({ err, orgId: req.user?.orgId, operationType }, '[quota-enforcement] CRITICAL - Quota check failed, allowing request');
       // Fail open: don't block requests if billing check fails
       next();
     }

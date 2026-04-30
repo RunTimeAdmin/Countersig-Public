@@ -3,12 +3,7 @@
  * Handles password hashing, JWT tokens, API keys, and Redis session management
  */
 
-let bcrypt;
-try {
-  bcrypt = require('bcrypt');
-} catch {
-  bcrypt = require('bcryptjs');
-}
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const jose = require('jose');
 const crypto = require('crypto');
@@ -408,5 +403,6 @@ module.exports = {
   verifyA2AToken,
   getA2APublicKeyJWK,
   signCredential,
-  verifyCredentialSignature
+  verifyCredentialSignature,
+  a2aKeysReady
 };

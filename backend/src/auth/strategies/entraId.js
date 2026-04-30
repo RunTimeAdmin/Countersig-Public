@@ -1,6 +1,7 @@
 'use strict';
 
 const { OAuth2AuthStrategy, getJWKS } = require('./oauth2');
+const { getLogger } = require('../../utils/logger');
 
 // Entra ID specific constants
 const ENTRA_ISSUER_PREFIX = 'https://login.microsoftonline.com/';
@@ -8,6 +9,24 @@ const ENTRA_JWKS_SUFFIX = '/discovery/v2.0/keys';
 const ENTRA_V2_SUFFIX = '/v2.0';
 
 class EntraIdAuthStrategy extends OAuth2AuthStrategy {
+  /**
+   * @param {Object} config
+   * @param {string} config.tenantId - Required Azure AD tenant ID
+   */
+  constructor(config = {}) {
+    // Entra ID doesn't need allowedIssuers from OAuth2 parent — pass a placeholder
+    // since we validate via the Entra issuer prefix + tenant ID instead.
+    const entraSuperConfig = {
+      ...config,
+      allowedIssuers: config.allowedIssuers || [`https://login.microsoftonline.com/${config.tenantId || 'placeholder'}/v2.0`],
+    };
+    super(entraSuperConfig);
+    if (!config.tenantId) {
+      throw new Error('Entra ID strategy requires a tenant ID (set ENTRA_TENANT_ID)');
+    }
+    this.tenantId = config.tenantId;
+  }
+
   get name() {
     return 'entra_id';
   }
@@ -45,9 +64,9 @@ class EntraIdAuthStrategy extends OAuth2AuthStrategy {
       return { valid: false, identity: null };
     }
 
-    // Validate tenant ID if specified
-    if (expectedTenantId && tenantId !== expectedTenantId) {
-      return { valid: false, identity: null };
+    // Validate tenant ID (mandatory — not optional)
+    if (decoded.tid !== this.tenantId) {
+      return { valid: false, identity: null, error: 'Token tenant does not match configured tenant' };
     }
 
     // Build the Entra-specific JWKS URL
@@ -68,7 +87,7 @@ class EntraIdAuthStrategy extends OAuth2AuthStrategy {
       const identity = this._extractEntraIdentity(claims, issuer, tenantId);
       return { valid: true, identity };
     } catch (err) {
-      console.error('Entra ID token validation failed:', err.message);
+      getLogger().error({ err }, 'Entra ID token validation failed');
       return { valid: false, identity: null };
     }
   }
@@ -124,7 +143,7 @@ class EntraIdAuthStrategy extends OAuth2AuthStrategy {
   async verifyRegistration({ token, expectedTenantId, expectedAudience, allowedIssuers = [] }) {
     const result = await this.validateCredentials({
       token,
-      expectedTenantId,
+      expectedTenantId: expectedTenantId || this.tenantId,
       expectedAudience,
       allowedIssuers,
     });

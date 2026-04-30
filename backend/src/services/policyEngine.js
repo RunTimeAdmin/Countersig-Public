@@ -6,6 +6,7 @@
 const { query } = require('../models/db');
 const eventBus = require('./eventBus');
 const { invalidateAgentCaches } = require('./badgeBuilder');
+const { getLogger } = require('../utils/logger');
 
 const VALID_ACTIONS = ['revoke', 'flag', 'notify', 'disable'];
 const VALID_OPERATORS = ['<', '>', '<=', '>=', '==', '!=', 'contains'];
@@ -81,7 +82,7 @@ async function executeAction(rule, event) {
             [agentId]
           );
           await invalidateAgentCaches(agentId);
-          console.log(`[PolicyEngine] Revoked agent ${agentId} via rule ${rule.id}`);
+          getLogger().info(`[PolicyEngine] Revoked agent ${agentId} via rule ${rule.id}`);
         }
         break;
       }
@@ -98,7 +99,7 @@ async function executeAction(rule, event) {
             [agentId, pubkey, 'system', `Policy rule triggered: ${rule.name}`]
           );
           await invalidateAgentCaches(agentId);
-          console.log(`[PolicyEngine] Flagged agent ${agentId} via rule ${rule.id}`);
+          getLogger().info(`[PolicyEngine] Flagged agent ${agentId} via rule ${rule.id}`);
         }
         break;
       }
@@ -112,7 +113,7 @@ async function executeAction(rule, event) {
           orgId: event.data ? event.data.orgId : null,
           agentId
         });
-        console.log(`[PolicyEngine] Notified for rule ${rule.id}`);
+        getLogger().info(`[PolicyEngine] Notified for rule ${rule.id}`);
         break;
       }
       case 'disable': {
@@ -122,18 +123,18 @@ async function executeAction(rule, event) {
             [agentId]
           );
           await invalidateAgentCaches(agentId);
-          console.log(`[PolicyEngine] Disabled agent ${agentId} via rule ${rule.id}`);
+          getLogger().info(`[PolicyEngine] Disabled agent ${agentId} via rule ${rule.id}`);
         }
         break;
       }
       default:
         result.executed = false;
-        console.warn(`[PolicyEngine] Unknown action: ${rule.action}`);
+        getLogger().warn(`[PolicyEngine] Unknown action: ${rule.action}`);
     }
   } catch (err) {
     result.executed = false;
     result.error = err.message;
-    console.error(`[PolicyEngine] Action execution failed for rule ${rule.id}:`, err.message);
+    getLogger().error({ err }, `[PolicyEngine] Action execution failed for rule ${rule.id}`);
   }
 
   return result;
@@ -167,12 +168,12 @@ async function evaluateEvent(event) {
 
     const elapsed = Date.now() - startTime;
     if (elapsed > 100) {
-      console.warn(`[PolicyEngine] Slow rule evaluation: ${elapsed}ms for event ${event.type} (${matched.length} rules)`);
+      getLogger().warn(`[PolicyEngine] Slow rule evaluation: ${elapsed}ms for event ${event.type} (${matched.length} rules)`);
     }
 
     return triggered;
   } catch (err) {
-    console.error('[PolicyEngine] Error evaluating event:', err.message);
+    getLogger().error({ err }, '[PolicyEngine] Error evaluating event');
     return [];
   }
 }
@@ -184,10 +185,10 @@ async function evaluateEvent(event) {
 function initPolicyListeners() {
   eventBus.on('*', (event) => {
     evaluateEvent(event).catch((err) => {
-      console.error('[PolicyEngine] Listener error:', err.message);
+      getLogger().error({ err }, '[PolicyEngine] Listener error');
     });
   });
-  console.log('[PolicyEngine] Policy listeners initialized');
+  getLogger().info('[PolicyEngine] Policy listeners initialized');
 }
 
 module.exports = {

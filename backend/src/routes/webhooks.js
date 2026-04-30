@@ -171,6 +171,50 @@ router.put('/orgs/:orgId/webhooks/:webhookId', authenticate, orgContext, authori
 });
 
 /**
+ * GET /orgs/:orgId/webhooks/:webhookId/deliveries
+ * List recent delivery attempts for a webhook
+ */
+router.get('/orgs/:orgId/webhooks/:webhookId/deliveries', authenticate, orgContext, authorize(ROLES.MANAGER, ROLES.ADMIN), requireScope('read'), async (req, res, next) => {
+  try {
+    const { webhookId } = req.params;
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
+
+    // Verify webhook belongs to org
+    const whCheck = await query(
+      'SELECT id FROM webhooks WHERE id = $1 AND org_id = $2',
+      [webhookId, req.orgId]
+    );
+    if (whCheck.rows.length === 0) {
+      return next(new NotFoundError('Webhook', webhookId));
+    }
+
+    const result = await query(
+      `SELECT id, event_id, event_type, attempt, success, status_code, error, created_at
+       FROM webhook_deliveries
+       WHERE webhook_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [webhookId, limit]
+    );
+
+    const deliveries = result.rows.map(row => ({
+      id: row.id,
+      event_id: row.event_id,
+      event_type: row.event_type,
+      status: row.success ? 'delivered' : 'failed',
+      http_status: row.status_code,
+      attempts: row.attempt,
+      error: row.error || null,
+      timestamp: row.created_at,
+    }));
+
+    return res.status(200).json(deliveries);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * DELETE /orgs/:orgId/webhooks/:webhookId
  * Delete a webhook
  */
