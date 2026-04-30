@@ -1,5 +1,5 @@
 /* ============================================================
-   AgentID Documentation — docs.js
+   Countersig Documentation — docs.js
    Navigation, tabs, syntax highlighting, mobile menu
    ============================================================ */
 

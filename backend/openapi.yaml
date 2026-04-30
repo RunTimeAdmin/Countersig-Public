@@ -1,9 +1,9 @@
 openapi: "3.0.3"
 info:
-  title: AgentID 2.0 API
+  title: Countersig API
   version: "2.0.0"
   description: |
-    AgentID 2.0 — Universal Non-Human Identity (NHI) platform.
+    Countersig — Universal Non-Human Identity (NHI) platform.
     Provides agent registration, reputation scoring, W3C DID/VC credential export,
     A2A authentication tokens, organization management, policy enforcement,
     webhook integrations, and embeddable trust badges/widgets.
@@ -11,15 +11,15 @@ info:
     All routes are available at both the root path and under the `/v1/` prefix.
     Root-mounted routes are deprecated; prefer `/v1/` for new integrations.
   contact:
-    name: AgentID Team
-    url: https://agentidapp.com
+    name: Countersig Team
+    url: https://countersig.com
   license:
     name: MIT
 
 servers:
-  - url: https://api.agentidapp.com
+  - url: https://api.countersig.com
     description: Production
-  - url: https://api.agentidapp.com/v1
+  - url: https://api.countersig.com/v1
     description: Production (versioned)
   - url: http://localhost:3002
     description: Local development

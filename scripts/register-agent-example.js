@@ -1,7 +1,7 @@
 /**
  * Agent Registration Example Script
  * 
- * This is an example script demonstrating how to register an agent with AgentID
+ * This is an example script demonstrating how to register an agent with Countersig
  * via the API. It showcases the challenge-response authentication flow, keypair
  * generation, and badge retrieval.
  * 
@@ -20,7 +20,7 @@ const nacl = require('./backend/node_modules/tweetnacl');
 const bs58 = require('./backend/node_modules/bs58');
 const crypto = require('crypto');
 
-const PRODUCTION_URL = 'https://agentid.provenanceai.network';
+const PRODUCTION_URL = 'https://api.countersig.com';
 
 // Generate a new Ed25519 keypair
 function generateKeypair() {
