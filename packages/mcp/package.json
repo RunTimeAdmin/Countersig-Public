@@ -1,0 +1,40 @@
+{
+  "name": "@agentidapp/mcp",
+  "version": "1.0.0",
+  "description": "MCP server that gives AI agents a verified cryptographic identity via the AgentID NHI platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "agentid-mcp": "dist/index.js"
+  },
+  "files": ["dist/"],
+  "license": "MIT",
+  "keywords": [
+    "mcp", "agent", "identity", "nhi", "trust", "reputation",
+    "verification", "a2a", "web3", "solana", "ethereum", "agentid"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RunTimeAdmin/AgentID-2.0-Public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@agentidapp/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.22.0",
+    "tweetnacl": "^1.0.3",
+    "bs58": "^5.0.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

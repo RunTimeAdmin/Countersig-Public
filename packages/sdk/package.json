@@ -1,0 +1,24 @@
+{
+  "name": "@agentidapp/sdk",
+  "version": "1.0.0",
+  "description": "AgentID SDK - TypeScript client for the AgentID NHI platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist/"],
+  "license": "MIT",
+  "keywords": ["agentid", "nhi", "identity", "agent", "trust", "verification", "web3", "solana", "ethereum"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RunTimeAdmin/AgentID-2.0-Public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
