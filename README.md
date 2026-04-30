@@ -113,7 +113,7 @@ AgentID 2.0 is built around a **pluggable, multi-provider authentication archite
 
 ```bash
 # Clone the repository
-git clone https://github.com/RunTimeAdmin/AgentID-2.0-Public.git
+git clone https://github.com/RunTimeAdmin/AgentID-2.0.git
 cd AgentID-2.0
 
 # Start infrastructure (PostgreSQL + Redis)

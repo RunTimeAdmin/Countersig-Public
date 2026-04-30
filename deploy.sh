@@ -16,7 +16,7 @@ set -e  # Exit on any error
 DB_PASSWORD="CHANGE_THIS_STRONG_PASSWORD"  # <-- CHANGE THIS!
 JWT_SECRET="CHANGE_THIS_JWT_SECRET"        # <-- CHANGE THIS! Minimum 32 chars
 DOMAIN="agentid2.provenanceai.network"     # Production domain for AgentID 2.0
-REPO_URL="https://github.com/RunTimeAdmin/AgentID-2.0-Public.git"
+REPO_URL="https://github.com/RunTimeAdmin/AgentID-2.0.git"
 INSTALL_DIR="/var/www/agentid"
 BACKEND_PORT=3002
 
