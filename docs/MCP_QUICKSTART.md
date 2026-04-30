@@ -218,8 +218,8 @@ These work without any configuration:
 
 **Packages:**
 
-- **SDK:** `npm install @countersig/sdk` | [npm](https://www.npmjs.com/package/@countersig/sdk) | [Source](https://github.com/RunTimeAdmin/AgentID-2.0-Public/tree/main/packages/sdk)
-- **MCP Server:** `npx -y @countersig/mcp` | [npm](https://www.npmjs.com/package/@countersig/mcp) | [Source](https://github.com/RunTimeAdmin/AgentID-2.0-Public/tree/main/packages/mcp)
+- **SDK:** `npm install @countersig/sdk` | [npm](https://www.npmjs.com/package/@countersig/sdk) | [Source](https://github.com/RunTimeAdmin/Countersig-Public/tree/main/packages/sdk)
+- **MCP Server:** `npx -y @countersig/mcp` | [npm](https://www.npmjs.com/package/@countersig/mcp) | [Source](https://github.com/RunTimeAdmin/Countersig-Public/tree/main/packages/mcp)
 - **React Components:** `npm install @countersig/react` | [npm](https://www.npmjs.com/package/@countersig/react)
 - **Verifier:** `npm install @countersig/verify` | [npm](https://www.npmjs.com/package/@countersig/verify)
 

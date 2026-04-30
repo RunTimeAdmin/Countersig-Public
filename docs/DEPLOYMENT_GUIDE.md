@@ -116,7 +116,7 @@ curl https://api.countersig.com/health
 | **Port 3002** | Backend API |
 | **Domain (API)** | api.countersig.com |
 | **Domain (Frontend)** | countersig.com |
-| **GitHub** | https://github.com/RunTimeAdmin/AgentID-2.0 |
+| **GitHub** | https://github.com/RunTimeAdmin/Countersig |
 
 ---
 
@@ -170,7 +170,7 @@ sudo -u postgres psql -l | grep countersig
 cd /var/www
 
 # Clone the repository
-git clone https://github.com/RunTimeAdmin/AgentID-2.0.git countersig
+git clone https://github.com/RunTimeAdmin/Countersig.git countersig
 
 # Install backend dependencies
 cd countersig/backend
@@ -595,5 +595,5 @@ curl http://localhost:3002/discover
 ## Support
 
 For issues or questions:
-- GitHub Issues: https://github.com/RunTimeAdmin/AgentID-2.0/issues
+- GitHub Issues: https://github.com/RunTimeAdmin/Countersig/issues
 - Documentation: See `/docs` folder in repository

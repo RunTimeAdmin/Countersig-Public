@@ -190,7 +190,7 @@ import type { TrustBadgeProps, ReputationBreakdownProps, CapabilityListProps, Ch
 
 - [Countersig Platform](https://countersig.com)
 - [SDK Package](https://www.npmjs.com/package/@countersig/sdk)
-- [GitHub Repository](https://github.com/RunTimeAdmin/AgentID-2.0-Public)
+- [GitHub Repository](https://github.com/RunTimeAdmin/Countersig-Public)
 
 ## License
 

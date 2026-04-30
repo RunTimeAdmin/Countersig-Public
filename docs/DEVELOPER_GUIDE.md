@@ -121,8 +121,8 @@ This option automatically provisions PostgreSQL and Redis containers.
 
 ```bash
 # Clone the repository
-git clone https://github.com/RunTimeAdmin/AgentID-2.0.git
-cd AgentID-2.0
+git clone https://github.com/RunTimeAdmin/Countersig.git
+cd Countersig
 
 # Start infrastructure services
 docker-compose up -d

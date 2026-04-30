@@ -15,7 +15,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/RunTimeAdmin/AgentID-2.0-Public"
+    "url": "https://github.com/RunTimeAdmin/Countersig-Public"
   },
   "scripts": {
     "build": "tsc",
