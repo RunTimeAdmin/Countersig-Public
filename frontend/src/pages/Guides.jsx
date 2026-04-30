@@ -12,6 +12,7 @@ const LockIcon = ({ className }) => (<svg className={className} fill="none" stro
 const RefreshIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>);
 const RocketIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.63 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.841m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-6.233 0c-1.045 1.045-1.44 3.678-1.44 3.678s2.633-.395 3.678-1.44a4.493 4.493 0 000-6.238" /></svg>);
 const PackageIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>);
+const ShieldIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>);
 const CpuChipIcon = ({ className }) => (<svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 005.25 8.25v9a2.25 2.25 0 002.25 2.25z" /></svg>);
 
 export default function Guides() {
@@ -31,6 +32,64 @@ export default function Guides() {
             >
               <span>View Full Documentation</span>
               <ArrowRightIcon className="w-5 h-5" />
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Why AgentID — Value Proposition */}
+      <section className="mb-10 animate-fade-in">
+        <div className="glass rounded-2xl p-6 md:p-8 border border-gray-700 hover:border-emerald-500/50 transition-colors relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-emerald-500/5 to-transparent rounded-bl-full pointer-events-none" />
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                <ShieldIcon className="w-6 h-6 text-emerald-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Why AgentID?</h2>
+                <p className="text-sm text-gray-400">The case for verifiable AI agent identity</p>
+              </div>
+            </div>
+
+            <p className="text-gray-400 mb-6">AI agents operate without identity. AgentID gives them cryptographic proof of who they are, what they've done, and why they can be trusted.</p>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+              <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                <div className="text-emerald-400 text-lg mb-2">🤝</div>
+                <h4 className="text-sm font-semibold text-white mb-1">Agent-to-Agent Trust</h4>
+                <p className="text-xs text-gray-400">Verify other agents cryptographically in milliseconds</p>
+              </div>
+              <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                <div className="text-emerald-400 text-lg mb-2">🏢</div>
+                <h4 className="text-sm font-semibold text-white mb-1">Enterprise Compliance</h4>
+                <p className="text-xs text-gray-400">Hash-chained audit logs prove every agent action</p>
+              </div>
+              <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                <div className="text-emerald-400 text-lg mb-2">🏪</div>
+                <h4 className="text-sm font-semibold text-white mb-1">Marketplace Verification</h4>
+                <p className="text-xs text-gray-400">W3C credentials and reputation scores that can't be gamed</p>
+              </div>
+              <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                <div className="text-emerald-400 text-lg mb-2">⛓️</div>
+                <h4 className="text-sm font-semibold text-white mb-1">Multi-Chain Identity</h4>
+                <p className="text-xs text-gray-400">One identity across Solana, Ethereum, Base, Polygon</p>
+              </div>
+              <div className="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                <div className="text-emerald-400 text-lg mb-2">🔍</div>
+                <h4 className="text-sm font-semibold text-white mb-1">Autonomous Accountability</h4>
+                <p className="text-xs text-gray-400">Complete attestation history and forensic trail</p>
+              </div>
+            </div>
+
+            <a
+              href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/blob/main/docs/WHY_AGENTID.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-emerald-500/25"
+            >
+              <span>Read Full Value Proposition</span>
+              <ArrowRightIcon className="w-4 h-4" />
             </a>
           </div>
         </div>
