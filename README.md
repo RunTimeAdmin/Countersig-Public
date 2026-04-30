@@ -12,7 +12,7 @@ AgentID 2.0 is a production-grade identity and trust platform purpose-built for 
 
 - **Frontend**: [agentidapp.com](https://agentidapp.com)
 - **API**: [api.agentidapp.com](https://api.agentidapp.com/health)
-- **Documentation**: [Wiki](https://github.com/RunTimeAdmin/AgentID-2.0/wiki)
+- **Documentation**: [Wiki](https://github.com/RunTimeAdmin/AgentID-2.0-Public/wiki)
 
 ## Key Features
 
@@ -113,7 +113,7 @@ AgentID 2.0 is built around a **pluggable, multi-provider authentication archite
 
 ```bash
 # Clone the repository
-git clone https://github.com/RunTimeAdmin/AgentID-2.0.git
+git clone https://github.com/RunTimeAdmin/AgentID-2.0-Public.git
 cd AgentID-2.0
 
 # Start infrastructure (PostgreSQL + Redis)

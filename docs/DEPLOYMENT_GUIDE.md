@@ -116,7 +116,7 @@ curl https://api.agentidapp.com/health
 | **Port 3002** | Backend API |
 | **Domain (API)** | api.agentidapp.com |
 | **Domain (Frontend)** | agentidapp.com |
-| **GitHub** | https://github.com/RunTimeAdmin/AgentID-2.0 |
+| **GitHub** | https://github.com/RunTimeAdmin/AgentID-2.0-Public |
 
 ---
 
@@ -170,7 +170,7 @@ sudo -u postgres psql -l | grep agentid
 cd /var/www
 
 # Clone the repository
-git clone https://github.com/RunTimeAdmin/AgentID-2.0.git agentid
+git clone https://github.com/RunTimeAdmin/AgentID-2.0-Public.git agentid
 
 # Install backend dependencies
 cd agentid/backend
@@ -595,5 +595,5 @@ curl http://localhost:3002/discover
 ## Support
 
 For issues or questions:
-- GitHub Issues: https://github.com/RunTimeAdmin/AgentID-2.0/issues
+- GitHub Issues: https://github.com/RunTimeAdmin/AgentID-2.0-Public/issues
 - Documentation: See `/docs` folder in repository

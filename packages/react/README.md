@@ -190,7 +190,7 @@ import type { TrustBadgeProps, ReputationBreakdownProps, CapabilityListProps, Ch
 
 - [AgentID Platform](https://agentidapp.com)
 - [SDK Package](https://www.npmjs.com/package/@agentidapp/sdk)
-- [GitHub Repository](https://github.com/RunTimeAdmin/AgentID-2.0)
+- [GitHub Repository](https://github.com/RunTimeAdmin/AgentID-2.0-Public)
 
 ## License
 

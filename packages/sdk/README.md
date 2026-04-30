@@ -224,7 +224,7 @@ import type { Agent, Badge, ReputationScore, A2AToken, VerifiableCredential } fr
 
 - [AgentID Platform](https://agentidapp.com)
 - [API Documentation](https://agentidapp.com/docs)
-- [GitHub Repository](https://github.com/RunTimeAdmin/AgentID-2.0)
+- [GitHub Repository](https://github.com/RunTimeAdmin/AgentID-2.0-Public)
 
 ## License
 

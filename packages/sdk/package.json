@@ -9,7 +9,7 @@
   "keywords": ["agentid", "nhi", "identity", "agent", "trust", "verification", "web3", "solana", "ethereum"],
   "repository": {
     "type": "git",
-    "url": "https://github.com/RunTimeAdmin/AgentID-2.0"
+    "url": "https://github.com/RunTimeAdmin/AgentID-2.0-Public"
   },
   "scripts": {
     "build": "tsc",

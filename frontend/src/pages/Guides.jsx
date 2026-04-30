@@ -95,7 +95,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
                   <span>npm</span>
                   <ExternalLinkIcon className="w-3.5 h-3.5" />
                 </a>
-                <a href="https://github.com/RunTimeAdmin/AgentID-2.0/tree/main/packages/sdk" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sky-400 hover:text-sky-300 transition-colors text-sm">
+                <a href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/tree/main/packages/sdk" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sky-400 hover:text-sky-300 transition-colors text-sm">
                   <span>GitHub</span>
                   <ExternalLinkIcon className="w-3.5 h-3.5" />
                 </a>
@@ -179,7 +179,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
                   <span>npm</span>
                   <ExternalLinkIcon className="w-3.5 h-3.5" />
                 </a>
-                <a href="https://github.com/RunTimeAdmin/AgentID-2.0/tree/main/packages/mcp" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 transition-colors text-sm">
+                <a href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/tree/main/packages/mcp" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 transition-colors text-sm">
                   <span>GitHub</span>
                   <ExternalLinkIcon className="w-3.5 h-3.5" />
                 </a>
@@ -238,7 +238,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
             <h2 className="text-xl font-bold text-white">Deployment Guide</h2>
           </div>
           <p className="text-gray-400 mb-4">Deploy AgentID to production with Docker Compose, configure PostgreSQL, Redis, and Caddy reverse proxy for HTTPS.</p>
-          <a href="https://github.com/RunTimeAdmin/AgentID-2.0/blob/main/docs/DEPLOYMENT_GUIDE.md" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 transition-colors">
+          <a href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/blob/main/docs/DEPLOYMENT_GUIDE.md" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 transition-colors">
             <span>Read Guide</span>
             <ExternalLinkIcon className="w-4 h-4" />
           </a>
@@ -266,7 +266,7 @@ const rep = await client.reputation.get(agent.agent_id);`}</code></pre>
             <h2 className="text-xl font-bold text-white">Migration Guide</h2>
           </div>
           <p className="text-gray-400 mb-4">Upgrade between AgentID versions with step-by-step migration instructions, schema changes, and backward compatibility notes.</p>
-          <a href="https://github.com/RunTimeAdmin/AgentID-2.0/blob/main/docs/MIGRATION_GUIDE.md" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors">
+          <a href="https://github.com/RunTimeAdmin/AgentID-2.0-Public/blob/main/docs/MIGRATION_GUIDE.md" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors">
             <span>Read Guide</span>
             <ExternalLinkIcon className="w-4 h-4" />
           </a>
