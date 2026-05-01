@@ -1,8 +1,0 @@
-.env
-.env.local
-.env.*.local
-node_modules/
-coverage/
-.nyc_output/
-*.log
-dist/

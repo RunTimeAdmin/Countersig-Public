@@ -6,7 +6,11 @@
 [![API](https://img.shields.io/badge/API-api.countersig.com-green)](https://api.countersig.com/health)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
+This repository contains public documentation, SDK integration guides, and conceptual architecture for Countersig.
+
 Countersig 2.0 is a production-grade identity and trust platform purpose-built for autonomous AI agents. It provides verifiable identity, multi-chain credential binding, reputation scoring, and machine-to-machine authentication — enabling agents to prove who they are, what they can do, and why they should be trusted.
+
+> **Note:** For source code access, see the private repository. This repo contains public documentation, integration guides, and conceptual architecture.
 
 ## Live Deployment
 
@@ -120,79 +124,11 @@ Countersig 2.0 is built around a **pluggable, multi-provider authentication arch
 | Monitoring | prom-client (Prometheus metrics) |
 | Hosting | Hostinger CDN (frontend), VPS (backend) |
 
-## Quick Start
+## Getting Started
 
-```bash
-# Clone the repository
-git clone https://github.com/RunTimeAdmin/Countersig.git
-cd Countersig
+This is a documentation and concepts repository. To integrate with Countersig, use the published client libraries below or explore the [API Reference](docs/API_REFERENCE.md).
 
-# Start infrastructure (PostgreSQL + Redis)
-docker-compose up -d
-
-# Backend
-cd backend
-cp .env.example .env  # Configure environment variables
-npm install
-npm run migrate
-npm run dev
-
-# Frontend (new terminal)
-cd frontend
-npm install
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173) to view the app.
-
-## Production Deployment
-
-> For a complete production deployment walkthrough, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md).
-
-### Required Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `REDIS_URL` | Redis connection string |
-| `REDIS_HOST` | Explicit Redis host (recommended for Docker) |
-| `REDIS_PORT` | Explicit Redis port (recommended for Docker) |
-| `REDIS_PASSWORD` | Explicit Redis password (recommended for Docker) |
-| `JWT_SECRET` | 64-char hex secret for token signing |
-| `JWT_EXPIRY` | Access token lifetime (default: 15m) |
-| `JWT_REFRESH_EXPIRY` | Refresh token lifetime (default: 7d) |
-| `BAGS_API_KEY` | BAGS reputation API key |
-| `CORS_ORIGIN` | Allowed frontend origin (e.g. `https://countersig.com`) |
-| `COUNTERSIG_BASE_URL` | Public API URL (e.g. `https://api.countersig.com`) |
-| `PORT` | Server port (default: 3002) |
-| `NODE_ENV` | `production` |
-| `DB_SSL` | Set to `"true"` only for hosted databases with SSL |
-| `OAUTH2_ENABLED` | Optional auth provider flag |
-| `ENTRA_ID_ENABLED` | Optional auth provider flag |
-| `HEALTH_DETAIL_SECRET` | Secret for detailed health check endpoint (any strong random string) |
-| `COOKIE_DOMAIN` | Cookie domain scope for cross-subdomain auth (e.g., `.countersig.com`) |
-| `DB_POOL_MAX` | PostgreSQL connection pool max size (default: 20) |
-| `LEGACY_SIGNING_DEADLINE` | Unix timestamp after which legacy signatures are rejected (default: 2026-07-01) |
-| `DID_ED25519_PUBLIC_KEY` | Ed25519 public key for DID document (required for production VCs) |
-
-### Deploy Order
-
-1. Provision PostgreSQL 16 and Redis 7
-2. Set all environment variables
-3. Run database migrations: `node src/models/migrate.js`
-4. Start the API server: `node server.js`
-5. Configure reverse proxy (Caddy or nginx) for HTTPS — reference `Caddyfile` in repo root
-
-The production stack uses **Caddy** for automatic TLS termination and reverse proxying (see `Caddyfile` in repo root). Caddy handles HTTPS certificates automatically via Let's Encrypt and proxies API requests to the Node.js backend. To deploy the full stack:
-
-```bash
-docker compose -f docker-compose.prod.yml up -d
-```
-
-### Secret Rotation
-
-- **JWT_SECRET**: Rotation requires invalidating active sessions.
-- **BAGS_API_KEY**: Can be rotated independently.
+For deployment and self-hosting guides, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md).
 
 ## Billing & Plans
 
@@ -206,8 +142,6 @@ Countersig 2.0 includes integrated billing and plan management via **Stripe**:
 | **Enterprise** | Custom | Dedicated infrastructure, SLAs, custom integrations, unlimited whitelist destinations |
 
 **Usage-based metering** tracks attestations, verifications, badge calls, and token issuances against plan quotas. Stripe handles payment processing, and users can manage their plan via the **/settings** page in the frontend.
-
-Required environment variables for billing: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_STARTER_ID`, `STRIPE_PRICE_PROFESSIONAL_ID`.
 
 ## API Documentation
 
