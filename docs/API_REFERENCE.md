@@ -24,7 +24,7 @@ The authentication flow follows a challenge-response pattern:
 Challenge messages follow this exact format:
 
 ```
-AGENTID-VERIFY:{pubkey}:{nonce}:{timestamp}
+COUNTERSIG-VERIFY:{pubkey}:{nonce}:{timestamp}
 ```
 
 Where:
@@ -39,7 +39,7 @@ const nacl = require('tweetnacl');
 const bs58 = require('bs58');
 
 // Message to sign
-const message = `AGENTID-VERIFY:${pubkey}:${nonce}:${timestamp}`;
+const message = `COUNTERSIG-VERIFY:${pubkey}:${nonce}:${timestamp}`;
 const messageBytes = Buffer.from(message, 'utf-8');
 
 // Sign with private key
@@ -64,8 +64,9 @@ Countersig implements tiered rate limiting to protect API availability while acc
 
 | Tier | Endpoints | Limit | Window |
 |------|-----------|-------|--------|
-| **Default** | Read operations (GET requests) | 100 requests | 15 minutes |
-| **Auth** | Write operations (POST/PUT), authentication | 20 requests | 15 minutes |
+| **General** | All API endpoints (default) | 100 requests | 1 minute |
+| **Auth** | Authentication (login, OAuth, refresh) | 10 requests | 1 minute |
+| **Registration** | Agent registration | 5 requests | 1 minute |
 
 ### Rate Limit Headers
 
@@ -76,6 +77,8 @@ RateLimit-Limit: 100
 RateLimit-Remaining: 87
 RateLimit-Reset: 1699999999
 ```
+
+> **Note:** The `RateLimit-Limit` value varies by tier (100 for general, 10 for auth, 5 for registration).
 
 ### Exceeded Limit Response
 
@@ -175,7 +178,7 @@ Agents with **3 or more unresolved flags** are automatically marked with `status
 
 Register a new agent with Bags authentication and SAID binding.
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Registration tier (5 requests / 1 min)
 
 **Request Headers:**
 ```http
@@ -254,7 +257,7 @@ curl -X POST https://countersig.com/register \
 
 Update agent metadata with signature verification.
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Request Headers:**
 ```http
@@ -281,7 +284,7 @@ Content-Type: application/json
 
 **Signature Message Format:**
 ```
-AGENTID-UPDATE:{pubkey}:{timestamp}
+COUNTERSIG-UPDATE:{pubkey}:{timestamp}
 ```
 
 **Response Body (200 OK):**
@@ -332,7 +335,7 @@ curl -X PUT https://countersig.com/agents/AgentPubkey111111111111111111111111111
 
 Issue a PKI challenge for agent verification.
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Request Headers:**
 ```http
@@ -377,7 +380,7 @@ curl -X POST https://countersig.com/verify/challenge \
 
 Verify a signed challenge response.
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Request Headers:**
 ```http
@@ -427,7 +430,7 @@ curl -X POST https://countersig.com/verify/response \
 
 Retrieve trust badge data as JSON.
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -480,7 +483,7 @@ curl https://countersig.com/badge/AgentPubkey111111111111111111111111111111111
 
 Retrieve trust badge as an SVG image.
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -516,7 +519,7 @@ curl https://countersig.com/badge/AgentPubkey111111111111111111111111111111111/s
 
 Retrieve full reputation breakdown with 5-factor analysis.
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -573,7 +576,7 @@ curl https://countersig.com/reputation/AgentPubkey111111111111111111111111111111
 
 List registered agents with optional filters.
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Query Parameters:**
 
@@ -626,7 +629,7 @@ curl "https://countersig.com/agents?capability=trading&limit=10&offset=0"
 
 Get detailed information for a single agent including reputation.
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -682,7 +685,7 @@ curl https://countersig.com/agents/AgentPubkey111111111111111111111111111111111
 
 A2A (Agent-to-Agent) discovery - find agents by capability.
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Query Parameters:**
 
@@ -731,7 +734,7 @@ curl "https://countersig.com/discover?capability=analytics"
 
 Record a successful or failed action for an agent.
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -779,7 +782,7 @@ curl -X POST https://countersig.com/agents/AgentPubkey11111111111111111111111111
 
 Flag suspicious behavior for an agent.
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -835,7 +838,7 @@ curl -X POST https://countersig.com/agents/AgentPubkey11111111111111111111111111
 
 Retrieve action statistics for an agent.
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -868,7 +871,7 @@ curl https://countersig.com/agents/AgentPubkey111111111111111111111111111111111/
 
 Retrieve all flags for an agent.
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -913,7 +916,7 @@ curl https://countersig.com/agents/AgentPubkey111111111111111111111111111111111/
 
 Retrieve an embeddable HTML widget for an agent.
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -965,7 +968,7 @@ Register a new user account and create an initial organization.
 
 **Authentication:** None (public registration)
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Request Headers:**
 ```http
@@ -1024,7 +1027,7 @@ Authenticate and receive a JWT session cookie.
 
 **Authentication:** None
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Request Headers:**
 ```http
@@ -1077,7 +1080,7 @@ Refresh the JWT access token using the httpOnly refresh token cookie.
 
 **Authentication:** Requires valid `refreshToken` cookie
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Response Body (200 OK):**
 ```json
@@ -1136,7 +1139,7 @@ Create a new API key for programmatic access.
 **Authentication:** JWT cookie or API key
 **Required Role:** `member` or higher within the organization
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Request Headers:**
 ```http
@@ -1192,7 +1195,7 @@ List all API keys for the current user's organization.
 **Authentication:** JWT cookie or API key
 **Required Role:** `member` or higher
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Response Body (200 OK):**
 ```json
@@ -1228,7 +1231,7 @@ Revoke and delete an API key.
 **Authentication:** JWT cookie or API key
 **Required Role:** `member` or higher (owner or admin can delete any key in the org)
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1267,7 +1270,7 @@ Retrieve organization details.
 **Authentication:** JWT cookie or API key
 **Required Role:** `viewer` or higher within the organization
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1311,7 +1314,7 @@ Update organization metadata and settings.
 **Authentication:** JWT cookie or API key
 **Required Role:** `manager` or `admin`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1368,7 +1371,7 @@ List all members of an organization.
 **Authentication:** JWT cookie or API key
 **Required Role:** `viewer` or higher
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1416,7 +1419,7 @@ Update a member's role within the organization.
 **Authentication:** JWT cookie or API key
 **Required Role:** `admin`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1465,7 +1468,7 @@ Remove a member from the organization.
 **Authentication:** JWT cookie or API key
 **Required Role:** `admin`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1501,7 +1504,7 @@ Invite a new user to the organization by email.
 **Authentication:** JWT cookie or API key
 **Required Role:** `manager` or `admin`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1549,7 +1552,7 @@ Retrieve aggregated organization statistics.
 **Authentication:** JWT cookie or API key
 **Required Role:** `viewer` or higher
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1588,7 +1591,7 @@ List agents scoped to the organization with pagination.
 **Authentication:** JWT cookie or API key
 **Required Role:** `viewer` or higher
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1650,7 +1653,7 @@ Query audit logs with filtering and pagination.
 **Authentication:** JWT cookie or API key
 **Required Role:** `viewer` or higher
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1709,7 +1712,7 @@ Export audit logs as JSON or CSV.
 **Authentication:** JWT cookie or API key
 **Required Role:** `manager` or `admin`
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1748,7 +1751,7 @@ Verify the integrity of the audit log hash chain.
 **Authentication:** JWT cookie or API key
 **Required Role:** `viewer` or higher
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1802,7 +1805,7 @@ List all policy rules for an organization.
 **Authentication:** JWT cookie or API key
 **Required Role:** `viewer` or higher
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1844,7 +1847,7 @@ Create a new policy rule.
 **Authentication:** JWT cookie or API key
 **Required Role:** `manager` or `admin`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1901,7 +1904,7 @@ Update an existing policy rule.
 **Authentication:** JWT cookie or API key
 **Required Role:** `manager` or `admin`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1957,7 +1960,7 @@ Delete a policy rule.
 **Authentication:** JWT cookie or API key
 **Required Role:** `manager` or `admin`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -1997,7 +2000,7 @@ List all webhooks configured for an organization.
 **Authentication:** JWT cookie or API key
 **Required Role:** `viewer` or higher
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -2039,7 +2042,7 @@ Create a new webhook subscription.
 **Authentication:** JWT cookie or API key
 **Required Role:** `manager` or `admin`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -2094,7 +2097,7 @@ Update a webhook subscription.
 **Authentication:** JWT cookie or API key
 **Required Role:** `manager` or `admin`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -2149,7 +2152,7 @@ Delete a webhook subscription.
 **Authentication:** JWT cookie or API key
 **Required Role:** `manager` or `admin`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -2188,7 +2191,7 @@ List all supported blockchain types with metadata.
 
 **Authentication:** None
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Response Body (200 OK):**
 ```json
@@ -2230,7 +2233,7 @@ List all public agents without authentication. Returns only public-safe fields.
 
 **Authentication:** None
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Query Parameters:**
 
@@ -2280,7 +2283,7 @@ Get all agents owned by a specific public key.
 **Authentication:** JWT cookie or API key
 **Required Scope:** `read`
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -2328,7 +2331,7 @@ Revoke an agent, permanently disabling it. Requires ownership verification via E
 **Authentication:** JWT cookie or API key
 **Required Scope:** `write` (admin)
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -2342,7 +2345,7 @@ Revoke an agent, permanently disabling it. Requires ownership verification via E
 |-------|------|----------|-------------|
 | `pubkey` | string | Yes | Agent's registered public key |
 | `signature` | string | Yes | Base58-encoded Ed25519 signature |
-| `message` | string | Yes | `AGENTID-REVOKE:{agentId}:{timestamp}` |
+| `message` | string | Yes | `COUNTERSIG-REVOKE:{agentId}:{timestamp}` |
 
 **Response Body (200 OK):**
 ```json
@@ -2374,7 +2377,7 @@ curl -X POST https://countersig.com/agents/550e8400-e29b-41d4-a716-446655440000/
   -d '{
     "pubkey": "AgentPubkey111111111111111111111111111111111",
     "signature": "Base58Signature...",
-    "message": "AGENTID-REVOKE:550e8400-e29b-41d4-a716-446655440000:1705753200000"
+    "message": "COUNTERSIG-REVOKE:550e8400-e29b-41d4-a716-446655440000:1705753200000"
   }'
 ```
 
@@ -2391,7 +2394,7 @@ Issue a short-lived A2A (Agent-to-Agent) authentication JWT token. The token inc
 **Authentication:** JWT cookie or API key
 **Required Scope:** `write`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -2427,7 +2430,7 @@ Verify an A2A token statelessly. No authentication required — receiving agents
 
 **Authentication:** None
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Request Body:**
 
@@ -2472,7 +2475,7 @@ Get a W3C Verifiable Credential (JSON-LD) for an agent. No authentication requir
 
 **Authentication:** None
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -2560,7 +2563,7 @@ Verify an external OAuth2 or Entra ID token and return normalized identity claim
 
 **Authentication:** JWT cookie or API key
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Request Body:**
 
@@ -2619,7 +2622,7 @@ List all configured identity providers for an organization.
 **Required Role:** `manager` or `admin`
 **Required Scope:** `read`
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Path Parameters:**
 
@@ -2670,7 +2673,7 @@ Create a new identity provider configuration.
 **Required Role:** `admin`
 **Required Scope:** `write`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -2736,7 +2739,7 @@ Update an existing identity provider configuration.
 **Required Role:** `admin`
 **Required Scope:** `write`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -2796,7 +2799,7 @@ Delete an identity provider configuration.
 **Required Role:** `admin`
 **Required Scope:** `write`
 
-**Rate Limit:** Auth tier (20 requests / 15 min)
+**Rate Limit:** Auth tier (10 requests / 1 min)
 
 **Path Parameters:**
 
@@ -2840,7 +2843,7 @@ JWKS endpoint exposing public key metadata for A2A token verification. The actua
 
 **Authentication:** None
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Response Body (200 OK):**
 ```json
@@ -2872,7 +2875,7 @@ W3C DID document for `did:web:countersig.com`. Exposes verification methods for 
 
 **Authentication:** None
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Response Body (200 OK):**
 ```json
@@ -2939,7 +2942,7 @@ Health check endpoint returning system status and dependency connectivity.
 
 **Authentication:** None
 
-**Rate Limit:** Default tier (100 requests / 15 min)
+**Rate Limit:** General tier (100 requests / 1 min)
 
 **Response Body (200 OK):**
 ```json

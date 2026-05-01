@@ -9,7 +9,7 @@ Countersig's MCP server lets AI agents (Claude, etc.) register identities, build
 ## Prerequisites
 
 - **Claude Desktop** or **Claude Code** installed
-- **Node.js 18+** (for `npx`)
+- **Node.js 18+** (for `npm`)
 - An **Countersig account** — [countersig.com/signup](https://countersig.com/signup)
 
 ---
@@ -29,22 +29,27 @@ Countersig's MCP server lets AI agents (Claude, etc.) register identities, build
 
 ## Step 2: Install the MCP Server
 
-### Claude Code (one command)
+### Claude Code
 
 ```bash
-claude mcp add countersig -- npx -y @countersig/mcp
+# Install globally
+npm install -g @countersig/mcp
+
+# Add to Claude
+claude mcp add countersig -- countersig-mcp
 ```
 
 ### Claude Desktop
 
-Add to your `claude_desktop_config.json`:
+First install globally: `npm install -g @countersig/mcp`
+
+Then add to your `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "countersig": {
-      "command": "npx",
-      "args": ["-y", "@countersig/mcp"],
+      "command": "countersig-mcp",
       "env": {
         "COUNTERSIG_API_KEY": "cs_xxxxxxxxxxxxxxx"
       }
@@ -219,7 +224,7 @@ These work without any configuration:
 **Packages:**
 
 - **SDK:** `npm install @countersig/sdk` | [npm](https://www.npmjs.com/package/@countersig/sdk) | [Source](https://github.com/RunTimeAdmin/Countersig-Public/tree/main/packages/sdk)
-- **MCP Server:** `npx -y @countersig/mcp` | [npm](https://www.npmjs.com/package/@countersig/mcp) | [Source](https://github.com/RunTimeAdmin/Countersig-Public/tree/main/packages/mcp)
+- **MCP Server:** `npm i -g @countersig/mcp` | [npm](https://www.npmjs.com/package/@countersig/mcp) | [Source](https://github.com/RunTimeAdmin/Countersig-Public/tree/main/packages/mcp)
 - **React Components:** `npm install @countersig/react` | [npm](https://www.npmjs.com/package/@countersig/react)
 - **Verifier:** `npm install @countersig/verify` | [npm](https://www.npmjs.com/package/@countersig/verify)
 

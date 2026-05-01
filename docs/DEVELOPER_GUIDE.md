@@ -29,6 +29,7 @@ Enterprise-grade developer onboarding documentation for the Countersig platform 
    - [W3C DID & Verifiable Credentials](#w3c-did--verifiable-credentials)
    - [SDK Packages](#sdk-packages)
    - [BullMQ Webhook Queue](#bullmq-webhook-queue)
+   - [Policy Enforcement System (Trust Layer v1)](#policy-enforcement-system-trust-layer-v1)
 10. [Deployment](#10-deployment)
 11. [Contributing](#11-contributing)
 
@@ -1446,6 +1447,14 @@ const { closeWebhookQueue } = require('./src/services/webhookService');
 // Called during server shutdown
 await closeWebhookQueue();
 ```
+
+---
+
+### Policy Enforcement System (Trust Layer v1)
+
+The Trust Layer provides destination-level policy enforcement for AI agents, controlling which external services agents are allowed to contact. It supports three enforcement modes (permissive, audit_only, enforced) with both client-side SDK and network-level gateway enforcement paths.
+
+Policy enforcement is available in the Enterprise tier. Contact sales@countersig.com for details.
 
 ---
 

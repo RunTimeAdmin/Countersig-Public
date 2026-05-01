@@ -107,7 +107,7 @@ Three ways to integrate, from simplest to most flexible:
 
 **MCP Server (Easiest — Zero Code)**
 ```bash
-claude mcp add countersig -- npx -y @countersig/mcp
+npm i -g @countersig/mcp && claude mcp add countersig -- countersig-mcp
 ```
 Claude gets 12 Countersig tools. Register, verify, attest, communicate — all through conversation.
 

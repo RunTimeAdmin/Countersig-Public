@@ -49,64 +49,75 @@ Countersig 2.0 is built around a **pluggable, multi-provider authentication arch
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Client Layer                                    │
-│  ┌─────────────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐  │
-│  │  Frontend SPA   │  │  Embed Widget │  │  SDK / CLI   │  │  A2A Clients │  │
-│  │  (React + Vite) │  │  (iframe/JS)  │  │  (JS/TS)     │  │  (JWKS)      │  │
-│  │  countersig.com │  │               │  │              │  │              │  │
-│  └────────┬────────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │
-└───────────┼──────────────────┼─────────────────┼─────────────────┼──────────┘
-            │                  │                 │                 │
-            └──────────────────┴─────────────────┴─────────────────┘
-                                           │
-                              ┌────────────▼────────────┐
-                              │    Caddy (Auto-SSL)     │
-                              │    Rate Limiting        │
-                              └────────────┬────────────┘
-                                           │
-┌──────────────────────────────────────────▼──────────────────────────────────┐
-│                           Backend API (Express)                              │
-│  ┌─────────────────────────────────────────────────────────────────────────┐  │
-│  │                     Pluggable Auth Layer                                 │  │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │  │
-│  │  │ Cryptographic│ │  OAuth2/   │ │  Entra ID   │ │   API Key   │        │  │
-│  │  │ (Ed25519)   │ │   OIDC     │ │ (Azure AD)  │ │  (M2M)      │        │  │
-│  │  └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ └──────┬──────┘        │  │
-│  │  ┌──────┴───────────────┴───────────────┴───────────────┴─────────────┐  │  │
-│  │  │                    AuthManager (Strategy Router)                     │  │  │
-│  │  └────────────────────────────────────┬────────────────────────────────┘  │  │
-│  │  ┌─────────────┐ ┌─────────────┐      │      ┌─────────────┐             │  │
-│  │  │  A2A JWT    │ │ PKI Challenge│      │      │ Human Auth  │             │  │
-│  │  │  (60s)      │ │ (Nonce)      │      │      │ (bcrypt-12) │             │  │
-│  │  └─────────────┘ └─────────────┘      │      └─────────────┘             │  │
-│  └────────────────────────────────────────┼──────────────────────────────────┘  │
-│                                           │                                   │
-│  ┌────────────────────────────────────────┼──────────────────────────────────┐  │
-│  │           Service Layer                │                                   │  │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌────┴─────────┐ ┌─────────────┐         │  │
-│  │  │ Agent Mgmt  │ │   Policy    │ │   RBAC /     │ │  Chain      │         │  │
-│  │  │ (DID/VC)    │ │   Engine    │ │   Audit      │ │  Adapters   │         │  │
-│  │  └─────────────┘ └─────────────┘ └──────────────┘ └─────────────┘         │  │
-│  └────────────────────────────────────────────────────────────────────────────┘  │
-│                                           │                                      │
-└───────────────────────────────────────────┼──────────────────────────────────────┘
-                                            │
-                              ┌─────────────▼─────────────┐
-                              │     Data Layer            │
-                              │  PostgreSQL 16 │ Redis 7  │
-                              └───────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────────┐
+│                                 Client Layer                                      │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐    │
+│  │ Frontend SPA │ │ Embed Widget │ │ SDK/CLI  │ │   MCP    │ │  A2A Clients │    │
+│  │ (React+Vite) │ │ (iframe/JS)  │ │ (JS/TS)  │ │ (Claude) │ │   (JWKS)     │    │
+│  │countersig.com│ │              │ │          │ │          │ │              │    │
+│  └──────┬───────┘ └──────┬───────┘ └────┬─────┘ └────┬─────┘ └──────┬───────┘    │
+└─────────┼────────────────┼──────────────┼────────────┼──────────────┼────────────┘
+          └────────────────┴──────────────┴────────────┴──────────────┘
+                                          │
+                             ┌────────────▼────────────┐
+                             │  API Gateway: Caddy 2   │
+                             │  Auto-SSL, Rate Limiting│
+                             └────────────┬────────────┘
+                                          │
+┌─────────────────────────────────────────▼─────────────────────────────────────────┐
+│                          Backend API (Express 4)                                   │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐  │
+│  │                        Pluggable Auth Layer                                   │  │
+│  │  ┌────────────┐ ┌──────────┐ ┌────────────┐ ┌──────────┐ ┌──────────┐        │  │
+│  │  │Cryptographic│ │ OAuth2/ │ │Google OAuth│ │ Entra ID │ │ API Keys │        │  │
+│  │  │ (Ed25519)  │ │  OIDC   │ │            │ │(Azure AD)│ │  (M2M)   │        │  │
+│  │  └─────┬──────┘ └────┬────┘ └─────┬──────┘ └────┬─────┘ └────┬─────┘        │  │
+│  │  ┌─────┴──────────────┴────────────┴─────────────┴────────────┴────────────┐  │  │
+│  │  │                   AuthManager (Strategy Router)                          │  │  │
+│  │  └───────────────────────────────────┬─────────────────────────────────────┘  │  │
+│  │  ┌────────────┐ ┌──────────────┐     │     ┌─────────────┐                    │  │
+│  │  │  A2A JWT   │ │PKI Challenge │     │     │ Human Auth  │                    │  │
+│  │  │  (60s)     │ │  (Nonce)     │     │     │ (bcrypt-12) │                    │  │
+│  │  └────────────┘ └──────────────┘     │     └─────────────┘                    │  │
+│  └──────────────────────────────────────┼────────────────────────────────────────┘  │
+│                                         │                                          │
+│  ┌──────────────────────────────────────┼────────────────────────────────────────┐  │
+│  │                        Service Layer │                                         │  │
+│  │  ┌────────────┐ ┌─────────────┐ ┌────┴───────┐ ┌──────────────┐                │  │
+│  │  │Agent Mgmt  │ │   Policy    │ │   RBAC     │ │  Audit       │                │  │
+│  │  │ (DID/VC)   │ │   Engine    │ │            │ │ (hash chain) │                │  │
+│  │  └────────────┘ └─────────────┘ └────────────┘ └──────────────┘                │  │
+│  │  ┌────────────┐ ┌─────────────┐ ┌────────────┐                                 │  │
+│  │  │ Reputation │ │Badge Builder│ │  Webhook   │                                 │  │
+│  │  │  Scoring   │ │             │ │ (BullMQ)   │                                 │  │
+│  │  └────────────┘ └─────────────┘ └────────────┘                                 │  │
+│  └───────────────────────────────────────────────────────────────────────────────┘  │
+│                                         │                                          │
+└─────────────────────────────────────────┼──────────────────────────────────────────┘
+                                          │
+                             ┌────────────▼────────────┐
+                             │       Data Layer        │
+                             │ PostgreSQL 16 │ Redis 7 │
+                             └────────────┬────────────┘
+                                          │
+                             ┌────────────▼────────────┐
+                             │    External Services    │
+                             │ Stripe Billing          │
+                             │ URLhaus Threat Feed     │
+                             └─────────────────────────┘
 ```
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React 19, Vite 8, TailwindCSS |
+| Frontend | React 19, Vite 6, TailwindCSS |
 | Backend | Node.js 20, Express 4 |
 | Database | PostgreSQL 16, Redis 7 |
-| Auth | JWT, HMAC-SHA256, OAuth2/OIDC |
+| Auth | JWT (Ed25519 + HMAC-SHA256), OAuth2/OIDC |
 | Deployment | Docker Compose, Caddy 2 (auto-SSL) |
+| Queue | BullMQ (webhook delivery) |
+| Monitoring | prom-client (Prometheus metrics) |
 | Hosting | Hostinger CDN (frontend), VPS (backend) |
 
 ## Quick Start
@@ -189,10 +200,10 @@ Countersig 2.0 includes integrated billing and plan management via **Stripe**:
 
 | Tier | Price | Included |
 |------|-------|----------|
-| **Free** | $0/mo | Basic agent registration and verification |
-| **Starter** | $29/mo | Higher quotas, API key access, audit logs |
-| **Professional** | $99/mo | Full platform access, advanced policies, priority support |
-| **Enterprise** | Custom | Dedicated infrastructure, SLAs, custom integrations |
+| **Free** | $0/mo | Basic agent registration and verification, 10 whitelist destinations |
+| **Starter** | $29/mo | Higher quotas, API key access, audit logs, 50 whitelist destinations |
+| **Professional** | $99/mo | Full platform access, advanced policies, priority support, 500 whitelist destinations |
+| **Enterprise** | Custom | Dedicated infrastructure, SLAs, custom integrations, unlimited whitelist destinations |
 
 **Usage-based metering** tracks attestations, verifications, badge calls, and token issuances against plan quotas. Stripe handles payment processing, and users can manage their plan via the **/settings** page in the frontend.
 
@@ -209,14 +220,18 @@ Now live on npm:
 | Package | Version | Install | Description |
 |---------|---------|---------|-------------|
 | [@countersig/sdk](https://www.npmjs.com/package/@countersig/sdk) | 1.0.0 | `npm install @countersig/sdk` | TypeScript SDK for all Countersig operations |
-| [@countersig/mcp](https://www.npmjs.com/package/@countersig/mcp) | 1.0.0 | `npx -y @countersig/mcp` | MCP server for Claude Code / Claude Desktop |
+| [@countersig/mcp](https://www.npmjs.com/package/@countersig/mcp) | 1.0.0 | `npm i -g @countersig/mcp` | MCP server for Claude Code / Claude Desktop |
 | @countersig/verify | 1.0.0 | `npm install @countersig/verify` | Lightweight A2A token verification |
-| @countersig/react | Coming soon | — | React hooks and components |
+| [@countersig/react](https://www.npmjs.com/package/@countersig/react) | 1.0.1 | `npm install @countersig/react` | React components — trust badges, reputation displays, capability lists |
 
 ### Quick Start with Claude
 
 ```bash
-claude mcp add countersig -- npx -y @countersig/mcp
+# Install globally
+npm install -g @countersig/mcp
+
+# Add to Claude
+claude mcp add countersig -- countersig-mcp
 ```
 
 Then ask Claude: "Register a new agent called my-assistant with text-generation capabilities"
