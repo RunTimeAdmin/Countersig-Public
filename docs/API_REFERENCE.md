@@ -1989,6 +1989,543 @@ curl -X DELETE https://countersig.com/orgs/org-uuid-1234/policies/policy-uuid-11
 
 ---
 
+## Policy Enforcement Endpoints (Trust Layer v1)
+
+The Trust Layer v1 policy system provides runtime destination enforcement for AI agents. It operates independently from the legacy Policy Endpoints (v2) above, which handle reputation-based rule automation.
+
+All Trust Layer endpoints are mounted under `/v1/policy/` and require authentication. The system evaluates outbound destinations against a 5-level precedence model and produces signed, cacheable policy bundles for SDK consumption.
+
+### Endpoint Summary
+
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| GET | `/v1/policy/bundle/:agentId` | Required | `read` | Signed policy bundle for SDK consumption |
+| POST | `/v1/policy/check` | Required | `read` | Per-call destination evaluation for gateway |
+| GET | `/v1/policy/settings` | Required | `read` | Read org policy settings |
+| PUT | `/v1/policy/settings` | Required | `admin` | Update org policy settings |
+| GET | `/v1/policy/whitelist` | Required | `read` | List org whitelist entries |
+| POST | `/v1/policy/whitelist` | Required | `admin` | Add whitelist entry |
+| DELETE | `/v1/policy/whitelist/:id` | Required | `admin` | Remove whitelist entry |
+| GET | `/v1/policy/blacklist` | Required | `read` | List org blacklist entries |
+| POST | `/v1/policy/blacklist` | Required | `admin` | Add blacklist entry |
+| DELETE | `/v1/policy/blacklist/:id` | Required | `admin` | Remove blacklist entry |
+
+---
+
+#### GET /v1/policy/bundle/:agentId
+
+Returns a signed policy bundle containing the computed allow-list, deny-list, and global blacklist hash for a specific agent. This is the high-traffic hot path — agents pull every `bundle_ttl_seconds`.
+
+**Authentication:** JWT cookie or API key
+**Required Scope:** `read`
+
+**Rate Limit:** General tier (100 requests / 1 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `agentId` | string | Agent UUID |
+
+**Response Headers:**
+- `Cache-Control: private, max-age=<ttl_seconds>`
+
+**Response Body (200 OK):**
+```json
+{
+  "bundle": {
+    "version": 1,
+    "agent_id": "agent-uuid-1234",
+    "org_id": "org-uuid-5678",
+    "policy_mode": "enforced",
+    "allow": [
+      { "destination": "api.openai.com", "destination_type": "domain" },
+      { "destination": "*.anthropic.com", "destination_type": "wildcard" }
+    ],
+    "deny": [
+      { "destination": "evil.com", "destination_type": "domain", "scope": "org", "reason": "org_blacklist" }
+    ],
+    "global_deny_hash": "a1b2c3d4e5f6...sha256",
+    "issued_at": "2026-04-30T12:00:00.000Z",
+    "expires_at": "2026-04-30T12:05:00.000Z",
+    "ttl_seconds": 300
+  },
+  "signature": "eyJhbGciOiJFZERTQSJ9...JWS"
+}
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+- `403` - Agent belongs to a different organization (cross-tenant)
+- `404` - Agent not found or deleted
+
+**Example Request:**
+```bash
+curl https://countersig.com/v1/policy/bundle/agent-uuid-1234 \
+  -H "Cookie: token=..."
+```
+
+---
+
+#### POST /v1/policy/check
+
+Evaluates a single destination for an agent and returns an allow/deny decision. Used by the network gateway for per-call enforcement. CSRF is skipped on this endpoint — authenticate via Bearer token.
+
+For internal agent-to-agent traffic (`agent:<uuid>` destinations), a short-lived JWT is returned in the `token` field when the call is allowed.
+
+**Authentication:** Bearer token (CSRF skipped)
+**Required Scope:** `read`
+
+**Rate Limit:** General tier (100 requests / 1 min)
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `agent_id` | string | Yes | Agent UUID making the outbound call |
+| `destination` | string | Yes | Target destination (URL, hostname, or `agent:<uuid>`) |
+
+**Response Body (200 OK):**
+```json
+{
+  "allowed": true,
+  "reason": "whitelisted",
+  "scope": "org",
+  "mode": "enforced",
+  "token": null
+}
+```
+
+**Decision Reasons:**
+
+| Reason | Description |
+|--------|-------------|
+| `whitelisted` | Destination matches effective whitelist |
+| `not_whitelisted` | Destination not found in whitelist (enforced mode) |
+| `global_blacklist:<category>` | Blocked by global threat feed (e.g., `global_blacklist:malware`) |
+| `org_blacklist` | Blocked by org-level blacklist |
+| `agent_blacklist` | Blocked by agent-level blacklist |
+| `permissive_mode` | Allowed because org is in permissive mode |
+| `audit_only:<reason>` | Would be denied but org is in audit_only mode |
+| `invalid_destination` | Destination could not be parsed |
+| `internal_agent_reference` | Agent-to-agent traffic (`agent:<uuid>`) |
+
+**Error Responses:**
+- `400` - Missing `agent_id` or `destination`
+- `401` - Not authenticated
+- `403` - Agent belongs to a different organization
+- `404` - Agent not found or deleted
+
+**Example Request:**
+```bash
+curl -X POST https://countersig.com/v1/policy/check \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "agent_id": "agent-uuid-1234",
+    "destination": "https://api.openai.com/v1/chat/completions"
+  }'
+```
+
+**Example Response (blocked):**
+```json
+{
+  "allowed": false,
+  "reason": "global_blacklist:malware",
+  "scope": "global",
+  "mode": "enforced",
+  "token": null
+}
+```
+
+**Example Response (agent-to-agent with token):**
+```json
+{
+  "allowed": true,
+  "reason": "internal_agent_reference",
+  "scope": "inherit",
+  "mode": "enforced",
+  "token": "eyJhbGciOiJFZERTQSJ9...short-lived-JWT"
+}
+```
+
+---
+
+#### GET /v1/policy/settings
+
+Read the current org-level policy settings.
+
+**Authentication:** JWT cookie or API key
+**Required Scope:** `read`
+
+**Response Body (200 OK):**
+```json
+{
+  "org_id": "org-uuid-5678",
+  "policy_mode": "enforced",
+  "inherit_global_defaults": true,
+  "bundle_ttl_seconds": 300
+}
+```
+
+**Policy Modes:**
+
+| Mode | Behavior |
+|------|----------|
+| `enforced` | Destinations must match whitelist; blacklist always blocks |
+| `permissive` | Blacklist still blocks; whitelist not required |
+| `audit_only` | All traffic allowed; violations logged but not blocked |
+
+**Error Responses:**
+- `401` - Not authenticated
+
+**Example Request:**
+```bash
+curl https://countersig.com/v1/policy/settings \
+  -H "Cookie: token=..."
+```
+
+---
+
+#### PUT /v1/policy/settings
+
+Update org-level policy settings. Only admins may call this endpoint. Changes are audit-logged.
+
+**Authentication:** JWT cookie or API key
+**Required Role:** `admin`
+**Required Scope:** `admin`
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `policy_mode` | string | No | `enforced`, `permissive`, or `audit_only` |
+| `inherit_global_defaults` | boolean | No | Whether to include the global default whitelist |
+| `bundle_ttl_seconds` | integer | No | Cache TTL for policy bundles (seconds) |
+
+**Response Body (200 OK):**
+```json
+{
+  "org_id": "org-uuid-5678",
+  "policy_mode": "audit_only",
+  "inherit_global_defaults": true,
+  "bundle_ttl_seconds": 600,
+  "updated_by": "user-uuid-9999",
+  "updated_at": "2026-04-30T14:00:00.000Z"
+}
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+- `403` - Insufficient role (requires admin)
+
+**Example Request:**
+```bash
+curl -X PUT https://countersig.com/v1/policy/settings \
+  -H "Content-Type: application/json" \
+  -H "Cookie: token=..." \
+  -d '{
+    "policy_mode": "audit_only",
+    "bundle_ttl_seconds": 600
+  }'
+```
+
+---
+
+#### GET /v1/policy/whitelist
+
+List all whitelist entries for the authenticated user's organization.
+
+**Authentication:** JWT cookie or API key
+**Required Scope:** `read`
+
+**Response Body (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "destination": "api.openai.com",
+    "destination_type": "domain",
+    "notes": "GPT-4 API access",
+    "created_at": "2026-04-28T10:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "destination": "*.anthropic.com",
+    "destination_type": "wildcard",
+    "notes": "All Anthropic endpoints",
+    "created_at": "2026-04-28T10:05:00.000Z"
+  }
+]
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+
+---
+
+#### POST /v1/policy/whitelist
+
+Add a new whitelist entry. Only admins may call this endpoint. Changes are audit-logged.
+
+**Authentication:** JWT cookie or API key
+**Required Role:** `admin`
+**Required Scope:** `admin`
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `destination` | string | Yes | Target destination (e.g., `api.openai.com`, `*.anthropic.com`, `10.0.0.0/8`) |
+| `destination_type` | string | Yes | One of: `domain`, `wildcard`, `agent`, `cidr` |
+| `notes` | string | No | Optional human-readable note |
+
+**Response Body (201 Created):**
+```json
+{
+  "id": 3,
+  "org_id": "org-uuid-5678",
+  "destination": "*.google.com",
+  "destination_type": "wildcard",
+  "notes": "Google APIs",
+  "created_by": "user-uuid-9999",
+  "created_at": "2026-04-30T15:00:00.000Z"
+}
+```
+
+**Error Responses:**
+- `400` - Missing `destination` or `destination_type`
+- `401` - Not authenticated
+- `403` - Insufficient role (requires admin)
+
+**Example Request:**
+```bash
+curl -X POST https://countersig.com/v1/policy/whitelist \
+  -H "Content-Type: application/json" \
+  -H "Cookie: token=..." \
+  -d '{
+    "destination": "*.google.com",
+    "destination_type": "wildcard",
+    "notes": "Google APIs"
+  }'
+```
+
+---
+
+#### DELETE /v1/policy/whitelist/:id
+
+Remove a whitelist entry by ID. Only admins may call this endpoint. Changes are audit-logged.
+
+**Authentication:** JWT cookie or API key
+**Required Role:** `admin`
+**Required Scope:** `admin`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | integer | Whitelist entry ID |
+
+**Response:** `204 No Content`
+
+**Error Responses:**
+- `401` - Not authenticated
+- `403` - Insufficient role (requires admin)
+- `404` - Entry not found
+
+**Example Request:**
+```bash
+curl -X DELETE https://countersig.com/v1/policy/whitelist/3 \
+  -H "Cookie: token=..."
+```
+
+---
+
+#### GET /v1/policy/blacklist
+
+List all blacklist entries for the authenticated user's organization.
+
+**Authentication:** JWT cookie or API key
+**Required Scope:** `read`
+
+**Response Body (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "destination": "evil.com",
+    "destination_type": "domain",
+    "reason": "Known malicious endpoint",
+    "created_at": "2026-04-28T11:00:00.000Z"
+  }
+]
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+
+---
+
+#### POST /v1/policy/blacklist
+
+Add a new blacklist entry. Only admins may call this endpoint. Changes are audit-logged.
+
+**Authentication:** JWT cookie or API key
+**Required Role:** `admin`
+**Required Scope:** `admin`
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `destination` | string | Yes | Target destination to block |
+| `destination_type` | string | Yes | One of: `domain`, `wildcard`, `agent`, `cidr` |
+| `reason` | string | No | Optional reason for blocking |
+
+**Response Body (201 Created):**
+```json
+{
+  "id": 2,
+  "org_id": "org-uuid-5678",
+  "destination": "*.sketchy.io",
+  "destination_type": "wildcard",
+  "reason": "Untrusted vendor",
+  "created_by": "user-uuid-9999",
+  "created_at": "2026-04-30T16:00:00.000Z"
+}
+```
+
+**Error Responses:**
+- `400` - Missing `destination` or `destination_type`
+- `401` - Not authenticated
+- `403` - Insufficient role (requires admin)
+
+**Example Request:**
+```bash
+curl -X POST https://countersig.com/v1/policy/blacklist \
+  -H "Content-Type: application/json" \
+  -H "Cookie: token=..." \
+  -d '{
+    "destination": "*.sketchy.io",
+    "destination_type": "wildcard",
+    "reason": "Untrusted vendor"
+  }'
+```
+
+---
+
+#### DELETE /v1/policy/blacklist/:id
+
+Remove a blacklist entry by ID. Only admins may call this endpoint. Changes are audit-logged.
+
+**Authentication:** JWT cookie or API key
+**Required Role:** `admin`
+**Required Scope:** `admin`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | integer | Blacklist entry ID |
+
+**Response:** `204 No Content`
+
+**Error Responses:**
+- `401` - Not authenticated
+- `403` - Insufficient role (requires admin)
+- `404` - Entry not found
+
+**Example Request:**
+```bash
+curl -X DELETE https://countersig.com/v1/policy/blacklist/2 \
+  -H "Cookie: token=..."
+```
+
+---
+
+### Policy Bundle Format
+
+The signed policy bundle is the primary artifact consumed by the Countersig SDK. It is fetched periodically (every `ttl_seconds`) and verified offline using the Ed25519 public key published via the JWKS endpoint.
+
+```json
+{
+  "bundle": {
+    "version": 1,
+    "agent_id": "<agent-uuid>",
+    "org_id": "<org-uuid>",
+    "policy_mode": "enforced | permissive | audit_only",
+    "allow": [
+      { "destination": "api.openai.com", "destination_type": "domain" },
+      { "destination": "*.anthropic.com", "destination_type": "wildcard" },
+      { "destination": "10.0.0.0/8", "destination_type": "cidr" },
+      { "destination": "agent:<uuid>", "destination_type": "agent" }
+    ],
+    "deny": [
+      { "destination": "evil.com", "destination_type": "domain", "scope": "org", "reason": "org_blacklist" },
+      { "destination": "bad-agent.io", "destination_type": "domain", "scope": "agent", "reason": "manual block" }
+    ],
+    "global_deny_hash": "<sha256 hex of sorted global_blacklist entries>",
+    "issued_at": "2026-04-30T12:00:00.000Z",
+    "expires_at": "2026-04-30T12:05:00.000Z",
+    "ttl_seconds": 300
+  },
+  "signature": "<Ed25519 JWS compact serialization>"
+}
+```
+
+**Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `version` | integer | Bundle schema version (currently `1`) |
+| `agent_id` | string | The agent this bundle was computed for |
+| `org_id` | string | The agent's organization |
+| `policy_mode` | string | `enforced`, `permissive`, or `audit_only` |
+| `allow` | array | Effective whitelist (org + defaults ∩ agent overrides) |
+| `deny` | array | Merged org + agent blacklist entries |
+| `global_deny_hash` | string | SHA-256 hash of global blacklist; SDK fetches full list when hash changes |
+| `issued_at` | string | ISO 8601 timestamp of bundle generation |
+| `expires_at` | string | ISO 8601 timestamp when bundle expires |
+| `ttl_seconds` | integer | Cache TTL matching the org setting |
+| `signature` | string | Ed25519 JWS over the bundle JSON, verifiable via JWKS |
+
+---
+
+### Destination Matching Rules
+
+The policy engine normalizes all destinations before matching. URLs are reduced to their hostname; `agent:<uuid>` references are matched as internal identifiers.
+
+| Type | Format | Matching Behavior |
+|------|--------|-------------------|
+| `domain` | `api.openai.com` | Exact hostname match (case-insensitive) |
+| `wildcard` | `*.openai.com` | Suffix match — matches the bare domain (`openai.com`) and any subdomain (`api.openai.com`) |
+| `agent` | `agent:<uuid>` | Internal agent-to-agent reference; matched by UUID |
+| `cidr` | `10.0.0.0/8` | IP range match — only applies when the destination resolves to a literal IP address |
+
+**Normalization:** URLs are stripped to hostname only (`https://api.openai.com/v1/chat` → `api.openai.com`). Port numbers and paths are ignored. All comparisons are case-insensitive.
+
+---
+
+### Precedence Model
+
+The Trust Layer evaluates destinations against a strict 5-level priority model. Higher-priority rules always win, regardless of lower-level entries.
+
+| Priority | List | Scope | Effect | Overridable? |
+|----------|------|-------|--------|--------------|
+| 1 (highest) | Global Blacklist | Platform | **Block** — threat feed entries (URLhaus, etc.) | No — cannot be overridden by any org or agent setting |
+| 2 | Org Blacklist | Organization | **Block** — org-level denied destinations | No — always wins over whitelists |
+| 3 | Org Whitelist | Organization | **Allow** — defines the maximum allowed set | Only restricted by blacklists above |
+| 4 | Agent Whitelist | Agent | **Allow** — further restricts within org whitelist (intersection) | Subset of org whitelist only |
+| 5 (lowest) | Agent Blacklist | Agent | **Block** — agent-specific denied destinations | Additive on top of org blacklist |
+
+**Key behaviors:**
+- In `enforced` mode, a destination must appear in the effective whitelist AND not appear in any blacklist.
+- In `permissive` mode, blacklists still block, but destinations not on the whitelist are allowed.
+- In `audit_only` mode, all traffic is allowed, but violations are logged with `audit_only:<reason>` for monitoring.
+- The effective whitelist is the intersection of org whitelist (+ global defaults if opted in) and agent whitelist (if the agent has any entries). If the agent has no whitelist entries, the full org whitelist applies.
+
+---
+
 ## Webhook Endpoints (v2)
 
 ---
@@ -2982,6 +3519,740 @@ curl https://countersig.com/health
 
 ---
 
+## SIEM Integration Endpoints (Enterprise)
+
+SIEM (Security Information and Event Management) integration endpoints allow Enterprise-tier organizations to configure connectors that push audit events to external security platforms. All endpoints require the `siem_integration` tier feature.
+
+---
+
+#### GET /orgs/:orgId/siem/connectors
+
+List all SIEM connectors configured for the organization.
+
+**Authentication:** Bearer JWT
+**Required Role:** `manager` or `admin`
+**Tier Requirement:** Enterprise (`siem_integration`)
+
+**Rate Limit:** General tier (100 requests / 1 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orgId` | string | Organization UUID |
+
+**Response Body (200 OK):**
+```json
+{
+  "connectors": [
+    {
+      "id": "connector-uuid-1111",
+      "org_id": "org-uuid-1234",
+      "name": "Splunk Production",
+      "connector_type": "splunk_hec",
+      "endpoint_url": "https://splunk.example.com:8088/services/collector",
+      "auth_token_hash": "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
+      "auth_header_name": "Authorization",
+      "format": "json",
+      "filter_actions": ["agent.registered", "policy.violated"],
+      "min_risk_score": 0,
+      "batch_size": 100,
+      "flush_interval_seconds": 30,
+      "enabled": true,
+      "created_at": "2026-04-28T10:00:00.000Z",
+      "updated_at": "2026-04-28T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+- `403` - Insufficient role or not a member of this organization
+- `403` - Tier feature `siem_integration` not available
+
+**Example Request:**
+```bash
+curl https://countersig.com/orgs/org-uuid-1234/siem/connectors \
+  -H "Authorization: Bearer <jwt-token>"
+```
+
+---
+
+#### POST /orgs/:orgId/siem/connectors
+
+Create a new SIEM connector for the organization.
+
+**Authentication:** Bearer JWT
+**Required Role:** `admin`
+**Tier Requirement:** Enterprise (`siem_integration`)
+
+**Rate Limit:** Auth tier (10 requests / 1 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orgId` | string | Organization UUID |
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Display name for the connector |
+| `connectorType` | string | Yes | One of: `splunk_hec`, `datadog`, `elasticsearch`, `generic_http`, `syslog` |
+| `endpointUrl` | string | Yes | Target URL for event delivery |
+| `authToken` | string | No | Authentication token (stored hashed) |
+| `authHeaderName` | string | No | Header name for auth token (default: `Authorization`) |
+| `format` | string | No | Output format: `json` (default), `cef`, or `syslog` |
+| `filterActions` | string[] | No | Event types to forward (empty = all) |
+| `minRiskScore` | number | No | Minimum risk score to forward (default: 0) |
+| `batchSize` | number | No | Events per batch (default: 100) |
+| `flushIntervalSeconds` | number | No | Max seconds between flushes (default: 30) |
+
+**Response Body (201 Created):**
+```json
+{
+  "connector": {
+    "id": "connector-uuid-2222",
+    "org_id": "org-uuid-1234",
+    "name": "Datadog Prod",
+    "connector_type": "datadog",
+    "endpoint_url": "https://http-intake.logs.datadoghq.com/api/v2/logs",
+    "auth_token_hash": "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
+    "auth_header_name": "DD-API-KEY",
+    "format": "json",
+    "filter_actions": [],
+    "min_risk_score": 0,
+    "batch_size": 100,
+    "flush_interval_seconds": 30,
+    "enabled": true,
+    "created_at": "2026-04-28T11:00:00.000Z",
+    "updated_at": "2026-04-28T11:00:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+- `400` - Missing required fields (`name`, `connectorType`, `endpointUrl`)
+- `400` - Invalid `connectorType` or `format` value
+- `401` - Not authenticated
+- `403` - Insufficient role or tier feature not available
+
+**Example Request:**
+```bash
+curl -X POST https://countersig.com/orgs/org-uuid-1234/siem/connectors \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -d '{
+    "name": "Datadog Prod",
+    "connectorType": "datadog",
+    "endpointUrl": "https://http-intake.logs.datadoghq.com/api/v2/logs",
+    "authToken": "dd-api-key-value",
+    "authHeaderName": "DD-API-KEY",
+    "format": "json",
+    "batchSize": 50,
+    "flushIntervalSeconds": 15
+  }'
+```
+
+---
+
+#### PUT /orgs/:orgId/siem/connectors/:connectorId
+
+Update an existing SIEM connector.
+
+**Authentication:** Bearer JWT
+**Required Role:** `admin`
+**Tier Requirement:** Enterprise (`siem_integration`)
+
+**Rate Limit:** Auth tier (10 requests / 1 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orgId` | string | Organization UUID |
+| `connectorId` | string | Connector UUID |
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | No | Updated display name |
+| `endpointUrl` | string | No | Updated target URL |
+| `authToken` | string | No | Updated auth token |
+| `authHeaderName` | string | No | Updated header name |
+| `format` | string | No | Updated format: `json`, `cef`, or `syslog` |
+| `filterActions` | string[] | No | Updated event filter list |
+| `minRiskScore` | number | No | Updated minimum risk score |
+| `batchSize` | number | No | Updated batch size |
+| `flushIntervalSeconds` | number | No | Updated flush interval |
+| `enabled` | boolean | No | Enable or disable the connector |
+
+**Response Body (200 OK):**
+```json
+{
+  "connector": {
+    "id": "connector-uuid-1111",
+    "org_id": "org-uuid-1234",
+    "name": "Splunk Production (Updated)",
+    "connector_type": "splunk_hec",
+    "endpoint_url": "https://splunk.example.com:8088/services/collector",
+    "auth_token_hash": "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
+    "format": "cef",
+    "enabled": true,
+    "updated_at": "2026-04-28T12:00:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+- `403` - Insufficient role or tier feature not available
+- `404` - Connector not found
+
+**Example Request:**
+```bash
+curl -X PUT https://countersig.com/orgs/org-uuid-1234/siem/connectors/connector-uuid-1111 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -d '{
+    "name": "Splunk Production (Updated)",
+    "format": "cef",
+    "batchSize": 200
+  }'
+```
+
+---
+
+#### DELETE /orgs/:orgId/siem/connectors/:connectorId
+
+Delete a SIEM connector.
+
+**Authentication:** Bearer JWT
+**Required Role:** `admin`
+**Tier Requirement:** Enterprise (`siem_integration`)
+
+**Rate Limit:** Auth tier (10 requests / 1 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orgId` | string | Organization UUID |
+| `connectorId` | string | Connector UUID |
+
+**Response Body (200 OK):**
+```json
+{
+  "message": "Connector deleted"
+}
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+- `403` - Insufficient role or tier feature not available
+- `404` - Connector not found
+
+**Example Request:**
+```bash
+curl -X DELETE https://countersig.com/orgs/org-uuid-1234/siem/connectors/connector-uuid-1111 \
+  -H "Authorization: Bearer <jwt-token>"
+```
+
+---
+
+#### POST /orgs/:orgId/siem/connectors/:connectorId/test
+
+Test a SIEM connector by sending a sample event to the configured endpoint.
+
+**Authentication:** Bearer JWT
+**Required Role:** `admin`
+**Tier Requirement:** Enterprise (`siem_integration`)
+
+**Rate Limit:** Auth tier (10 requests / 1 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orgId` | string | Organization UUID |
+| `connectorId` | string | Connector UUID |
+
+**Response Body (200 OK):**
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "Test event delivered successfully"
+}
+```
+
+If the test fails:
+
+```json
+{
+  "success": false,
+  "status": 502,
+  "error": "Connection refused: https://splunk.example.com:8088/services/collector"
+}
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+- `403` - Insufficient role or tier feature not available
+- `404` - Connector not found
+
+**Example Request:**
+```bash
+curl -X POST https://countersig.com/orgs/org-uuid-1234/siem/connectors/connector-uuid-1111/test \
+  -H "Authorization: Bearer <jwt-token>"
+```
+
+---
+
+#### GET /orgs/:orgId/siem/connectors/:connectorId/deliveries
+
+List delivery history for a SIEM connector, showing recent event batches and their delivery status.
+
+**Authentication:** Bearer JWT
+**Required Role:** `manager` or `admin`
+**Tier Requirement:** Enterprise (`siem_integration`)
+
+**Rate Limit:** General tier (100 requests / 1 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `orgId` | string | Organization UUID |
+| `connectorId` | string | Connector UUID |
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | number | 50 | Max results to return (capped at 100) |
+| `offset` | number | 0 | Pagination offset |
+
+**Response Body (200 OK):**
+```json
+{
+  "deliveries": [
+    {
+      "id": "delivery-uuid-1111",
+      "connector_id": "connector-uuid-1111",
+      "event_count": 25,
+      "status": "delivered",
+      "http_status": 200,
+      "error": null,
+      "delivered_at": "2026-04-28T12:05:00.000Z"
+    },
+    {
+      "id": "delivery-uuid-2222",
+      "connector_id": "connector-uuid-1111",
+      "event_count": 10,
+      "status": "failed",
+      "http_status": 503,
+      "error": "Service Unavailable",
+      "delivered_at": "2026-04-28T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+- `403` - Insufficient role or tier feature not available
+- `404` - Connector not found
+
+**Example Request:**
+```bash
+curl "https://countersig.com/orgs/org-uuid-1234/siem/connectors/connector-uuid-1111/deliveries?limit=20" \
+  -H "Authorization: Bearer <jwt-token>"
+```
+
+---
+
+## Agent Health Monitoring Endpoints (Professional+)
+
+Agent Health Monitoring provides real-time visibility into agent operational status through heartbeats, health summaries, and configurable alert rules. Available on Professional and Enterprise tiers.
+
+---
+
+#### POST /agents/:agentId/heartbeat
+
+Send a heartbeat signal for an agent. Updates the agent's `last_heartbeat` timestamp and transitions its health status to `healthy`. If the agent was previously in a non-healthy state, a health transition event is recorded.
+
+**Authentication:** Bearer JWT
+**Required Role:** `member` or higher
+**Required Scope:** `write`
+
+**Rate Limit:** General tier (100 requests / 1 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `agentId` | string | Agent UUID |
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `metadata` | object | No | Optional runtime information |
+| `metadata.version` | string | No | Agent software version |
+| `metadata.uptime` | number | No | Agent uptime in seconds |
+| `metadata.errorCount` | number | No | Number of errors since last heartbeat |
+| `metadata.memoryUsage` | number | No | Memory usage in bytes |
+| `metadata.cpuUsage` | number | No | CPU usage percentage (0-100) |
+
+**Response Body (200 OK):**
+```json
+{
+  "status": "ok",
+  "next_expected": 120,
+  "timestamp": "2026-04-28T14:30:00.000Z"
+}
+```
+
+> **Note:** `next_expected` indicates the number of seconds until the next expected heartbeat. Agents that fail to send a heartbeat within this window will transition to `stale` status.
+
+**Error Responses:**
+- `401` - Not authenticated
+- `403` - Agent does not belong to user's organization
+- `404` - Agent not found
+
+**Example Request:**
+```bash
+curl -X POST https://countersig.com/agents/agent-uuid-1234/heartbeat \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -d '{
+    "metadata": {
+      "version": "1.2.3",
+      "uptime": 86400,
+      "errorCount": 0,
+      "memoryUsage": 134217728,
+      "cpuUsage": 12.5
+    }
+  }'
+```
+
+---
+
+#### GET /agents/health/summary
+
+Get an organization-wide health summary, including counts by status and agents that need attention.
+
+**Authentication:** Bearer JWT
+
+**Rate Limit:** General tier (100 requests / 1 min)
+
+**Response Body (200 OK):**
+```json
+{
+  "summary": {
+    "healthy": 45,
+    "stale": 3,
+    "offline": 2,
+    "unknown": 5,
+    "total": 55,
+    "healthScore": 82
+  },
+  "needsAttention": [
+    {
+      "agent_id": "agent-uuid-1111",
+      "name": "Trading Bot Alpha",
+      "health_status": "offline",
+      "last_heartbeat": "2026-04-27T08:00:00.000Z",
+      "successful_actions": 1250,
+      "failed_actions": 15
+    },
+    {
+      "agent_id": "agent-uuid-2222",
+      "name": "Data Collector",
+      "health_status": "stale",
+      "last_heartbeat": "2026-04-28T12:00:00.000Z",
+      "successful_actions": 890,
+      "failed_actions": 3
+    }
+  ]
+}
+```
+
+> **Note:** `needsAttention` returns up to 20 agents with `stale` or `offline` status, ordered by oldest heartbeat first.
+
+**Error Responses:**
+- `401` - Not authenticated
+- `500` - Failed to fetch health summary
+
+**Example Request:**
+```bash
+curl https://countersig.com/agents/health/summary \
+  -H "Authorization: Bearer <jwt-token>"
+```
+
+---
+
+#### GET /agents/:agentId/health
+
+Get detailed health information for a specific agent, including action success rate and recent health events.
+
+**Authentication:** Bearer JWT
+
+**Rate Limit:** General tier (100 requests / 1 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `agentId` | string | Agent UUID |
+
+**Response Body (200 OK):**
+```json
+{
+  "agentId": "agent-uuid-1234",
+  "name": "Trading Bot Alpha",
+  "healthStatus": "healthy",
+  "lastHeartbeat": "2026-04-28T14:30:00.000Z",
+  "lastVerified": "2026-04-28T14:25:00.000Z",
+  "successfulActions": 1250,
+  "failedActions": 15,
+  "successRate": 99,
+  "events": [
+    {
+      "id": "event-uuid-1111",
+      "agent_id": "agent-uuid-1234",
+      "previous_status": "stale",
+      "new_status": "healthy",
+      "trigger": "heartbeat",
+      "metadata": { "version": "1.2.3" },
+      "created_at": "2026-04-28T14:30:00.000Z"
+    }
+  ]
+}
+```
+
+> **Note:** `successRate` is a percentage (0-100) calculated from `successfulActions / (successfulActions + failedActions)`. Returns `null` if no actions have been recorded. Up to 20 recent health events are returned.
+
+**Error Responses:**
+- `401` - Not authenticated
+- `404` - Agent not found or not in user's organization
+- `500` - Failed to fetch agent health
+
+**Example Request:**
+```bash
+curl https://countersig.com/agents/agent-uuid-1234/health \
+  -H "Authorization: Bearer <jwt-token>"
+```
+
+---
+
+#### GET /agents/health/alerts
+
+List all health alert rules configured for the organization.
+
+**Authentication:** Bearer JWT
+
+**Rate Limit:** General tier (100 requests / 1 min)
+
+**Response Body (200 OK):**
+```json
+{
+  "rules": [
+    {
+      "id": "rule-uuid-1111",
+      "org_id": "org-uuid-1234",
+      "name": "Agent Offline Alert",
+      "condition": "agent_offline",
+      "threshold_minutes": 30,
+      "threshold_percent": null,
+      "notify_webhook": true,
+      "enabled": true,
+      "created_at": "2026-04-28T10:00:00.000Z",
+      "updated_at": "2026-04-28T10:00:00.000Z"
+    },
+    {
+      "id": "rule-uuid-2222",
+      "org_id": "org-uuid-1234",
+      "name": "High Failure Rate",
+      "condition": "high_failure_rate",
+      "threshold_minutes": null,
+      "threshold_percent": 25,
+      "notify_webhook": true,
+      "enabled": true,
+      "created_at": "2026-04-28T10:05:00.000Z",
+      "updated_at": "2026-04-28T10:05:00.000Z"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+- `500` - Failed to fetch alert rules
+
+**Example Request:**
+```bash
+curl https://countersig.com/agents/health/alerts \
+  -H "Authorization: Bearer <jwt-token>"
+```
+
+---
+
+#### POST /agents/health/alerts
+
+Create a new health alert rule for the organization.
+
+**Authentication:** Bearer JWT
+
+**Rate Limit:** Auth tier (10 requests / 1 min)
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Display name for the alert rule |
+| `condition` | string | Yes | One of: `agent_offline`, `agent_stale`, `high_failure_rate`, `no_heartbeat` |
+| `thresholdMinutes` | number | No | Minutes threshold (for time-based conditions) |
+| `thresholdPercent` | number | No | Percentage threshold (for `high_failure_rate`) |
+| `notifyWebhook` | boolean | No | Whether to send webhook notification (default: `true`) |
+
+**Response Body (201 Created):**
+```json
+{
+  "rule": {
+    "id": "rule-uuid-3333",
+    "org_id": "org-uuid-1234",
+    "name": "No Heartbeat Warning",
+    "condition": "no_heartbeat",
+    "threshold_minutes": 60,
+    "threshold_percent": null,
+    "notify_webhook": true,
+    "enabled": true,
+    "created_at": "2026-04-28T15:00:00.000Z",
+    "updated_at": "2026-04-28T15:00:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+- `400` - Missing `name` or `condition`
+- `400` - Invalid `condition` value
+- `401` - Not authenticated
+- `500` - Failed to create alert rule
+
+**Example Request:**
+```bash
+curl -X POST https://countersig.com/agents/health/alerts \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -d '{
+    "name": "No Heartbeat Warning",
+    "condition": "no_heartbeat",
+    "thresholdMinutes": 60,
+    "notifyWebhook": true
+  }'
+```
+
+---
+
+#### PUT /agents/health/alerts/:ruleId
+
+Update an existing health alert rule.
+
+**Authentication:** Bearer JWT
+
+**Rate Limit:** Auth tier (10 requests / 1 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `ruleId` | string | Alert rule UUID |
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | No | Updated display name |
+| `condition` | string | No | Updated condition |
+| `thresholdMinutes` | number | No | Updated minutes threshold |
+| `thresholdPercent` | number | No | Updated percentage threshold |
+| `notifyWebhook` | boolean | No | Updated webhook notification setting |
+| `enabled` | boolean | No | Enable or disable the rule |
+
+**Response Body (200 OK):**
+```json
+{
+  "rule": {
+    "id": "rule-uuid-1111",
+    "org_id": "org-uuid-1234",
+    "name": "Agent Offline Alert (Updated)",
+    "condition": "agent_offline",
+    "threshold_minutes": 15,
+    "threshold_percent": null,
+    "notify_webhook": true,
+    "enabled": true,
+    "updated_at": "2026-04-28T16:00:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+- `404` - Alert rule not found
+- `500` - Failed to update alert rule
+
+**Example Request:**
+```bash
+curl -X PUT https://countersig.com/agents/health/alerts/rule-uuid-1111 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <jwt-token>" \
+  -d '{
+    "name": "Agent Offline Alert (Updated)",
+    "thresholdMinutes": 15
+  }'
+```
+
+---
+
+#### DELETE /agents/health/alerts/:ruleId
+
+Delete a health alert rule.
+
+**Authentication:** Bearer JWT
+
+**Rate Limit:** Auth tier (10 requests / 1 min)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `ruleId` | string | Alert rule UUID |
+
+**Response Body (200 OK):**
+```json
+{
+  "message": "Alert rule deleted"
+}
+```
+
+**Error Responses:**
+- `401` - Not authenticated
+- `404` - Alert rule not found
+- `500` - Failed to delete alert rule
+
+**Example Request:**
+```bash
+curl -X DELETE https://countersig.com/agents/health/alerts/rule-uuid-1111 \
+  -H "Authorization: Bearer <jwt-token>"
+```
+
+---
+
 ## Configuration Reference
 
 Environment variables for API configuration:
@@ -3002,4 +4273,4 @@ Environment variables for API configuration:
 ---
 
 *Document Version: 2.0.0*  
-*Last Updated: April 2026*
+*Last Updated: May 2026*

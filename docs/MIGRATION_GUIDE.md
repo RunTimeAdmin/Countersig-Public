@@ -329,6 +329,74 @@ pm2 restart countersig
 
 ---
 
+## Trust Layer v1 — Policy Enforcement Tables
+
+Trust Layer v1 (migrate-v6) adds destination-level policy enforcement. This is a **separate system** from the existing `policy_rules` table — `policy_rules` handles condition-action automation rules, while the Trust Layer tables handle destination whitelisting/blacklisting for outbound requests.
+
+### New Tables
+
+| Table | Purpose |
+|-------|----------|
+| `global_blacklist` | Countersig-curated denylist (URLhaus feed), no tenant override |
+| `org_policy_settings` | Per-org policy mode (`enforced` / `audit_only` / `permissive`), TTL config |
+| `org_whitelist` | Per-org allowed destinations (max allowed set) |
+| `org_blacklist` | Per-org denied destinations (always wins over allows) |
+| `agent_whitelist` | Per-agent restriction within org allow (intersection only) |
+| `agent_blacklist` | Per-agent additional denies |
+| `policy_default_whitelist` | 11 pre-approved AI API destinations (seed data) |
+
+### Seed Data
+
+`policy_default_whitelist` is automatically seeded with 11 entries covering major AI API providers:
+
+- OpenAI
+- Anthropic
+- Google Gemini
+- Groq
+- Mistral
+- DeepSeek
+- Perplexity
+- Azure OpenAI
+- AWS Bedrock
+- Tavily
+- Serper
+
+### Running the Migration
+
+The migration is idempotent and runs as part of the unified migration script:
+
+```bash
+cd backend
+node src/models/migrate.js
+```
+
+### Verification
+
+```sql
+-- Verify Trust Layer v1 tables exist
+SELECT tablename FROM pg_tables WHERE tablename IN (
+  'global_blacklist', 'org_policy_settings', 'org_whitelist',
+  'org_blacklist', 'agent_whitelist', 'agent_blacklist',
+  'policy_default_whitelist'
+);
+-- Should return 7 rows
+
+-- Verify seed data
+SELECT COUNT(*) FROM policy_default_whitelist;
+-- Should return 11
+```
+
+### Relationship to `policy_rules`
+
+The existing `policy_rules` table (created in v2 migration) and the Trust Layer v1 tables serve different purposes:
+
+- **`policy_rules`** — Condition-action automation (e.g., "if reputation drops below X, revoke badge")
+- **Trust Layer tables** — Destination control (e.g., "allow calls to OpenAI, block calls to unknown endpoints")
+
+Both systems operate independently and do not interfere with each other.
+
+---
+
 ## Support
 
 For migration issues:

@@ -1,6 +1,6 @@
 ﻿# Countersig Developer Guide
 
-Enterprise-grade developer onboarding documentation for the Countersig platform — the trust verification layer for AI agents.
+Enterprise-grade developer onboarding documentation for the Countersig platform — the trust infrastructure for the agent era.
 
 **Author:** David Cooper (CCIE #14019)  
 **Version:** 1.0.0  
@@ -30,6 +30,9 @@ Enterprise-grade developer onboarding documentation for the Countersig platform 
    - [SDK Packages](#sdk-packages)
    - [BullMQ Webhook Queue](#bullmq-webhook-queue)
    - [Policy Enforcement System (Trust Layer v1)](#policy-enforcement-system-trust-layer-v1)
+   - [Multi-Organization Management](#multi-organization-management)
+   - [SIEM Integration (Enterprise)](#siem-integration-enterprise)
+   - [Agent Health Monitoring (Professional+)](#agent-health-monitoring-professional)
 10. [Deployment](#10-deployment)
 11. [Contributing](#11-contributing)
 
@@ -78,7 +81,11 @@ const token = await client.tokens.issue(agent.agent_id, {
 For Claude Code / Claude Desktop integration:
 
 ```bash
-claude mcp add countersig -- npx -y @countersig/mcp
+# Install globally
+npm install -g @countersig/mcp
+
+# Add to Claude
+claude mcp add countersig -- countersig-mcp
 ```
 
 See the [MCP package documentation](https://www.npmjs.com/package/@countersig/mcp) for full configuration options.
@@ -251,6 +258,9 @@ This runs all migration versions in sequence:
 | **v2** | Organizations, RBAC, audit, API keys | `organizations`, `org_members`, `audit_logs`, `api_keys`, `webhooks`, `policies` tables; `org_id` column added to existing tables |
 | **v3** | Chain type support | `chain_type` and `chain_meta` columns on `agent_identities`; `supported_chains` reference table; per-chain pubkey uniqueness |
 | **v4** | Enterprise auth | `credential_type`, `external_id`, `idp_provider` columns on `agent_identities`; `org_identity_providers` table for org-level IdP configuration |
+| **v12** | Multi-org membership | `org_members` junction table (many-to-many user-org), `org_invites` table with 7-day expiry |
+| **v13** | SIEM integration | `siem_connectors` table (per-org connector config), `siem_delivery_logs` table (delivery tracking) |
+| **v14** | Agent health monitoring | `agent_health_events` table (status transitions + metadata), `agent_alert_rules` table (configurable per-org alert rules) |
 
 All migrations are **idempotent** — they use `IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS`, so re-running them is safe.
 
@@ -1356,22 +1366,24 @@ const details = await client.getAgent(agent.agentId);
 React component library with theme-aware UI components:
 
 - **TrustBadge** — Displays agent trust score with chain icon and reputation label
-- **AgentCard** — Full agent profile card with capabilities and chain info
+- **ReputationBreakdown** — Visual breakdown of reputation scores by category
 - **CapabilityList** — Renders capability tags with status indicators
-- **ReputationGauge** — Visual score gauge with trust tier coloring
+- **ChainBadge** — Compact chain-type indicator badge
 
 ```bash
 npm install @countersig/react
 ```
 
 ```jsx
-import { TrustBadge, AgentCard } from '@countersig/react';
+import { TrustBadge, ReputationBreakdown, CapabilityList, ChainBadge } from '@countersig/react';
 
 function AgentProfile({ agentId }) {
   return (
     <div>
-      <TrustBadge agentId={agentId} theme="dark" />
-      <AgentCard agentId={agentId} showChain />
+      <TrustBadge agentId={agentId} theme="dark" showScore showChain />
+      <ReputationBreakdown agentId={agentId} theme="dark" showHeader />
+      <CapabilityList agentId={agentId} maxDisplay={5} />
+      <ChainBadge chainType="solana" size="md" />
     </div>
   );
 }
@@ -1452,9 +1464,209 @@ await closeWebhookQueue();
 
 ### Policy Enforcement System (Trust Layer v1)
 
-The Trust Layer provides destination-level policy enforcement for AI agents, controlling which external services agents are allowed to contact. It supports three enforcement modes (permissive, audit_only, enforced) with both client-side SDK and network-level gateway enforcement paths.
+The Trust Layer provides destination-level policy enforcement for AI agents, controlling which external services and endpoints agents are allowed to contact. It operates as a security boundary between agents and the internet.
 
-Policy enforcement is available in the Enterprise tier. Contact sales@countersig.com for details.
+#### Policy Modes
+
+Organizations configure one of three enforcement modes:
+
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| `enforced` | Default-deny — agents can only reach explicitly whitelisted destinations | Production deployments |
+| `audit_only` | Log policy violations but allow all traffic through | Rollout phase — observe real traffic patterns before enforcing |
+| `permissive` | Default-allow — only blacklisted destinations are blocked | Development and staging |
+
+#### Two Enforcement Paths
+
+The Trust Layer offers defense-in-depth through two complementary enforcement mechanisms:
+
+**SDK enforcement (`@countersig/policy-client`):** The agent pulls a signed policy bundle periodically and evaluates destinations locally. Microsecond latency, zero network overhead. However, this is a client-side hint — a compromised agent can bypass it by using native HTTP directly.
+
+**Gateway enforcement (`countersig-gateway`):** A Go-based Caddy module that sits in the network path between agents and the internet. The gateway enforces policy at the network layer — agents cannot bypass it regardless of what code they run. The gateway pulls signed policy bundles per agent and evaluates locally, with sub-millisecond decisions on cache hit.
+
+For production environments, deploy both: SDK for fast developer feedback, gateway for enforced security boundary.
+
+#### Policy Precedence
+
+Policies follow a strict precedence model where denies always win over allows:
+
+1. **Global blacklist** — Threat intelligence feed (URLhaus). Always denies. Cannot be overridden.
+2. **Organization blacklist** — Org-level deny rules. Always wins over allows.
+3. **Organization whitelist** — Defines the maximum allowed set for the org.
+4. **Agent blacklist** — Additional agent-specific deny rules.
+5. **Agent whitelist** — Can only restrict further (intersection with org whitelist, not union).
+
+#### Key Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|----------|
+| `/api/v1/policy/bundle/:agentId` | GET | Pull signed policy bundle for an agent |
+| `/api/v1/policy/check` | POST | Per-call policy evaluation (gateway path) |
+| `/api/v1/policy/settings` | GET/PUT | Read or update org policy mode and settings |
+| `/api/v1/policy/whitelist` | GET/POST/DELETE | Manage org whitelist entries |
+| `/api/v1/policy/blacklist` | GET/POST/DELETE | Manage org blacklist entries |
+
+#### Policy Bundles
+
+Bundles are JSON payloads containing the complete allow/deny ruleset for a specific agent. Each bundle is:
+- **Signed** with Ed25519 (verifiable via the JWKS endpoint)
+- **Time-limited** with a configurable TTL (default 300 seconds, range 60-3600)
+- **Self-contained** — includes all rules needed for local evaluation
+
+For detailed architecture, rollout strategy, and SDK integration, see [POLICY_OVERVIEW.md](./POLICY_OVERVIEW.md).
+
+---
+
+### Multi-Organization Management
+
+Countersig 2.0 supports many-to-many user-organization relationships, replacing the original single `org_id` on users with a dedicated `org_members` junction table.
+
+#### Data Model
+
+- **`org_members`** — junction table linking users to organizations with a role per membership
+- **`org_invites`** — invitation records with 7-day expiry and accept/decline workflow
+
+#### Role Hierarchy
+
+| Role | Permissions |
+|------|-------------|
+| `admin` | Full control: manage members, billing, delete org resources |
+| `manager` | Invite users, manage policies/webhooks, update org settings |
+| `member` | Register agents, create API keys, view everything |
+| `viewer` | Read-only access to org data, agents, audit logs |
+
+#### Org Switching
+
+Users with multiple org memberships can switch context via JWT re-issuance:
+
+```bash
+POST /auth/switch-org
+{ "orgId": "target-org-uuid" }
+```
+
+The server validates membership, issues a new JWT scoped to the target org, and sets updated cookies. The `orgContext` middleware validates membership per-request to ensure the user still belongs to the active org.
+
+#### Invitation System
+
+- Org managers/admins invite users by email with a target role
+- Invitations expire after 7 days
+- Recipients accept or decline via dedicated endpoints
+- Accepting creates an `org_members` entry with the specified role
+
+**Reference:** See [MULTI_ORG_GUIDE.md](./MULTI_ORG_GUIDE.md) for complete documentation.
+
+---
+
+### SIEM Integration (Enterprise)
+
+Countersig supports enterprise SIEM (Security Information and Event Management) integration for streaming audit events to external security platforms.
+
+#### Architecture
+
+```
+audit.created → EventBus → siemService → BullMQ queue → HTTP delivery → SIEM endpoint
+```
+
+1. **auditService** emits `audit.created` events for every audit log entry
+2. **siemService** subscribes to events and buffers them in Redis
+3. **BullMQ** `siem-delivery` queue handles reliable delivery (concurrency 5, 6 retries, exponential backoff with 2s base)
+4. **Format adapters** transform events before delivery
+
+#### Format Adapters
+
+| Format | Description |
+|--------|-------------|
+| **JSON** | Countersig envelope with full event metadata |
+| **CEF** | Common Event Format for ArcSight, QRadar, etc. |
+| **Syslog** | RFC 5424 compliant for syslog-based SIEM platforms |
+
+#### Connector Types
+
+| Type | Target Platform |
+|------|----------------|
+| `splunk_hec` | Splunk HTTP Event Collector |
+| `datadog` | Datadog Logs API |
+| `elasticsearch` | Elasticsearch Bulk API |
+| `generic_http` | Any HTTP endpoint |
+| `syslog` | Syslog receivers |
+
+#### Resilience
+
+- **BullMQ queue**: 6 retries with exponential backoff (2s base)
+- **Circuit breaker**: 5 consecutive delivery failures auto-disables the connector
+- **Delivery logging**: All attempts are recorded in `siem_delivery_logs` for observability
+
+#### Tier Gating
+
+SIEM integration is gated to the **enterprise** tier via `requireTierFeature('siem_integration')` middleware.
+
+**Reference:** See [SIEM_INTEGRATION_GUIDE.md](./SIEM_INTEGRATION_GUIDE.md) for complete documentation.
+
+---
+
+### Agent Health Monitoring (Professional+)
+
+Real-time agent health tracking with configurable alert rules and org-wide health dashboards.
+
+#### Health States
+
+| State | Description |
+|-------|-------------|
+| `healthy` | Agent heartbeat received within expected interval |
+| `stale` | No heartbeat for 2+ minutes |
+| `offline` | No heartbeat for 10+ minutes |
+| `unknown` | No heartbeat data available |
+
+#### Heartbeat Endpoint
+
+```bash
+POST /agents/:agentId/heartbeat
+```
+
+Agents send heartbeats at a 120-second expected interval. The heartbeat payload can include optional metadata (CPU, memory, version, etc.) which is persisted with the health event.
+
+#### Background Health Job
+
+A background job runs every **60 seconds** and:
+
+1. Checks all agents with recent heartbeat data
+2. Transitions agents to `stale` after 2 minutes without a heartbeat
+3. Transitions agents to `offline` after 10 minutes without a heartbeat
+4. Publishes `agent.health_changed` events on state transitions
+5. Evaluates alert rules and publishes `agent.alert_triggered` events on match
+
+#### Health Events
+
+All status transitions are recorded in the `agent_health_events` table with:
+- Previous and new health status
+- Transition timestamp
+- Optional metadata from the heartbeat payload
+
+#### Alert Rules
+
+Organizations can configure alert rules via the API (`/orgs/:orgId/health/alerts`):
+
+| Rule Type | Triggers When |
+|-----------|---------------|
+| `agent_offline` | Agent transitions to offline state |
+| `agent_stale` | Agent transitions to stale state |
+| `high_failure_rate` | Agent failure rate exceeds threshold |
+| `no_heartbeat` | No heartbeat received within configured window |
+
+Alert rules are stored in the `agent_alert_rules` table and evaluated by the background health job.
+
+#### Events Published
+
+- **`agent.health_changed`** — Fired on any health state transition
+- **`agent.alert_triggered`** — Fired when an alert rule condition is met
+
+These events flow through the existing EventBus and can trigger webhooks.
+
+#### Tier Gating
+
+Agent health monitoring is available on **professional** and **enterprise** tiers.
+
+**Reference:** See [AGENT_HEALTH_GUIDE.md](./AGENT_HEALTH_GUIDE.md) for complete documentation.
 
 ---
 

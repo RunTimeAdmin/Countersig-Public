@@ -239,6 +239,8 @@ node -e "require('dotenv').config(); const { migrate } = require('./src/models/m
 
 Expected output: `Migration complete`
 
+> **Trust Layer v1 (migrate-v6):** The unified migration includes migrate-v6 which creates 7 new Trust Layer tables (`global_blacklist`, `org_policy_settings`, `org_whitelist`, `org_blacklist`, `agent_whitelist`, `agent_blacklist`, `policy_default_whitelist`) and seeds 11 default AI API destinations. The migration is idempotent and runs automatically as part of `node src/models/migrate.js`.
+
 ---
 
 ## 6. Build Frontend for Production
@@ -443,6 +445,9 @@ docker compose -f docker-compose.prod.yml logs backend    # Docker
 
 # Test the main site
 curl -I https://countersig.com
+
+# Verify policy endpoints are responding (Trust Layer v1)
+curl -s https://api.countersig.com/v1/policy/settings -H "Authorization: Bearer $TOKEN" | jq .
 ```
 
 Expected responses:
@@ -465,6 +470,18 @@ After successful deployment:
 4. **Test widget** — Try `/widget/{agentId}` to verify widget rendering
 
 5. **Set up monitoring** — Consider adding Countersig to your existing monitoring infrastructure
+
+### URLhaus Threat Feed Configuration
+
+The Trust Layer v1 includes a global blacklist fed by URLhaus (abuse.ch). Set up a cron job to update it every 6 hours:
+
+```bash
+crontab -e
+# Add:
+0 */6 * * * cd /opt/countersig/backend && /usr/bin/node scripts/update-global-blacklist.js >> /var/log/countersig/blacklist-update.log 2>&1
+```
+
+The script fetches malicious URLs from URLhaus, inserts them with a 7-day TTL, and purges expired entries.
 
 ---
 
@@ -505,6 +522,38 @@ pm2 restart countersig
 # Verify it's running
 pm2 logs countersig --lines 10
 ```
+
+---
+
+## Enterprise Feature Configuration
+
+The following features are available on higher-tier plans and require no additional infrastructure beyond the existing PostgreSQL + Redis stack.
+
+### SIEM Integration (Enterprise Tier)
+
+- **No additional environment variables required** — uses the existing Redis/BullMQ connection
+- SIEM connectors are configured per-org via the API or the **Integrations** tab in Settings
+- BullMQ queue `siem-delivery` runs on the same Redis instance as webhooks
+- Delivery settings: concurrency 5, retries 6, exponential backoff with 2s base
+- **Circuit breaker**: connectors are auto-disabled after 5 consecutive delivery failures
+- Ensure **outbound HTTPS** is allowed from the server to your SIEM endpoints (Splunk, Datadog, Elasticsearch, etc.)
+- Delivery logs are stored in the `siem_delivery_logs` table for troubleshooting
+
+### Health Monitoring (Professional+ Tier)
+
+- The background health check job **starts automatically** with the server (60-second interval)
+- **No additional configuration needed** — health monitoring works out of the box
+- Health thresholds: agents become `stale` after 2 minutes, `offline` after 10 minutes without a heartbeat
+- Alert rules are configured per-org via the API (`/orgs/:orgId/health/alerts`)
+- Health events are stored in `agent_health_events`; alert rules in `agent_alert_rules`
+
+### Multi-Organization Support
+
+- Migration v12 creates `org_members` and `org_invites` tables automatically
+- **Existing users are migrated**: their current `org_id` is used to create an `org_members` entry with their existing role
+- No additional configuration needed
+- Org invitations expire after 7 days by default
+- Users can belong to multiple organizations and switch between them via `POST /auth/switch-org`
 
 ---
 
