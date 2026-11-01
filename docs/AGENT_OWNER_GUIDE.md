@@ -75,7 +75,7 @@ You have three options for registering your agent. Choose the one that works bes
 
 The web interface provides a simple 4-step wizard to register your agent:
 
-1. **Go to**: https://countersig.com/register
+1. **Sign in, then go to**: https://countersig.com/register
 
 2. **Step 1 — Agent Identity**:
    - Enter your **Public Key** (from the keypair you generated)
@@ -124,8 +124,10 @@ For advanced users who prefer command-line tools:
 
 ```bash
 # Step 1: Register your agent
-# Note: You need to generate the signature first (see Developer Guide for details)
-curl -X POST https://countersig.com/register \
+# Note: You need to generate the signature first (see Developer Guide for details).
+# Registration requires an API key or a signed-in session.
+curl -X POST https://api.countersig.com/register \
+  -H "Authorization: Bearer cs_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "pubkey": "YOUR_PUBLIC_KEY",
@@ -179,7 +181,8 @@ The verification uses a "challenge-response" protocol:
 
 ```bash
 # Step 1: Request a challenge
-curl -X POST https://countersig.com/verify/challenge \
+curl -X POST https://api.countersig.com/verify/challenge \
+  -H "Authorization: Bearer cs_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"agentId": "YOUR_AGENT_ID"}'
 
@@ -189,7 +192,8 @@ curl -X POST https://countersig.com/verify/challenge \
 # (Use a signing tool or script — see Developer Guide)
 
 # Step 3: Submit the verification response
-curl -X POST https://countersig.com/verify/response \
+curl -X POST https://api.countersig.com/verify/response \
+  -H "Authorization: Bearer cs_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "agentId": "YOUR_AGENT_ID",
@@ -212,7 +216,7 @@ The widget is the most interactive option — it auto-refreshes and shows live d
 
 ```html
 <iframe 
-  src="https://countersig.com/widget/YOUR_AGENT_ID" 
+  src="https://api.countersig.com/widget/YOUR_AGENT_ID" 
   width="400" 
   height="300" 
   frameborder="0" 
@@ -235,7 +239,7 @@ The widget is the most interactive option — it auto-refreshes and shows live d
 The SVG badge is a static image perfect for GitHub READMEs, documentation, or websites:
 
 ```markdown
-![Countersig Trust Badge](https://countersig.com/badge/YOUR_AGENT_ID/svg)
+![Countersig Trust Badge](https://api.countersig.com/badge/YOUR_AGENT_ID/svg)
 ```
 
 **Features:**
@@ -246,7 +250,7 @@ The SVG badge is a static image perfect for GitHub READMEs, documentation, or we
 
 **In HTML:**
 ```html
-<img src="https://countersig.com/badge/YOUR_AGENT_ID/svg" 
+<img src="https://api.countersig.com/badge/YOUR_AGENT_ID/svg" 
      alt="Countersig Trust Badge" />
 ```
 
@@ -255,7 +259,7 @@ The SVG badge is a static image perfect for GitHub READMEs, documentation, or we
 If you want to build your own display or integrate the data into your application:
 
 ```
-GET https://countersig.com/badge/YOUR_AGENT_ID
+GET https://api.countersig.com/badge/YOUR_AGENT_ID
 ```
 
 **Example Response:**
@@ -270,7 +274,7 @@ GET https://countersig.com/badge/YOUR_AGENT_ID
   "score": 75,
   "capabilities": ["trading", "analysis"],
   "verificationStatus": "verified",
-  "widgetUrl": "https://countersig.com/widget/550e8400-e29b-41d4-a716-446655440000"
+  "widgetUrl": "https://api.countersig.com/widget/550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 

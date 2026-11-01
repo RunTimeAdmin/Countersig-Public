@@ -62,6 +62,7 @@ Then add to your `claude_desktop_config.json`:
 
 ```bash
 export COUNTERSIG_API_KEY=cs_xxxxxxxxxxxxxxx
+export COUNTERSIG_MCP_FETCH_URL_ALLOWLIST=api.countersig.com,api.counteraudit.io
 ```
 
 Configuration is stored in `~/.countersig/config.json`.
@@ -122,7 +123,7 @@ What happens:
 | `attest_action` | Record action success/failure | Yes | "Record that I completed a web search" |
 | `issue_a2a_token` | Generate agent-to-agent JWT (60s) | Yes | "Generate an A2A token" |
 | `verify_a2a_token` | Verify token from another agent | Yes | "Verify this token: eyJ..." |
-| `authenticated_fetch` | HTTP with auto A2A token injection | Yes | "Fetch https://api.example.com/data" |
+| `authenticated_fetch` | HTTP with auto A2A token injection + host allowlist | Yes | "Fetch https://api.example.com/data" |
 
 ---
 
@@ -213,7 +214,7 @@ These work without any configuration:
 
 - Private keys stored in `~/.countersig/config.json` (Unix: mode `0600`)
 - API keys validated for format (`cs_*` prefix)
-- `authenticated_fetch` blocks private/internal IP addresses (SSRF protection)
+- `authenticated_fetch` requires `COUNTERSIG_MCP_FETCH_URL_ALLOWLIST`, blocks hosts outside that allowlist, and blocks private/internal addresses (SSRF protection)
 - A2A tokens expire after 60 seconds
 - All API communication uses HTTPS
 

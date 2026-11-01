@@ -118,7 +118,7 @@ Countersig 2.0 is built around a **pluggable, multi-provider authentication arch
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React 19, Vite 6, TailwindCSS |
+| Frontend | React 19, Vite 8, TailwindCSS 4 |
 | Backend | Node.js 20, Express 4 |
 | Database | PostgreSQL 16, Redis 7 |
 | Auth | JWT (Ed25519 + HMAC-SHA256), OAuth2/OIDC |
@@ -139,7 +139,7 @@ Countersig public packaging follows a Developer/Production split:
 
 | Tier | Price | Included |
 |------|-------|----------|
-| **Developer** | Free for prototyping and side projects | Self-serve setup, single-product usage, SDK and API quickstart path |
+| **Developer** | Free, Starter ($29/mo) and Professional ($99/mo) self-serve plans for prototyping and side projects | Self-serve setup, single-product usage, SDK and API quickstart path |
 | **Production** | Starts at **$30K/year** | Production scope, compliance alignment, and full CounterAegis platform path |
 
 For production scoping, use the CounterAegis sales call:

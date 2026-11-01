@@ -1,14 +1,14 @@
 ﻿# Countersig API Reference
 
 **Version:** 2.0.0  
-**Base URL:** `https://countersig.com` (configurable via `COUNTERSIG_BASE_URL`)  
+**Base URL:** `https://api.countersig.com` (self-hosted: the value of `COUNTERSIG_BASE_URL`; `https://countersig.com` serves the web app, not the API)  
 **Author:** David Cooper (CCIE #14019)
 
 ---
 
 ## Authentication Model
 
-Countersig employs an **Ed25519 signature-based authentication model** for all state-modifying operations. This cryptographic approach ensures non-repudiation and eliminates the need for shared secrets or API tokens.
+State-changing endpoints require a JWT cookie or an API key (`Authorization: Bearer cs_...`). Agent operations such as challenge-response verification and agent updates also require an **Ed25519 signature** from the agent's key, using the pattern below.
 
 ### Challenge-Response Pattern
 
@@ -170,6 +170,8 @@ Agents with **3 or more unresolved flags** are automatically marked with `status
 
 ## Endpoints
 
+> **v1 sections below:** the paths still work, with two changes since v2. `POST /register`, `POST /verify/*`, `PUT /agents/:id/update`, `POST /agents/:id/attest`, `POST /agents/:id/flag`, `GET /agents` and `GET /discover` now require a JWT cookie or API key (the unauthenticated listing is `GET /public/agents`). Path parameters take the agent ID (a UUID returned at registration), not the public key, even where the examples below still show `:pubkey`.
+
 ### Registration & Identity (v1 — backward compatible)
 
 ---
@@ -238,7 +240,7 @@ Content-Type: application/json
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/register \
+curl -X POST https://api.countersig.com/register \
   -H "Content-Type: application/json" \
   -d '{
     "pubkey": "AgentPubkey111111111111111111111111111111111",
@@ -315,7 +317,7 @@ COUNTERSIG-UPDATE:{pubkey}:{timestamp}
 
 **Example Request:**
 ```bash
-curl -X PUT https://countersig.com/agents/AgentPubkey111111111111111111111111111111111/update \
+curl -X PUT https://api.countersig.com/agents/AgentPubkey111111111111111111111111111111111/update \
   -H "Content-Type: application/json" \
   -d '{
     "signature": "Base58Signature...",
@@ -369,7 +371,7 @@ Content-Type: application/json
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/verify/challenge \
+curl -X POST https://api.countersig.com/verify/challenge \
   -H "Content-Type: application/json" \
   -d '{"pubkey": "AgentPubkey111111111111111111111111111111111"}'
 ```
@@ -411,7 +413,7 @@ Content-Type: application/json
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/verify/response \
+curl -X POST https://api.countersig.com/verify/response \
   -H "Content-Type: application/json" \
   -d '{
     "pubkey": "AgentPubkey111111111111111111111111111111111",
@@ -456,7 +458,7 @@ Retrieve trust badge data as JSON.
   "successRate": 0.94,
   "capabilities": ["trading", "analytics"],
   "tokenMint": "TokenMint1111111111111111111111111111111111",
-  "widgetUrl": "https://countersig.com/widget/AgentPubkey111111111111111111111111111111111"
+  "widgetUrl": "https://api.countersig.com/widget/AgentPubkey111111111111111111111111111111111"
 }
 ```
 
@@ -474,7 +476,7 @@ Retrieve trust badge data as JSON.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/badge/AgentPubkey111111111111111111111111111111111
+curl https://api.countersig.com/badge/AgentPubkey111111111111111111111111111111111
 ```
 
 ---
@@ -505,12 +507,12 @@ Retrieve trust badge as an SVG image.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/badge/AgentPubkey111111111111111111111111111111111/svg
+curl https://api.countersig.com/badge/AgentPubkey111111111111111111111111111111111/svg
 ```
 
 **Markdown Usage:**
 ```markdown
-![Agent Trust Badge](https://countersig.com/badge/AgentPubkey111111111111111111111111111111111/svg)
+![Agent Trust Badge](https://api.countersig.com/badge/AgentPubkey111111111111111111111111111111111/svg)
 ```
 
 ---
@@ -563,7 +565,7 @@ Retrieve full reputation breakdown with 5-factor analysis.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/reputation/AgentPubkey111111111111111111111111111111111
+curl https://api.countersig.com/reputation/AgentPubkey111111111111111111111111111111111
 ```
 
 ---
@@ -617,10 +619,10 @@ List registered agents with optional filters.
 **Example Request:**
 ```bash
 # List all agents
-curl https://countersig.com/agents
+curl https://api.countersig.com/agents
 
 # Filter by capability with pagination
-curl "https://countersig.com/agents?capability=trading&limit=10&offset=0"
+curl "https://api.countersig.com/agents?capability=trading&limit=10&offset=0"
 ```
 
 ---
@@ -676,7 +678,7 @@ Get detailed information for a single agent including reputation.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/agents/AgentPubkey111111111111111111111111111111111
+curl https://api.countersig.com/agents/AgentPubkey111111111111111111111111111111111
 ```
 
 ---
@@ -721,7 +723,7 @@ A2A (Agent-to-Agent) discovery - find agents by capability.
 
 **Example Request:**
 ```bash
-curl "https://countersig.com/discover?capability=analytics"
+curl "https://api.countersig.com/discover?capability=analytics"
 ```
 
 ---
@@ -768,7 +770,7 @@ Record a successful or failed action for an agent.
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/agents/AgentPubkey111111111111111111111111111111111/attest \
+curl -X POST https://api.countersig.com/agents/AgentPubkey111111111111111111111111111111111/attest \
   -H "Content-Type: application/json" \
   -d '{
     "success": true,
@@ -823,7 +825,7 @@ Flag suspicious behavior for an agent.
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/agents/AgentPubkey111111111111111111111111111111111/flag \
+curl -X POST https://api.countersig.com/agents/AgentPubkey111111111111111111111111111111111/flag \
   -H "Content-Type: application/json" \
   -d '{
     "reporterPubkey": "ReporterPubkey111111111111111111111111111111",
@@ -862,7 +864,7 @@ Retrieve action statistics for an agent.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/agents/AgentPubkey111111111111111111111111111111111/attestations
+curl https://api.countersig.com/agents/AgentPubkey111111111111111111111111111111111/attestations
 ```
 
 ---
@@ -903,7 +905,7 @@ Retrieve all flags for an agent.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/agents/AgentPubkey111111111111111111111111111111111/flags
+curl https://api.countersig.com/agents/AgentPubkey111111111111111111111111111111111/flags
 ```
 
 ---
@@ -941,13 +943,13 @@ The widget includes:
 
 **Example Request:**
 ```bash
-curl https://countersig.com/widget/AgentPubkey111111111111111111111111111111111
+curl https://api.countersig.com/widget/AgentPubkey111111111111111111111111111111111
 ```
 
 **iframe Embed:**
 ```html
 <iframe 
-  src="https://countersig.com/widget/AgentPubkey111111111111111111111111111111111"
+  src="https://api.countersig.com/widget/AgentPubkey111111111111111111111111111111111"
   width="400"
   height="300"
   frameborder="0"
@@ -1009,7 +1011,7 @@ Content-Type: application/json
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/auth/register \
+curl -X POST https://api.countersig.com/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "alice@example.com",
@@ -1064,7 +1066,7 @@ Content-Type: application/json
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/auth/login \
+curl -X POST https://api.countersig.com/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "alice@example.com",
@@ -1098,7 +1100,7 @@ Refresh the JWT access token using the httpOnly refresh token cookie.
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/auth/refresh \
+curl -X POST https://api.countersig.com/auth/refresh \
   -H "Cookie: refreshToken=..."
 ```
 
@@ -1123,7 +1125,7 @@ Clear the session cookies and invalidate the refresh token.
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/auth/logout
+curl -X POST https://api.countersig.com/auth/logout
 ```
 
 ---
@@ -1176,7 +1178,7 @@ Content-Type: application/json
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/api-keys \
+curl -X POST https://api.countersig.com/api-keys \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -1218,7 +1220,7 @@ List all API keys for the current user's organization.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/api-keys \
+curl https://api.countersig.com/api-keys \
   -H "Cookie: token=..."
 ```
 
@@ -1253,7 +1255,7 @@ Revoke and delete an API key.
 
 **Example Request:**
 ```bash
-curl -X DELETE https://countersig.com/api-keys/key-uuid-5678 \
+curl -X DELETE https://api.countersig.com/api-keys/key-uuid-5678 \
   -H "Cookie: token=..."
 ```
 
@@ -1301,7 +1303,7 @@ Retrieve organization details.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/orgs/org-uuid-1234 \
+curl https://api.countersig.com/orgs/org-uuid-1234 \
   -H "Cookie: token=..."
 ```
 
@@ -1353,7 +1355,7 @@ Update organization metadata and settings.
 
 **Example Request:**
 ```bash
-curl -X PUT https://countersig.com/orgs/org-uuid-1234 \
+curl -X PUT https://api.countersig.com/orgs/org-uuid-1234 \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -1406,7 +1408,7 @@ List all members of an organization.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/orgs/org-uuid-1234/members \
+curl https://api.countersig.com/orgs/org-uuid-1234/members \
   -H "Cookie: token=..."
 ```
 
@@ -1453,7 +1455,7 @@ Update a member's role within the organization.
 
 **Example Request:**
 ```bash
-curl -X PUT https://countersig.com/orgs/org-uuid-1234/members/user-uuid-2222 \
+curl -X PUT https://api.countersig.com/orgs/org-uuid-1234/members/user-uuid-2222 \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{"role": "manager"}'
@@ -1491,7 +1493,7 @@ Remove a member from the organization.
 
 **Example Request:**
 ```bash
-curl -X DELETE https://countersig.com/orgs/org-uuid-1234/members/user-uuid-2222 \
+curl -X DELETE https://api.countersig.com/orgs/org-uuid-1234/members/user-uuid-2222 \
   -H "Cookie: token=..."
 ```
 
@@ -1534,7 +1536,7 @@ Invite a new user to the organization by email.
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/orgs/org-uuid-1234/invite \
+curl -X POST https://api.countersig.com/orgs/org-uuid-1234/invite \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -1578,7 +1580,7 @@ Retrieve aggregated organization statistics.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/orgs/org-uuid-1234/stats \
+curl https://api.countersig.com/orgs/org-uuid-1234/stats \
   -H "Cookie: token=..."
 ```
 
@@ -1636,7 +1638,7 @@ List agents scoped to the organization with pagination.
 
 **Example Request:**
 ```bash
-curl "https://countersig.com/orgs/org-uuid-1234/agents?limit=10&offset=0" \
+curl "https://api.countersig.com/orgs/org-uuid-1234/agents?limit=10&offset=0" \
   -H "Cookie: token=..."
 ```
 
@@ -1699,7 +1701,7 @@ Query audit logs with filtering and pagination.
 
 **Example Request:**
 ```bash
-curl "https://countersig.com/orgs/org-uuid-1234/audit?page=1&limit=20&action=AGENT_REGISTERED" \
+curl "https://api.countersig.com/orgs/org-uuid-1234/audit?page=1&limit=20&action=AGENT_REGISTERED" \
   -H "Cookie: token=..."
 ```
 
@@ -1737,7 +1739,7 @@ Export audit logs as JSON or CSV.
 
 **Example Request:**
 ```bash
-curl "https://countersig.com/orgs/org-uuid-1234/audit/export?format=csv" \
+curl "https://api.countersig.com/orgs/org-uuid-1234/audit/export?format=csv" \
   -H "Cookie: token=..." \
   --output audit-export.csv
 ```
@@ -1788,7 +1790,7 @@ If the chain is broken:
 
 **Example Request:**
 ```bash
-curl https://countersig.com/orgs/org-uuid-1234/audit/verify \
+curl https://api.countersig.com/orgs/org-uuid-1234/audit/verify \
   -H "Cookie: token=..."
 ```
 
@@ -1834,7 +1836,7 @@ List all policy rules for an organization.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/orgs/org-uuid-1234/policies \
+curl https://api.countersig.com/orgs/org-uuid-1234/policies \
   -H "Cookie: token=..."
 ```
 
@@ -1884,7 +1886,7 @@ Create a new policy rule.
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/orgs/org-uuid-1234/policies \
+curl -X POST https://api.countersig.com/orgs/org-uuid-1234/policies \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -1942,7 +1944,7 @@ Update an existing policy rule.
 
 **Example Request:**
 ```bash
-curl -X PUT https://countersig.com/orgs/org-uuid-1234/policies/policy-uuid-1111 \
+curl -X PUT https://api.countersig.com/orgs/org-uuid-1234/policies/policy-uuid-1111 \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -1983,7 +1985,7 @@ Delete a policy rule.
 
 **Example Request:**
 ```bash
-curl -X DELETE https://countersig.com/orgs/org-uuid-1234/policies/policy-uuid-1111 \
+curl -X DELETE https://api.countersig.com/orgs/org-uuid-1234/policies/policy-uuid-1111 \
   -H "Cookie: token=..."
 ```
 
@@ -2061,7 +2063,7 @@ Returns a signed policy bundle containing the computed allow-list, deny-list, an
 
 **Example Request:**
 ```bash
-curl https://countersig.com/v1/policy/bundle/agent-uuid-1234 \
+curl https://api.countersig.com/v1/policy/bundle/agent-uuid-1234 \
   -H "Cookie: token=..."
 ```
 
@@ -2118,7 +2120,7 @@ For internal agent-to-agent traffic (`agent:<uuid>` destinations), a short-lived
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/v1/policy/check \
+curl -X POST https://api.countersig.com/v1/policy/check \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{
@@ -2181,7 +2183,7 @@ Read the current org-level policy settings.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/v1/policy/settings \
+curl https://api.countersig.com/v1/policy/settings \
   -H "Cookie: token=..."
 ```
 
@@ -2221,7 +2223,7 @@ Update org-level policy settings. Only admins may call this endpoint. Changes ar
 
 **Example Request:**
 ```bash
-curl -X PUT https://countersig.com/v1/policy/settings \
+curl -X PUT https://api.countersig.com/v1/policy/settings \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -2300,7 +2302,7 @@ Add a new whitelist entry. Only admins may call this endpoint. Changes are audit
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/v1/policy/whitelist \
+curl -X POST https://api.countersig.com/v1/policy/whitelist \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -2335,7 +2337,7 @@ Remove a whitelist entry by ID. Only admins may call this endpoint. Changes are 
 
 **Example Request:**
 ```bash
-curl -X DELETE https://countersig.com/v1/policy/whitelist/3 \
+curl -X DELETE https://api.countersig.com/v1/policy/whitelist/3 \
   -H "Cookie: token=..."
 ```
 
@@ -2402,7 +2404,7 @@ Add a new blacklist entry. Only admins may call this endpoint. Changes are audit
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/v1/policy/blacklist \
+curl -X POST https://api.countersig.com/v1/policy/blacklist \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -2437,7 +2439,7 @@ Remove a blacklist entry by ID. Only admins may call this endpoint. Changes are 
 
 **Example Request:**
 ```bash
-curl -X DELETE https://countersig.com/v1/policy/blacklist/2 \
+curl -X DELETE https://api.countersig.com/v1/policy/blacklist/2 \
   -H "Cookie: token=..."
 ```
 
@@ -2566,7 +2568,7 @@ List all webhooks configured for an organization.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/orgs/org-uuid-1234/webhooks \
+curl https://api.countersig.com/orgs/org-uuid-1234/webhooks \
   -H "Cookie: token=..."
 ```
 
@@ -2615,7 +2617,7 @@ Create a new webhook subscription.
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/orgs/org-uuid-1234/webhooks \
+curl -X POST https://api.countersig.com/orgs/org-uuid-1234/webhooks \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -2671,7 +2673,7 @@ Update a webhook subscription.
 
 **Example Request:**
 ```bash
-curl -X PUT https://countersig.com/orgs/org-uuid-1234/webhooks/webhook-uuid-1111 \
+curl -X PUT https://api.countersig.com/orgs/org-uuid-1234/webhooks/webhook-uuid-1111 \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -2712,7 +2714,7 @@ Delete a webhook subscription.
 
 **Example Request:**
 ```bash
-curl -X DELETE https://countersig.com/orgs/org-uuid-1234/webhooks/webhook-uuid-1111 \
+curl -X DELETE https://api.countersig.com/orgs/org-uuid-1234/webhooks/webhook-uuid-1111 \
   -H "Cookie: token=..."
 ```
 
@@ -2755,7 +2757,7 @@ List all supported blockchain types with metadata.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/chains
+curl https://api.countersig.com/chains
 ```
 
 ---
@@ -2804,7 +2806,7 @@ List all public agents without authentication. Returns only public-safe fields.
 
 **Example Request:**
 ```bash
-curl "https://countersig.com/public/agents?capability=trading&limit=10"
+curl "https://api.countersig.com/public/agents?capability=trading&limit=10"
 ```
 
 ---
@@ -2851,7 +2853,7 @@ Get all agents owned by a specific public key.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/agents/owner/AgentPubkey111111111111111111111111111111111 \
+curl https://api.countersig.com/agents/owner/AgentPubkey111111111111111111111111111111111 \
   -H "Cookie: token=..."
 ```
 
@@ -2908,7 +2910,7 @@ Revoke an agent, permanently disabling it. Requires ownership verification via E
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/agents/550e8400-e29b-41d4-a716-446655440000/revoke \
+curl -X POST https://api.countersig.com/agents/550e8400-e29b-41d4-a716-446655440000/revoke \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -2955,7 +2957,7 @@ Issue a short-lived A2A (Agent-to-Agent) authentication JWT token. The token inc
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/agents/550e8400-e29b-41d4-a716-446655440000/issue-token \
+curl -X POST https://api.countersig.com/agents/550e8400-e29b-41d4-a716-446655440000/issue-token \
   -H "Cookie: token=..."
 ```
 
@@ -2997,7 +2999,7 @@ Verify an A2A token statelessly. No authentication required — receiving agents
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/verify-token \
+curl -X POST https://api.countersig.com/verify-token \
   -H "Content-Type: application/json" \
   -d '{
     "token": "eyJhbGciOiJIUzI1NiIs..."
@@ -3084,7 +3086,7 @@ Get a W3C Verifiable Credential (JSON-LD) for an agent. No authentication requir
 
 **Example Request:**
 ```bash
-curl https://countersig.com/agents/550e8400-e29b-41d4-a716-446655440000/credential \
+curl https://api.countersig.com/agents/550e8400-e29b-41d4-a716-446655440000/credential \
   -H "Accept: application/vc+ld+json"
 ```
 
@@ -3136,7 +3138,7 @@ Verify an external OAuth2 or Entra ID token and return normalized identity claim
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/auth/verify-external-token \
+curl -X POST https://api.countersig.com/auth/verify-external-token \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -3196,7 +3198,7 @@ List all configured identity providers for an organization.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/orgs/org-uuid-1234/identity-providers \
+curl https://api.countersig.com/orgs/org-uuid-1234/identity-providers \
   -H "Cookie: token=..."
 ```
 
@@ -3254,7 +3256,7 @@ Create a new identity provider configuration.
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/orgs/org-uuid-1234/identity-providers \
+curl -X POST https://api.countersig.com/orgs/org-uuid-1234/identity-providers \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -3318,7 +3320,7 @@ Update an existing identity provider configuration.
 
 **Example Request:**
 ```bash
-curl -X PUT https://countersig.com/orgs/org-uuid-1234/identity-providers/idp-uuid-1111 \
+curl -X PUT https://api.countersig.com/orgs/org-uuid-1234/identity-providers/idp-uuid-1111 \
   -H "Content-Type: application/json" \
   -H "Cookie: token=..." \
   -d '{
@@ -3364,7 +3366,7 @@ Delete an identity provider configuration.
 
 **Example Request:**
 ```bash
-curl -X DELETE https://countersig.com/orgs/org-uuid-1234/identity-providers/idp-uuid-1111 \
+curl -X DELETE https://api.countersig.com/orgs/org-uuid-1234/identity-providers/idp-uuid-1111 \
   -H "Cookie: token=..."
 ```
 
@@ -3376,7 +3378,7 @@ curl -X DELETE https://countersig.com/orgs/org-uuid-1234/identity-providers/idp-
 
 #### GET /.well-known/jwks.json
 
-JWKS endpoint exposing public key metadata for A2A token verification. The actual HMAC secret is symmetric and must be obtained via a secure channel; this endpoint documents the algorithm and key ID.
+JWKS endpoint publishing the Ed25519 public key that signs A2A tokens, so verifiers can check tokens offline. Returns `503` when the A2A signing keys are not configured.
 
 **Authentication:** None
 
@@ -3387,28 +3389,27 @@ JWKS endpoint exposing public key metadata for A2A token verification. The actua
 {
   "keys": [
     {
-      "kty": "oct",
-      "kid": "agentid-a2a-v1",
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "<base64url-encoded public key>",
+      "kid": "a2a-ed25519-1",
       "use": "sig",
-      "alg": "HS256"
+      "alg": "EdDSA"
     }
-  ],
-  "issuer": "countersig.com",
-  "documentation": "https://countersig.com/docs/a2a-auth",
-  "verify_endpoint": "/agents/verify-token"
+  ]
 }
 ```
 
 **Example Request:**
 ```bash
-curl https://countersig.com/.well-known/jwks.json
+curl https://api.countersig.com/.well-known/jwks.json
 ```
 
 ---
 
 #### GET /.well-known/did.json
 
-W3C DID document for `did:web:countersig.com`. Exposes verification methods for Ed25519 and SECP256K1 keys, along with service endpoints for Countersig APIs.
+W3C DID document for `did:web:api.countersig.com` (the host of `COUNTERSIG_BASE_URL`). Exposes verification methods for Ed25519 and SECP256K1 keys, along with service endpoints for Countersig APIs.
 
 **Authentication:** None
 
@@ -3422,43 +3423,43 @@ W3C DID document for `did:web:countersig.com`. Exposes verification methods for 
     "https://w3id.org/security/suites/ed25519-2020/v1",
     "https://w3id.org/security/suites/secp256k1-2019/v1"
   ],
-  "id": "did:web:countersig.com",
-  "controller": "did:web:countersig.com",
+  "id": "did:web:api.countersig.com",
+  "controller": "did:web:api.countersig.com",
   "verificationMethod": [
     {
-      "id": "did:web:countersig.com#ed25519-key",
+      "id": "did:web:api.countersig.com#ed25519-key",
       "type": "Ed25519VerificationKey2020",
-      "controller": "did:web:countersig.com",
+      "controller": "did:web:api.countersig.com",
       "publicKeyMultibase": "z_PLACEHOLDER_CONFIGURE_IN_ENV"
     },
     {
-      "id": "did:web:countersig.com#secp256k1-key",
+      "id": "did:web:api.countersig.com#secp256k1-key",
       "type": "EcdsaSecp256k1VerificationKey2019",
-      "controller": "did:web:countersig.com",
+      "controller": "did:web:api.countersig.com",
       "publicKeyMultibase": "z_PLACEHOLDER_CONFIGURE_IN_ENV"
     }
   ],
   "authentication": [
-    "did:web:countersig.com#ed25519-key",
-    "did:web:countersig.com#secp256k1-key"
+    "did:web:api.countersig.com#ed25519-key",
+    "did:web:api.countersig.com#secp256k1-key"
   ],
   "assertionMethod": [
-    "did:web:countersig.com#ed25519-key",
-    "did:web:countersig.com#secp256k1-key"
+    "did:web:api.countersig.com#ed25519-key",
+    "did:web:api.countersig.com#secp256k1-key"
   ],
   "service": [
     {
-      "id": "did:web:countersig.com#countersig-api",
+      "id": "did:web:api.countersig.com#countersig-api",
       "type": "CountersigService",
       "serviceEndpoint": "https://api.countersig.com"
     },
     {
-      "id": "did:web:countersig.com#a2a-verify",
+      "id": "did:web:api.countersig.com#a2a-verify",
       "type": "A2AVerificationService",
       "serviceEndpoint": "https://api.countersig.com/agents/verify-token"
     },
     {
-      "id": "did:web:countersig.com#credential-issuance",
+      "id": "did:web:api.countersig.com#credential-issuance",
       "type": "VerifiableCredentialService",
       "serviceEndpoint": "https://api.countersig.com/agents/{agentId}/credential"
     }
@@ -3468,7 +3469,7 @@ W3C DID document for `did:web:countersig.com`. Exposes verification methods for 
 
 **Example Request:**
 ```bash
-curl https://countersig.com/.well-known/did.json
+curl https://api.countersig.com/.well-known/did.json
 ```
 
 ---
@@ -3514,7 +3515,7 @@ If services are degraded:
 
 **Example Request:**
 ```bash
-curl https://countersig.com/health
+curl https://api.countersig.com/health
 ```
 
 ---
@@ -3551,7 +3552,7 @@ List all SIEM connectors configured for the organization.
       "name": "Splunk Production",
       "connector_type": "splunk_hec",
       "endpoint_url": "https://splunk.example.com:8088/services/collector",
-      "auth_token_hash": "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
+      "has_auth_token": true,
       "auth_header_name": "Authorization",
       "format": "json",
       "filter_actions": ["agent.registered", "policy.violated"],
@@ -3573,7 +3574,7 @@ List all SIEM connectors configured for the organization.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/orgs/org-uuid-1234/siem/connectors \
+curl https://api.countersig.com/orgs/org-uuid-1234/siem/connectors \
   -H "Authorization: Bearer <jwt-token>"
 ```
 
@@ -3602,7 +3603,7 @@ Create a new SIEM connector for the organization.
 | `name` | string | Yes | Display name for the connector |
 | `connectorType` | string | Yes | One of: `splunk_hec`, `datadog`, `elasticsearch`, `generic_http`, `syslog` |
 | `endpointUrl` | string | Yes | Target URL for event delivery |
-| `authToken` | string | No | Authentication token (stored hashed) |
+| `authToken` | string | No | Authentication token (stored as a reversible secret, never returned in API responses) |
 | `authHeaderName` | string | No | Header name for auth token (default: `Authorization`) |
 | `format` | string | No | Output format: `json` (default), `cef`, or `syslog` |
 | `filterActions` | string[] | No | Event types to forward (empty = all) |
@@ -3619,7 +3620,7 @@ Create a new SIEM connector for the organization.
     "name": "Datadog Prod",
     "connector_type": "datadog",
     "endpoint_url": "https://http-intake.logs.datadoghq.com/api/v2/logs",
-    "auth_token_hash": "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
+    "has_auth_token": true,
     "auth_header_name": "DD-API-KEY",
     "format": "json",
     "filter_actions": [],
@@ -3641,7 +3642,7 @@ Create a new SIEM connector for the organization.
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/orgs/org-uuid-1234/siem/connectors \
+curl -X POST https://api.countersig.com/orgs/org-uuid-1234/siem/connectors \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <jwt-token>" \
   -d '{
@@ -3699,7 +3700,7 @@ Update an existing SIEM connector.
     "name": "Splunk Production (Updated)",
     "connector_type": "splunk_hec",
     "endpoint_url": "https://splunk.example.com:8088/services/collector",
-    "auth_token_hash": "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
+    "has_auth_token": true,
     "format": "cef",
     "enabled": true,
     "updated_at": "2026-04-28T12:00:00.000Z"
@@ -3714,7 +3715,7 @@ Update an existing SIEM connector.
 
 **Example Request:**
 ```bash
-curl -X PUT https://countersig.com/orgs/org-uuid-1234/siem/connectors/connector-uuid-1111 \
+curl -X PUT https://api.countersig.com/orgs/org-uuid-1234/siem/connectors/connector-uuid-1111 \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <jwt-token>" \
   -d '{
@@ -3757,7 +3758,7 @@ Delete a SIEM connector.
 
 **Example Request:**
 ```bash
-curl -X DELETE https://countersig.com/orgs/org-uuid-1234/siem/connectors/connector-uuid-1111 \
+curl -X DELETE https://api.countersig.com/orgs/org-uuid-1234/siem/connectors/connector-uuid-1111 \
   -H "Authorization: Bearer <jwt-token>"
 ```
 
@@ -3806,7 +3807,7 @@ If the test fails:
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/orgs/org-uuid-1234/siem/connectors/connector-uuid-1111/test \
+curl -X POST https://api.countersig.com/orgs/org-uuid-1234/siem/connectors/connector-uuid-1111/test \
   -H "Authorization: Bearer <jwt-token>"
 ```
 
@@ -3869,7 +3870,7 @@ List delivery history for a SIEM connector, showing recent event batches and the
 
 **Example Request:**
 ```bash
-curl "https://countersig.com/orgs/org-uuid-1234/siem/connectors/connector-uuid-1111/deliveries?limit=20" \
+curl "https://api.countersig.com/orgs/org-uuid-1234/siem/connectors/connector-uuid-1111/deliveries?limit=20" \
   -H "Authorization: Bearer <jwt-token>"
 ```
 
@@ -3926,7 +3927,7 @@ Send a heartbeat signal for an agent. Updates the agent's `last_heartbeat` times
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/agents/agent-uuid-1234/heartbeat \
+curl -X POST https://api.countersig.com/agents/agent-uuid-1234/heartbeat \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <jwt-token>" \
   -d '{
@@ -3990,7 +3991,7 @@ Get an organization-wide health summary, including counts by status and agents t
 
 **Example Request:**
 ```bash
-curl https://countersig.com/agents/health/summary \
+curl https://api.countersig.com/agents/health/summary \
   -H "Authorization: Bearer <jwt-token>"
 ```
 
@@ -4044,7 +4045,7 @@ Get detailed health information for a specific agent, including action success r
 
 **Example Request:**
 ```bash
-curl https://countersig.com/agents/agent-uuid-1234/health \
+curl https://api.countersig.com/agents/agent-uuid-1234/health \
   -H "Authorization: Bearer <jwt-token>"
 ```
 
@@ -4096,7 +4097,7 @@ List all health alert rules configured for the organization.
 
 **Example Request:**
 ```bash
-curl https://countersig.com/agents/health/alerts \
+curl https://api.countersig.com/agents/health/alerts \
   -H "Authorization: Bearer <jwt-token>"
 ```
 
@@ -4146,7 +4147,7 @@ Create a new health alert rule for the organization.
 
 **Example Request:**
 ```bash
-curl -X POST https://countersig.com/agents/health/alerts \
+curl -X POST https://api.countersig.com/agents/health/alerts \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <jwt-token>" \
   -d '{
@@ -4208,7 +4209,7 @@ Update an existing health alert rule.
 
 **Example Request:**
 ```bash
-curl -X PUT https://countersig.com/agents/health/alerts/rule-uuid-1111 \
+curl -X PUT https://api.countersig.com/agents/health/alerts/rule-uuid-1111 \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <jwt-token>" \
   -d '{
@@ -4247,7 +4248,7 @@ Delete a health alert rule.
 
 **Example Request:**
 ```bash
-curl -X DELETE https://countersig.com/agents/health/alerts/rule-uuid-1111 \
+curl -X DELETE https://api.countersig.com/agents/health/alerts/rule-uuid-1111 \
   -H "Authorization: Bearer <jwt-token>"
 ```
 

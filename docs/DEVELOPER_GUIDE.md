@@ -53,7 +53,7 @@ import { CountersigClient } from '@countersig/sdk';
 
 const client = new CountersigClient({
   apiKey: 'cs_your_key_here',
-  baseUrl: 'https://api.countersig.com'
+  apiUrl: 'https://api.countersig.com'
 });
 
 // Register an agent
@@ -128,19 +128,19 @@ Choose one of three setup options based on your environment:
 This option automatically provisions PostgreSQL and Redis containers.
 
 ```bash
-# Clone the repository
-git clone https://github.com/RunTimeAdmin/Countersig.git
-cd Countersig
+# The Countersig source is maintained privately; run these steps from a source checkout.
+cd countersig
 
-# Start infrastructure services
-docker-compose up -d
+# Start PostgreSQL and Redis. docker-compose.yml reads .env in this folder and
+# needs POSTGRES_PASSWORD, REDIS_PASSWORD, JWT_SECRET, A2A_SIGNING_KEY and A2A_VERIFY_KEY set.
+docker compose up -d postgres redis
 
 # Verify services are healthy
-docker-compose ps
+docker compose ps
 
 # Backend setup
 cd backend
-cp .env.example .env
+cp .env.example .env  # point DATABASE_URL and REDIS_URL at those containers, with their passwords
 npm install
 npm run migrate       # Creates database tables
 npm run dev           # Starts development server on port 3002
@@ -634,7 +634,7 @@ Countersig uses Ed25519 digital signatures for cryptographic identity verificati
 AGENTID-VERIFY:{pubkey}:{nonce}:{timestamp}
 ```
 
-**Implementation:** See [`pkiChallenge.js`](backend/src/services/pkiChallenge.js)
+**Implementation:** See `backend/src/services/pkiChallenge.js`
 
 ### Challenge-Response Auth Integration
 
@@ -646,7 +646,7 @@ Countersig wraps the Bags.fm agent authentication system:
 4. **Callback:** Submit to Bags API to complete auth
 5. **Store:** Save `bags_api_key_id` for future reference
 
-**Implementation:** See [`bagsAuthVerifier.js`](backend/src/services/bagsAuthVerifier.js)
+**Implementation:** See `backend/src/services/bagsAuthVerifier.js`
 
 ### SAID Protocol Binding
 
@@ -670,7 +670,7 @@ SAID (Solana Agent Identity) provides cross-platform agent discovery:
 }
 ```
 
-**Implementation:** See [`saidBinding.js`](backend/src/services/saidBinding.js)
+**Implementation:** See `backend/src/services/saidBinding.js`
 
 ### Reputation Scoring Algorithm
 
@@ -690,7 +690,7 @@ The 5-factor scoring model (0-100 points):
 - `LOW` (40-59): New or limited activity agent
 - `UNVERIFIED` (<40): Insufficient data or flagged
 
-**Implementation:** See [`bagsReputation.js`](backend/src/services/bagsReputation.js)
+**Implementation:** See `backend/src/services/bagsReputation.js`
 
 ### Badge Generation Pipeline
 
@@ -713,7 +713,7 @@ The 5-factor scoring model (0-100 points):
 
 **Caching:** Badge data is cached in Redis for 60 seconds (configurable via `BADGE_CACHE_TTL`).
 
-**Implementation:** See [`badgeBuilder.js`](backend/src/services/badgeBuilder.js)
+**Implementation:** See `backend/src/services/badgeBuilder.js`
 
 ---
 
@@ -750,7 +750,7 @@ For programmatic access (CI/CD, server-to-server), use API keys:
 3. Keys are scoped to an organization and can be limited by `scopes` and `expiresAt`
 
 ```bash
-curl https://countersig.com/orgs/org-uuid/agents \
+curl https://api.countersig.com/orgs/org-uuid/agents \
   -H "X-API-Key: cs_abc123xyz789secret"
 ```
 
@@ -844,7 +844,7 @@ Audit entries are tagged with compliance frameworks:
 Export audit logs in CSV format for compliance auditors:
 
 ```bash
-curl "https://countersig.com/orgs/org-uuid/audit/export?format=csv" \
+curl "https://api.countersig.com/orgs/org-uuid/audit/export?format=csv" \
   -H "Cookie: token=..." \
   --output soc2-audit.csv
 ```
@@ -916,7 +916,7 @@ The platform ships with 5 chain adapters:
 
 #### ChainAdapter Interface
 
-Every adapter implements the `ChainAdapter` interface defined in [`chainAdapters/index.js`](backend/src/services/chainAdapters/index.js):
+Every adapter implements the `ChainAdapter` interface defined in `backend/src/services/chainAdapters/index.js`:
 
 ```javascript
 /**
@@ -931,13 +931,13 @@ Every adapter implements the `ChainAdapter` interface defined in [`chainAdapters
  */
 ```
 
-**Implementation:** Adapters live in [`backend/src/services/chainAdapters/`](backend/src/services/chainAdapters/). EVM chains (Ethereum, Base, Polygon) share a single module ([`evm.js`](backend/src/services/chainAdapters/evm.js)) with per-chain configuration.
+**Implementation:** Adapters live in `backend/src/services/chainAdapters/`. EVM chains (Ethereum, Base, Polygon) share a single module (`backend/src/services/chainAdapters/evm.js`) with per-chain configuration.
 
 #### Supported Chains Endpoint
 
 ```bash
 # Get all supported chains
-curl https://countersig.com/chains
+curl https://api.countersig.com/chains
 
 # Response:
 # {
@@ -957,7 +957,7 @@ curl https://countersig.com/chains
 Specify the `chainType` field when registering an agent:
 
 ```bash
-curl -X POST https://countersig.com/register \
+curl -X POST https://api.countersig.com/register \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -986,7 +986,7 @@ Countersig 2.0 introduces a pluggable authentication architecture that supports 
 
 #### Pluggable Auth Architecture
 
-All authentication strategies extend the `AuthStrategy` base class ([`backend/src/auth/strategies/base.js`](backend/src/auth/strategies/base.js)):
+All authentication strategies extend the `AuthStrategy` base class (`backend/src/auth/strategies/base.js`):
 
 ```javascript
 class AuthStrategy {
@@ -1006,11 +1006,11 @@ class AuthStrategy {
 }
 ```
 
-**CryptographicAuthStrategy** ([`cryptographic.js`](backend/src/auth/strategies/cryptographic.js))
+**CryptographicAuthStrategy** (`backend/src/auth/strategies/cryptographic.js`)
 
 Wraps the existing Ed25519 and SECP256K1 chain adapters with PKI challenge-response verification. This is the default strategy and is always enabled. It delegates signature verification to the appropriate `ChainAdapter` based on `chainType`.
 
-**OAuth2AuthStrategy** ([`oauth2.js`](backend/src/auth/strategies/oauth2.js))
+**OAuth2AuthStrategy** (`backend/src/auth/strategies/oauth2.js`)
 
 Validates JWTs from external OAuth2/OIDC identity providers using the `jose` library:
 
@@ -1020,7 +1020,7 @@ Validates JWTs from external OAuth2/OIDC identity providers using the `jose` lib
 - Extracts `sub` (subject), `email`, and `name` claims
 - No PKI challenge is required for this strategy
 
-**EntraIdAuthStrategy** ([`entraId.js`](backend/src/auth/strategies/entraId.js))
+**EntraIdAuthStrategy** (`backend/src/auth/strategies/entraId.js`)
 
 Extends `OAuth2AuthStrategy` with Microsoft Entra ID (Azure AD) specifics:
 
@@ -1030,7 +1030,7 @@ Extends `OAuth2AuthStrategy` with Microsoft Entra ID (Azure AD) specifics:
 
 #### AuthManager
 
-[`AuthManager`](backend/src/auth/authManager.js) is a singleton strategy registry that routes authentication to the correct strategy:
+`AuthManager` (`backend/src/auth/authManager.js`) is a singleton strategy registry that routes authentication to the correct strategy:
 
 ```javascript
 const authManager = require('./src/auth/authManager');
@@ -1057,7 +1057,7 @@ Agents using enterprise auth specify `credential_type` in the registration reque
 
 ```bash
 # Register an agent via OAuth2
-curl -X POST https://countersig.com/register \
+curl -X POST https://api.countersig.com/register \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -1069,7 +1069,7 @@ curl -X POST https://countersig.com/register \
   }'
 
 # Register an agent via Entra ID
-curl -X POST https://countersig.com/register \
+curl -X POST https://api.countersig.com/register \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -1097,7 +1097,7 @@ Organization admins can manage IdP configurations at the org level:
 Example — add an Okta IdP:
 
 ```bash
-curl -X POST https://countersig.com/orgs/org-uuid/identity-providers \
+curl -X POST https://api.countersig.com/orgs/org-uuid/identity-providers \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -1167,7 +1167,7 @@ Countersig provides a short-lived JWT-based token system for authenticated agent
 #### Issue a Token
 
 ```bash
-curl -X POST https://countersig.com/agents/agent-uuid/issue-token \
+curl -X POST https://api.countersig.com/agents/agent-uuid/issue-token \
   -b cookies.txt
 
 # Response:
@@ -1194,7 +1194,7 @@ Tokens are short-lived (60 seconds) and signed with `A2A_TOKEN_SECRET`.
 Any agent can verify a token without sharing the secret, using the public verification endpoint:
 
 ```bash
-curl -X POST https://countersig.com/agents/verify-token \
+curl -X POST https://api.countersig.com/agents/verify-token \
   -H "Content-Type: application/json" \
   -d '{ "token": "eyJhbGciOiJIUzI1NiIs..." }'
 
@@ -1240,34 +1240,34 @@ GET /.well-known/did.json
     "https://w3id.org/security/suites/ed25519-2020/v1",
     "https://w3id.org/security/suites/secp256k1-2019/v1"
   ],
-  "id": "did:web:countersig.com",
-  "controller": "did:web:countersig.com",
+  "id": "did:web:api.countersig.com",
+  "controller": "did:web:api.countersig.com",
   "verificationMethod": [
     {
-      "id": "did:web:countersig.com#ed25519-key",
+      "id": "did:web:api.countersig.com#ed25519-key",
       "type": "Ed25519VerificationKey2020",
-      "controller": "did:web:countersig.com",
+      "controller": "did:web:api.countersig.com",
       "publicKeyMultibase": "<DID_ED25519_PUBLIC_KEY>"
     },
     {
-      "id": "did:web:countersig.com#secp256k1-key",
+      "id": "did:web:api.countersig.com#secp256k1-key",
       "type": "EcdsaSecp256k1VerificationKey2019",
-      "controller": "did:web:countersig.com",
+      "controller": "did:web:api.countersig.com",
       "publicKeyMultibase": "<DID_SECP256K1_PUBLIC_KEY>"
     }
   ],
   "authentication": [
-    "did:web:countersig.com#ed25519-key",
-    "did:web:countersig.com#secp256k1-key"
+    "did:web:api.countersig.com#ed25519-key",
+    "did:web:api.countersig.com#secp256k1-key"
   ],
   "assertionMethod": [
-    "did:web:countersig.com#ed25519-key",
-    "did:web:countersig.com#secp256k1-key"
+    "did:web:api.countersig.com#ed25519-key",
+    "did:web:api.countersig.com#secp256k1-key"
   ]
 }
 ```
 
-Set `DID_ED25519_PUBLIC_KEY` and `DID_SECP256K1_PUBLIC_KEY` in your `.env` to populate the verification methods with real public keys (multibase-encoded).
+The DID is `did:web:` plus the host of `COUNTERSIG_BASE_URL` (`did:web:api.countersig.com` on the hosted service). Set `DID_ED25519_PUBLIC_KEY` and `DID_SECP256K1_PUBLIC_KEY` in your `.env` to populate the verification methods with real public keys (multibase-encoded).
 
 #### Verifiable Credentials
 
@@ -1343,12 +1343,12 @@ npm install @countersig/sdk
 import { CountersigClient } from '@countersig/sdk';
 
 const client = new CountersigClient({
-  baseUrl: 'https://countersig.com',
+  apiUrl: 'https://api.countersig.com',
   apiKey: 'cs_abc123...'
 });
 
 // Register an agent
-const agent = await client.register({
+const agent = await client.agents.register({
   pubkey: '...',
   name: 'My Agent',
   chainType: 'ethereum',
@@ -1356,7 +1356,7 @@ const agent = await client.register({
 });
 
 // Get agent details
-const details = await client.getAgent(agent.agentId);
+const details = await client.agents.get(agent.agentId);
 ```
 
 **Build:** `cd packages/sdk && npm run build`
@@ -1400,16 +1400,15 @@ npm install @countersig/verify
 ```
 
 ```javascript
-const { verifyA2AToken } = require('@countersig/verify');
+const { CountersigVerifier } = require('@countersig/verify');
 
-// Verify with shared secret (fast, local)
-const result = verifyA2AToken(token, { secret: 'your-a2a-secret' });
+// Verify locally with the Countersig Ed25519 public key (PEM, SPKI format)
+const verifier = new CountersigVerifier({ publicKey: process.env.COUNTERSIG_A2A_PUBLIC_KEY });
+const payload = await verifier.verifyLocal(token);
 
-// Verify via Countersig API (no secret needed)
-const result = await verifyA2AToken(token, {
-  baseUrl: 'https://countersig.com',
-  verifyEndpoint: '/agents/verify-token'
-});
+// Or fetch the key from https://api.countersig.com/.well-known/jwks.json
+const jwksVerifier = new CountersigVerifier({ apiUrl: 'https://api.countersig.com' });
+const jwksPayload = await jwksVerifier.verifyWithJWKS(token);
 ```
 
 **No build step required** — this package ships plain JavaScript.
@@ -1482,7 +1481,7 @@ The Trust Layer offers defense-in-depth through two complementary enforcement me
 
 **SDK enforcement (`@countersig/policy-client`):** The agent pulls a signed policy bundle periodically and evaluates destinations locally. Microsecond latency, zero network overhead. However, this is a client-side hint — a compromised agent can bypass it by using native HTTP directly.
 
-**Gateway enforcement (`countersig-gateway`):** A Go-based Caddy module that sits in the network path between agents and the internet. The gateway enforces policy at the network layer — agents cannot bypass it regardless of what code they run. The gateway pulls signed policy bundles per agent and evaluates locally, with sub-millisecond decisions on cache hit.
+**Gateway enforcement (`countersig-gateway`):** A Go-based Caddy module that sits in the network path between agents and the internet. The gateway enforces policy at the network layer, so agents cannot bypass it regardless of what code they run. For each agent and destination it calls `POST /v1/policy/check` and caches the decision, so cache hits take under a millisecond. Its repository was archived on 2026-10-30 and no pre-built image is published; see [POLICY_GATEWAY.md](POLICY_GATEWAY.md).
 
 For production environments, deploy both: SDK for fast developer feedback, gateway for enforced security boundary.
 
@@ -1677,7 +1676,7 @@ Follow this checklist to set up your first Countersig 2.0 organization:
 #### 1. Register an Account
 
 ```bash
-curl -X POST https://countersig.com/auth/register \
+curl -X POST https://api.countersig.com/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "you@example.com",
@@ -1692,7 +1691,7 @@ This creates your user account and initial organization in one step.
 #### 2. Log In
 
 ```bash
-curl -X POST https://countersig.com/auth/login \
+curl -X POST https://api.countersig.com/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "you@example.com",
@@ -1708,7 +1707,7 @@ The server sets `httpOnly` cookies. Use `-b cookies.txt` in subsequent `curl` co
 Agents registered while authenticated are automatically scoped to your organization:
 
 ```bash
-curl -X POST https://countersig.com/register \
+curl -X POST https://api.countersig.com/register \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -1732,7 +1731,7 @@ Open `https://countersig.com` in your browser and log in. The dashboard shows:
 #### 5. Invite Team Members
 
 ```bash
-curl -X POST https://countersig.com/orgs/your-org-id/invite \
+curl -X POST https://api.countersig.com/orgs/your-org-id/invite \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{

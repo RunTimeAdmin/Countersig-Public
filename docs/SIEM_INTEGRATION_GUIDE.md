@@ -232,7 +232,7 @@ All available configuration fields when creating or updating a connector:
 | `name`                  | string     | Yes      | —                | Human-readable connector name |
 | `connectorType`         | string     | Yes      | —                | One of: `splunk_hec`, `datadog`, `elasticsearch`, `generic_http`, `syslog` |
 | `endpointUrl`           | string     | Yes      | —                | HTTPS URL of the SIEM ingestion endpoint |
-| `authToken`             | string     | No       | `null`           | Authentication token (masked in responses) |
+| `authToken`             | string     | No       | `null`           | Authentication token (never returned in API responses) |
 | `authHeaderName`        | string     | No       | `Authorization`  | Custom auth header name (for `generic_http`/`syslog` types) |
 | `format`                | string     | No       | `json`           | Output format: `json`, `cef`, or `syslog` |
 | `filterActions`         | string[]   | No       | `null` (all)     | Array of action patterns to include (supports glob `*`) |
@@ -472,7 +472,7 @@ curl https://api.countersig.com/orgs/{orgId}/siem/connectors \
       "name": "Splunk Production",
       "connector_type": "splunk_hec",
       "endpoint_url": "https://splunk.example.com:8088/services/collector",
-      "auth_token_hash": "••••••••",
+      "has_auth_token": true,
       "auth_header_name": "Authorization",
       "format": "cef",
       "filter_actions": ["agent.*", "security.*"],
@@ -657,7 +657,7 @@ curl "https://api.countersig.com/orgs/{orgId}/siem/connectors/{connectorId}/deli
 
 ### Token Storage
 
-Auth tokens are stored in the `auth_token_hash` column. Despite the column name, tokens are stored in their original form because they must be sent as HTTP headers during delivery. **All API responses mask tokens** as `••••••••` to prevent accidental exposure in logs or UI.
+Auth tokens are stored in the `auth_token_secret` column because delivery requires a reversible credential. Tokens are never returned by SIEM connector API responses; clients receive `has_auth_token: true/false` instead.
 
 ### Transport Security
 

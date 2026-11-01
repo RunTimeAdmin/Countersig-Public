@@ -316,6 +316,6 @@ If individual agents have agent-level whitelist or blacklist entries, those inte
 ## Further Reading
 
 - [Policy Overview](POLICY_OVERVIEW.md) — Architecture and concepts for the Trust Layer
-- [Policy API Reference](POLICY_API.md) — Full endpoint documentation
+- [Policy API Reference](API_REFERENCE.md): full endpoint documentation (see the Policy Enforcement Endpoints section)
 - [Policy SDK Guide](POLICY_SDK.md) — Integrating `@countersig/policy-client`
 - [Developer Guide](DEVELOPER_GUIDE.md) — General Countersig platform documentation

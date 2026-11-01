@@ -27,6 +27,8 @@ CounterAegis is the trust infrastructure suite for autonomous AI operations. The
 
 **The closed loop is the moat.** CounterAudit signals to Countersig when an agent's rolling debt index crosses a threshold; Countersig auto-creates a flag policy gated behind manual admin restore. No competitor has all three layers and therefore cannot build the loop.
 
+**Status, 30 October 2026:** the loop is off in production (`CA_DEBT_POLICY_LOOP_ENABLED=0`) and not wired end to end. Countersig's `policy_rules.org_id` must reference an org Countersig already has, and CounterAudit and Countersig keep separate orgs, so a real CounterAudit org's debt event creates no policy.
+
 ---
 
 ## The Three Products
@@ -44,6 +46,7 @@ CounterAegis is the trust infrastructure suite for autonomous AI operations. The
 
 ### ProvenanceAI (Content + Provenance)
 
+- Retired on 2026-10-30 with no users; app.provenanceai.network now serves a 410 notice. The bullets below describe it as it was.
 - Multi-algorithm content fingerprinting (basic, DCT, color, multi-scale) computed after format normalization to PNG (defeats format-conversion attacks)
 - Per-hour deduplication of verification records by requester IP
 - C2PA-compatible manifests
@@ -57,7 +60,7 @@ CounterAegis is the trust infrastructure suite for autonomous AI operations. The
 - AES-256-GCM packet sealing with per-organization data encryption keys
 - SHA-256 hash chain per organization with genesis at 64 zeros
 - RFC 3161 trusted timestamping via FreeTSA (verified through openssl)
-- Built-in connectors: LangChain, AutoGen, OpenAI Assistants, Bedrock, Foundry, countersig-native, provenanceai-native
+- Built-in connectors: LangChain, AutoGen, OpenAI Assistants, Bedrock, Foundry, countersig-native, provenanceai-native, email-forward-v1, plus the Agent Bureau and Sigvara outcome connectors (11 seeded in production)
 - Custom connectors via JSONPath-style field_map (no code changes needed)
 - Seal key envelope architecture: per-org DEK, optionally KMS-held KEK
 - Rotation with dry-run, batched mode, resumable checkpoints, full audit log (`ca_seal_rotation_runs`)
@@ -66,7 +69,7 @@ CounterAegis is the trust infrastructure suite for autonomous AI operations. The
 - Agentic debt index with tunable per-org weights (env JSON or DB table source)
 - Closed-loop scheduler runs independent of dashboard traffic
 - Production stack: PostgreSQL, background scheduler
-- Public site: counteraudit.io (developer-tier) and counteraudit.com (currently in flux; pending URL strategy decision)
+- Public site: counteraudit.io (developer-tier) and counteraudit.com (buyer-facing, per `docs/URL_STRATEGY.md` in CounterAudit)
 - npm: `@counteraudit/sdk@0.1.1`; PyPI: `counteraudit==0.1.1`
 
 ---
@@ -75,15 +78,15 @@ CounterAegis is the trust infrastructure suite for autonomous AI operations. The
 
 What's shipped and production-defensible:
 
-- All three platforms running with CI-gated integration tests
-- Closed-loop sender (CounterAudit) and receiver (Countersig) wired end to end
+- CounterAudit runs CI-gated tests on every pull request; Countersig's backend tests are not in CI (CounterAudit's CI only loads its MCP package); ProvenanceAI was retired on 2026-10-30
+- Closed-loop sender (CounterAudit) and receiver (Countersig) both built, but not wired end to end and off in production (see the status note above)
 - Seal key rotation with chain-integrity-preserved test in CI
 - Manual-restore policy enforcement (Countersig refuses auto-restore by design)
 - Scheduler for debt-policy-loop runs independent of UI
 - Compliance mapper with role-sensitivity multipliers (not just one article per category)
 - Idempotent ingest with race-safe deduplication
 - Prefix-only API key authentication (O(n) bcrypt fallback removed)
-- ProvenanceAI /verify fails closed on DB unavailability
+- ProvenanceAI /verify failed closed on DB unavailability (until its retirement on 2026-10-30)
 - Schema versioning tracked in `SCHEMA_CHANGELOG.md`
 - Enterprise smoke test infrastructure with Docker compose, CI workflow, PowerShell runner, and runbook
 - Redis-required-in-production toggle for Countersig integrations idempotency
@@ -92,7 +95,6 @@ What's pending:
 
 - Paid TSA failover (currently FreeTSA only)
 - Frontend UX polish for buyer-facing screens (manual-restore review, evidence detail, dashboard hero, audit export wizard, demo screen)
-- counteraudit.com URL strategy decision
 - counteraegis.com homepage restructure (reducing from 13 sections to 6)
 - Compliance posture content (SOC 2 status, GDPR DPA, sub-processors)
 - Contact form endpoint at api.counteraudit.io/v1/contact/lead is live (returns 201 on valid POST)
@@ -238,17 +240,14 @@ What's pending:
 
 - counteraegis.com (umbrella platform site)
 - countersig.com (Countersig product)
-- provenanceai.network (ProvenanceAI product)
+- provenanceai.network (ProvenanceAI marketing site; the app at app.provenanceai.network was retired on 2026-10-30 and serves a 410 notice)
 - counteraudit.io (CounterAudit developer site)
 
 **Key repo files:**
 
 - `SCHEMA_CHANGELOG.md` in CounterAudit (packet schema evolution)
-- `docs/COUNTERAEGIS_MASTER_GUIDE.md` (the master operational reference)
 - `docs/COUNTERAEGIS_FOUNDER_CERTIFICATION_BOOK.md` (complete founder certification — single document)
 - `docs/ENTERPRISE_TEST_RUNBOOK.md` (CI smoke gate)
-- `docs/INTEGRATIONS_SUMMARY.md` (cross-repo specifics)
-- `docs/PRICING_INTERNAL.md` (internal quoting guideline; NEVER publish)
 - `.env.example` in each repo (env configuration with all toggles documented)
 
 **Critical environment variables (CounterAudit):**
@@ -268,7 +267,7 @@ What's pending:
 
 - Calendly: calendly.com/ccie14019/enterprise-consultation
 - Email: contact@counteraegis.com
-- Stripe: live on Countersig and ProvenanceAI product sites (Developer tier only)
+- Stripe: live on the Countersig product site (Developer tier only); ProvenanceAI was retired on 2026-10-30
 
 ---
 
