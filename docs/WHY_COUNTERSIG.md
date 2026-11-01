@@ -135,7 +135,7 @@ Countersig pricing is presented as Developer and Production:
 
 | Tier | Price | Fit |
 |---|---|---|
-| Developer | Free for prototyping and side projects | Self-serve setup for small teams and early builds |
+| Developer | Free, Starter ($29/mo) and Professional ($99/mo) self-serve plans for prototyping and side projects | Self-serve setup for small teams and early builds |
 | Production | Starts at $30K/year | Live deployments, compliance workflows, and full CounterAegis path |
 
 Production scoping call:

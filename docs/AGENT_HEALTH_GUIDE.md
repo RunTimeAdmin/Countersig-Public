@@ -259,7 +259,7 @@ Manage alert rules through the REST API. All endpoints require authentication an
 ### Create a rule
 
 ```bash
-curl -X POST https://api.countersig.ai/agents/health/alerts \
+curl -X POST https://api.countersig.com/agents/health/alerts \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -272,7 +272,7 @@ curl -X POST https://api.countersig.ai/agents/health/alerts \
 ### Create a rule with a threshold
 
 ```bash
-curl -X POST https://api.countersig.ai/agents/health/alerts \
+curl -X POST https://api.countersig.com/agents/health/alerts \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -286,14 +286,14 @@ curl -X POST https://api.countersig.ai/agents/health/alerts \
 ### List all rules
 
 ```bash
-curl https://api.countersig.ai/agents/health/alerts \
+curl https://api.countersig.com/agents/health/alerts \
   -H "Authorization: Bearer $TOKEN"
 ```
 
 ### Update a rule
 
 ```bash
-curl -X PUT https://api.countersig.ai/agents/health/alerts/$RULE_ID \
+curl -X PUT https://api.countersig.com/agents/health/alerts/$RULE_ID \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -305,7 +305,7 @@ curl -X PUT https://api.countersig.ai/agents/health/alerts/$RULE_ID \
 ### Disable a rule without deleting
 
 ```bash
-curl -X PUT https://api.countersig.ai/agents/health/alerts/$RULE_ID \
+curl -X PUT https://api.countersig.com/agents/health/alerts/$RULE_ID \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{ "enabled": false }'
@@ -314,7 +314,7 @@ curl -X PUT https://api.countersig.ai/agents/health/alerts/$RULE_ID \
 ### Delete a rule
 
 ```bash
-curl -X DELETE https://api.countersig.ai/agents/health/alerts/$RULE_ID \
+curl -X DELETE https://api.countersig.com/agents/health/alerts/$RULE_ID \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -414,7 +414,7 @@ All endpoints require a valid Bearer token in the `Authorization` header. Health
 Send a heartbeat to mark the agent as healthy.
 
 ```bash
-curl -X POST https://api.countersig.ai/agents/abc-123/heartbeat \
+curl -X POST https://api.countersig.com/agents/abc-123/heartbeat \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{ "metadata": { "version": "1.4.2", "uptime": 86400 } }'
@@ -436,7 +436,7 @@ curl -X POST https://api.countersig.ai/agents/abc-123/heartbeat \
 Get health details and event history for a specific agent.
 
 ```bash
-curl https://api.countersig.ai/agents/abc-123/health \
+curl https://api.countersig.com/agents/abc-123/health \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -473,7 +473,7 @@ curl https://api.countersig.ai/agents/abc-123/health \
 Get organization-wide health summary with agents needing attention.
 
 ```bash
-curl https://api.countersig.ai/agents/health/summary \
+curl https://api.countersig.com/agents/health/summary \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -508,7 +508,7 @@ curl https://api.countersig.ai/agents/health/summary \
 List all alert rules for the organization.
 
 ```bash
-curl https://api.countersig.ai/agents/health/alerts \
+curl https://api.countersig.com/agents/health/alerts \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -539,7 +539,7 @@ curl https://api.countersig.ai/agents/health/alerts \
 Create a new alert rule.
 
 ```bash
-curl -X POST https://api.countersig.ai/agents/health/alerts \
+curl -X POST https://api.countersig.com/agents/health/alerts \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -585,7 +585,7 @@ curl -X POST https://api.countersig.ai/agents/health/alerts \
 Update an existing alert rule. All fields are optional — only provided fields are updated.
 
 ```bash
-curl -X PUT https://api.countersig.ai/agents/health/alerts/rule-789 \
+curl -X PUT https://api.countersig.com/agents/health/alerts/rule-789 \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{ "enabled": false }'
@@ -610,7 +610,7 @@ curl -X PUT https://api.countersig.ai/agents/health/alerts/rule-789 \
 Permanently delete an alert rule.
 
 ```bash
-curl -X DELETE https://api.countersig.ai/agents/health/alerts/rule-789 \
+curl -X DELETE https://api.countersig.com/agents/health/alerts/rule-789 \
   -H "Authorization: Bearer $TOKEN"
 ```
 

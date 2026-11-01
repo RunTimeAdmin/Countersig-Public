@@ -81,7 +81,7 @@ API_KEY_PREFIX=cs_
 
 ```bash
 CORS_ORIGIN=https://countersig.com
-COUNTERSIG_BASE_URL=https://countersig.com
+COUNTERSIG_BASE_URL=https://api.countersig.com
 ```
 
 ---
@@ -260,7 +260,7 @@ const { pool } = require('./src/models/db');
 cd frontend
 
 # Update API URL if needed
-echo 'VITE_COUNTERSIG_API_URL=https://countersig.com' > .env
+echo 'VITE_API_URL=https://api.countersig.com' > .env
 
 npm install
 npm run build
@@ -277,7 +277,7 @@ docker-compose down
 docker-compose up -d
 
 # Verify health check
-curl https://countersig.com/health
+curl https://api.countersig.com/health
 ```
 
 ---
@@ -288,22 +288,22 @@ Run these checks to confirm a successful upgrade:
 
 ```bash
 # 1. Health endpoint
-curl https://countersig.com/health
+curl https://api.countersig.com/health
 
-# 2. Public read still works
-curl https://countersig.com/agents
+# 2. Public read still works (GET /agents now needs auth; the public listing is /public/agents)
+curl https://api.countersig.com/public/agents
 
 # 3. Authentication flow
-curl -X POST https://countersig.com/auth/register \
+curl -X POST https://api.countersig.com/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"TestPass123!","name":"Test User"}'
 
 # 4. Organization stats (requires login)
-curl https://countersig.com/orgs/your-org-id/stats \
+curl https://api.countersig.com/orgs/your-org-id/stats \
   -H "Cookie: token=..."
 
 # 5. Audit log integrity
-curl https://countersig.com/orgs/your-org-id/audit/verify \
+curl https://api.countersig.com/orgs/your-org-id/audit/verify \
   -H "Cookie: token=..."
 ```
 
@@ -337,7 +337,7 @@ Trust Layer v1 (migrate-v6) adds destination-level policy enforcement. This is a
 
 | Table | Purpose |
 |-------|----------|
-| `global_blacklist` | Countersig-curated denylist (URLhaus feed), no tenant override |
+| `global_blacklist` | Platform-wide denylist for threat intelligence (URLhaus import script provided), no tenant override |
 | `org_policy_settings` | Per-org policy mode (`enforced` / `audit_only` / `permissive`), TTL config |
 | `org_whitelist` | Per-org allowed destinations (max allowed set) |
 | `org_blacklist` | Per-org denied destinations (always wins over allows) |
@@ -400,5 +400,5 @@ Both systems operate independently and do not interfere with each other.
 ## Support
 
 For migration issues:
-- GitHub Issues: https://github.com/RunTimeAdmin/Countersig/issues
+- GitHub Issues: https://github.com/RunTimeAdmin/Countersig-Public/issues
 - Documentation: See `/docs` folder in repository

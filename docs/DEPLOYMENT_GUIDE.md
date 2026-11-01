@@ -72,8 +72,11 @@ JWT_SECRET=<64-char-hex-secret>
 CORS_ORIGIN=https://countersig.com
 COUNTERSIG_BASE_URL=https://api.countersig.com
 
-# Production scoping
-COUNTERAEGIS_SCOPING_URL=https://calendly.com/ccie14019/enterprise-consultation
+# Stripe (if billing enabled)
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_STARTER_ID=price_...
+STRIPE_PRICE_PROFESSIONAL_ID=price_...
 
 # Google OAuth
 GOOGLE_CLIENT_ID=<your-google-client-id>.apps.googleusercontent.com
@@ -116,7 +119,7 @@ curl https://api.countersig.com/health
 | **Port 3002** | Backend API |
 | **Domain (API)** | api.countersig.com |
 | **Domain (Frontend)** | countersig.com |
-| **GitHub** | https://github.com/RunTimeAdmin/Countersig |
+| **Source** | private repository |
 
 ---
 
@@ -169,8 +172,8 @@ sudo -u postgres psql -l | grep countersig
 # Navigate to web root
 cd /var/www
 
-# Clone the repository
-git clone https://github.com/RunTimeAdmin/Countersig.git countersig
+# The Countersig source is maintained privately. With source access, place the
+# Countersig directory at /var/www/countersig; the steps below assume that path.
 
 # Install backend dependencies
 cd countersig/backend
@@ -202,8 +205,11 @@ BADGE_CACHE_TTL=60
 CHALLENGE_EXPIRY_SECONDS=300
 VERIFIED_THRESHOLD=70
 
-# Production scoping
-COUNTERAEGIS_SCOPING_URL=https://calendly.com/ccie14019/enterprise-consultation
+# Stripe (if billing enabled)
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_STARTER_ID=price_...
+STRIPE_PRICE_PROFESSIONAL_ID=price_...
 EOF
 ```
 
@@ -467,7 +473,7 @@ After successful deployment:
 
 ### URLhaus Threat Feed Configuration
 
-The Trust Layer v1 includes a global blacklist fed by URLhaus (abuse.ch). Set up a cron job to update it every 6 hours:
+The Trust Layer v1 includes a `global_blacklist` table that the import script fills from URLhaus (abuse.ch). Nothing schedules it automatically; to refresh it every 6 hours, add a cron job:
 
 ```bash
 crontab -e
@@ -634,12 +640,12 @@ curl http://localhost:3002/discover
 - [ ] PM2 process monitoring is active (bare-metal) or Docker restart policies set
 - [ ] Security headers are in place (Nginx or Caddy)
 - [ ] JWT_SECRET is a strong 64-character hex string
-- [ ] Production scoping URL is configured for handoff (`COUNTERAEGIS_SCOPING_URL`)
+- [ ] Stripe webhook secret is configured (if billing enabled)
 
 ---
 
 ## Support
 
 For issues or questions:
-- GitHub Issues: https://github.com/RunTimeAdmin/Countersig/issues
+- GitHub Issues: https://github.com/RunTimeAdmin/Countersig-Public/issues
 - Documentation: See `/docs` folder in repository

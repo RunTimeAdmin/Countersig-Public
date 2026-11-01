@@ -40,8 +40,9 @@ The recommended deployment for production uses **both** enforcement layers:
 Use the [SDK alone](POLICY_SDK.md) when you're in dev/staging, control all the code in the agent, and want microsecond decision latency without a network hop.
 
 **Repository:** [github.com/RunTimeAdmin/countersig-gateway](https://github.com/RunTimeAdmin/countersig-gateway)  
+**Status:** archived on 2026-10-30. It stays public, and `xcaddy` builds from its last commit (`a67248c`), but it receives no updates.  
 **Implementation:** Custom Caddy module (pure Go)  
-**Docker Image:** `ghcr.io/runtimeadmin/countersig-gateway:latest`
+**Docker Image:** none published. `ghcr.io/runtimeadmin/countersig-gateway` is not publicly pullable; build an image yourself (see [Installation](#3-installation)).
 
 ---
 
@@ -76,18 +77,9 @@ For each outbound request, the gateway performs:
 
 ## 3. Installation
 
-### Option 1: Pre-built Docker Image (Recommended)
+No pre-built image is published, so both options build from the archived source.
 
-```bash
-docker run -d \
-  --name countersig-gateway \
-  -p 8080:8080 \
-  -e COUNTERSIG_GATEWAY_API_KEY=$YOUR_GATEWAY_API_KEY \
-  -v $(pwd)/Caddyfile:/etc/caddy/Caddyfile:ro \
-  ghcr.io/runtimeadmin/countersig-gateway:latest
-```
-
-### Option 2: Build with xcaddy
+### Option 1: Build with xcaddy (Recommended)
 
 ```bash
 xcaddy build \
@@ -97,13 +89,21 @@ xcaddy build \
 ./caddy run --config Caddyfile
 ```
 
-### Option 3: Build from Source
+### Option 2: Docker image built from the repository
+
+The repository's `Dockerfile` runs the same xcaddy build. It pins `caddy:2.8.4-builder` and `caddy:2.8.4`, which are older than the Go 1.25 and Caddy 2.11 that its `go.mod` requires, so raise those tags before you build.
 
 ```bash
 git clone https://github.com/RunTimeAdmin/countersig-gateway
-cd countersig-gateway
-go build -o caddy ./cmd/caddy
-./caddy run --config Caddyfile
+# Edit countersig-gateway/Dockerfile first: raise the caddy builder and runtime tags
+docker build -t countersig-gateway countersig-gateway
+
+docker run -d \
+  --name countersig-gateway \
+  -p 8080:8080 \
+  -e COUNTERSIG_GATEWAY_API_KEY=$YOUR_GATEWAY_API_KEY \
+  -v $(pwd)/Caddyfile:/etc/caddy/Caddyfile:ro \
+  countersig-gateway
 ```
 
 ---
@@ -235,7 +235,7 @@ services:
     network_mode: "service:gateway"
 
   gateway:
-    image: ghcr.io/runtimeadmin/countersig-gateway:latest
+    image: countersig-gateway  # built locally, see Installation
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
     environment:
@@ -359,4 +359,4 @@ A single gateway instance handles thousands of cached requests per second. For v
 - [Policy Overview](POLICY_OVERVIEW.md) — Architecture and concepts for the Trust Layer
 - [Policy SDK Guide](POLICY_SDK.md) — Client-side enforcement with `@countersig/policy-client`
 - [Policy Migration Guide](POLICY_MIGRATION.md) — Rolling out enforcement on existing agents
-- [Gateway Repository](https://github.com/RunTimeAdmin/countersig-gateway) — Source code, examples, and issue tracker
+- [Gateway Repository](https://github.com/RunTimeAdmin/countersig-gateway): source code and examples (archived and read-only since 2026-10-30)

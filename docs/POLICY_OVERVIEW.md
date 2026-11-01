@@ -70,12 +70,12 @@ The `@countersig/policy-client` SDK wraps outbound HTTP in the agent process. Be
 
 ### Mode B — Gateway Enforcement (Network-Side)
 
-A reverse proxy (Caddy module or Envoy sidecar) sits in front of all agent egress traffic. Every outbound request passes through the gateway, which calls the Countersig backend to evaluate the destination against the agent's policy.
+A proxy (the Caddy module described in [POLICY_GATEWAY.md](POLICY_GATEWAY.md)) sits in front of all agent egress traffic. Every outbound request passes through the gateway, which calls the Countersig backend to evaluate the destination against the agent's policy.
 
 **Characteristics:**
 - Real security boundary — cannot be bypassed by the agent process
 - Per-call evaluation with local caching (LRU, TTL-aligned)
-- Supports sidecar, egress proxy, and service mesh deployment patterns
+- Supports forward proxy, reverse proxy, and sidecar deployment patterns
 - Best for: production environments, compliance-sensitive workloads, enterprise customers
 
 **Recommendation:** For serious deployments, use **both**. The SDK catches honest mistakes early (fast feedback loop for developers). The gateway enforces the actual boundary (security teams sleep at night).
@@ -141,13 +141,13 @@ CIDR matching applies only when the destination resolves to a literal IP address
 
 ## 7. Global Threat Intelligence
 
-Countersig maintains a global blacklist fed by automated threat intelligence. In v1, the source is **URLhaus by abuse.ch** — a well-maintained, freely available feed of malicious URLs updated hourly.
+Countersig maintains a `global_blacklist` table designed for threat intelligence ingestion. A deployment script (`backend/scripts/update-global-blacklist.js`) imports data from **URLhaus by abuse.ch**, a freely available feed of malicious URLs. The script is **not** scheduled automatically; operators run it on demand or from their own scheduler.
 
 **Key properties:**
 
 - **No tenant override.** The global blacklist cannot be overridden by any org or agent policy. If a destination is on the global list, it is denied unconditionally.
 - **7-day TTL.** Entries expire automatically if the feed stops updating, preventing stale threat data from persisting indefinitely.
-- **Ingestion cadence.** The feed is ingested every 6 hours via a scheduled job. Entries are upserted with a sliding TTL.
+- **Ingestion cadence.** Operators choose the interval (for example, every 6 hours) when they schedule the import script. Entries are upserted with a sliding TTL.
 - **Categories.** Entries carry a threat category (e.g., `malware`, `phishing`) which appears in audit log entries and bundle deny reasons.
 
 Future versions will add additional threat intelligence sources, including an AI-specific curated feed as a paid tier feature.
@@ -187,10 +187,10 @@ The Trust Layer changes Countersig's value proposition from identity-only to ide
 
 | Tier | Price | Enforcement Path | Typical Use |
 |------|-------|------------------|-------------|
-| **Developer** | Free for prototyping and side projects | SDK-first, self-serve | Early integration and team validation |
+| **Developer** | Free, Starter ($29/mo) and Professional ($99/mo) self-serve plans for prototyping and side projects | SDK-first, self-serve | Early integration and team validation |
 | **Production** | Starts at **$30K/year** | SDK + Gateway + operational controls | Live workloads, compliance and legal review |
 
-The gateway remains open source. Production scoping routes through the CounterAegis platform sales path:
+The gateway source stays public but has been archived since 2026-10-30. Production scoping routes through the CounterAegis platform sales path:
 `https://calendly.com/ccie14019/enterprise-consultation`
 
 ---
@@ -221,11 +221,14 @@ All policy modifications and enforcement decisions (including `audit_only` logic
 
 ## 11. What's Coming
 
-The Trust Layer v1 establishes the foundation. Planned additions include:
+The Trust Layer v1 establishes the foundation. These additions have shipped:
 
-- **`@countersig/policy-client`** — The SDK package for client-side enforcement, available on npm
-- **Countersig Gateway** — The Caddy-based network enforcement module, open-source on GitHub
-- **Dashboard UI** — Visual policy management, audit log explorer, and violation analytics (v2)
+- **`@countersig/policy-client`**: the SDK package for client-side enforcement, on npm (0.1.1)
+- **Countersig Gateway**: the Caddy-based network enforcement module, public on GitHub but archived since 2026-10-30
+- **Dashboard UI**: policy management, audit log and policy analytics pages in the web app
+
+These are not built:
+
 - **AI-Curated Threat Feed** — Domain intelligence specific to AI agent attack patterns (v2, paid tier)
 - **Policy Templates** — Pre-built policy sets for common compliance frameworks (HIPAA, SOC 2)
 - **Time-Bound Entries** — Temporary destination access with automatic expiry
@@ -235,7 +238,7 @@ The Trust Layer v1 establishes the foundation. Planned additions include:
 
 ## Further Reading
 
-- [Policy API Reference](POLICY_API.md) — Endpoint documentation for direct API integration
+- [Policy API Reference](API_REFERENCE.md): endpoint documentation for direct API integration (see the Policy Enforcement Endpoints section)
 - [Policy SDK Guide](POLICY_SDK.md) — Getting started with `@countersig/policy-client`
 - [Policy Migration Guide](POLICY_MIGRATION.md) — Rolling out enforcement on existing agents
 - [Developer Guide](DEVELOPER_GUIDE.md) — General Countersig platform documentation

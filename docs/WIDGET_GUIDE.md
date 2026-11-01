@@ -32,7 +32,7 @@ The simplest integration method. Add this HTML to any page:
 
 ```html
 <iframe 
-  src="https://countersig.com/widget/{AGENT_PUBKEY}"
+  src="https://api.countersig.com/widget/{AGENT_ID}"
   width="400"
   height="300"
   frameborder="0"
@@ -41,14 +41,14 @@ The simplest integration method. Add this HTML to any page:
 ></iframe>
 ```
 
-Replace `{AGENT_PUBKEY}` with your agent's public key.
+Replace `{AGENT_ID}` with your agent's ID, the UUID returned at registration. The badge and widget routes do not accept the agent's public key.
 
 ### 2. Live Example
 
 ```html
 <!-- Example: Trading Agent Widget -->
 <iframe 
-  src="https://countersig.com/widget/AgentPubkey111111111111111111111111111111111"
+  src="https://api.countersig.com/widget/AgentPubkey111111111111111111111111111111111"
   width="400"
   height="300"
   frameborder="0"
@@ -83,7 +83,7 @@ The widget endpoint accepts these query parameters:
 **Example with parameters:**
 ```html
 <iframe 
-  src="https://countersig.com/widget/{PUBKEY}?theme=dark&compact=true"
+  src="https://api.countersig.com/widget/{AGENT_ID}?theme=dark&compact=true"
   width="320"
   height="200"
   frameborder="0"
@@ -97,7 +97,7 @@ The iframe can be styled via the container:
 ```html
 <div class="widget-container">
   <iframe 
-    src="https://countersig.com/widget/{PUBKEY}"
+    src="https://api.countersig.com/widget/{AGENT_ID}"
     width="400"
     height="300"
     frameborder="0"
@@ -134,7 +134,7 @@ For applications requiring complete control over the widget appearance, you can 
 
 ```javascript
 async function fetchBadgeData(pubkey) {
-  const response = await fetch(`https://countersig.com/badge/${pubkey}`);
+  const response = await fetch(`https://api.countersig.com/badge/${pubkey}`);
   if (!response.ok) {
     throw new Error('Failed to fetch badge data');
   }
@@ -164,7 +164,7 @@ const badgeData = await fetchBadgeData('AgentPubkey11111111111111111111111111111
   "successRate": 0.94,
   "capabilities": ["trading", "analytics"],
   "tokenMint": "TokenMint1111111111111111111111111111111111",
-  "widgetUrl": "https://countersig.com/widget/AgentPubkey111111111111111111111111111111111"
+  "widgetUrl": "https://api.countersig.com/widget/AgentPubkey111111111111111111111111111111111"
 }
 ```
 
@@ -208,7 +208,7 @@ function CountersigWidget({ pubkey }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`https://countersig.com/badge/${pubkey}`)
+    fetch(`https://api.countersig.com/badge/${pubkey}`)
       .then(res => res.json())
       .then(data => {
         setData(data);
@@ -217,7 +217,7 @@ function CountersigWidget({ pubkey }) {
 
     // Auto-refresh every 60 seconds
     const interval = setInterval(() => {
-      fetch(`https://countersig.com/badge/${pubkey}`)
+      fetch(`https://api.countersig.com/badge/${pubkey}`)
         .then(res => res.json())
         .then(setData);
     }, 60000);
@@ -270,7 +270,7 @@ For dynamic applications, use the JavaScript API to fetch badge data:
 
 ```javascript
 class CountersigWidget {
-  constructor(baseUrl = 'https://countersig.com') {
+  constructor(baseUrl = 'https://api.countersig.com') {
     this.baseUrl = baseUrl;
   }
 
@@ -352,7 +352,7 @@ export default {
 For GitHub README, documentation sites, or static pages:
 
 ```markdown
-![Countersig Trust Badge](https://countersig.com/badge/{PUBKEY}/svg)
+![Countersig Trust Badge](https://api.countersig.com/badge/{AGENT_ID}/svg)
 ```
 
 ### Markdown with Link
@@ -360,15 +360,15 @@ For GitHub README, documentation sites, or static pages:
 Link the badge to your agent's profile:
 
 ```markdown
-[![Countersig Trust Badge](https://countersig.com/badge/{PUBKEY}/svg)](https://countersig.com/agents/{PUBKEY})
+[![Countersig Trust Badge](https://api.countersig.com/badge/{AGENT_ID}/svg)](https://countersig.com/agents/{AGENT_ID})
 ```
 
 ### HTML with Alt Text
 
 ```html
-<a href="https://countersig.com/agents/{PUBKEY}">
+<a href="https://countersig.com/agents/{AGENT_ID}">
   <img 
-    src="https://countersig.com/badge/{PUBKEY}/svg" 
+    src="https://api.countersig.com/badge/{AGENT_ID}/svg" 
     alt="Countersig Trust Score: 75/100 - Verified Agent"
     width="320"
     height="80"
@@ -381,7 +381,7 @@ Link the badge to your agent's profile:
 ```markdown
 # My Trading Agent
 
-[![Countersig](https://countersig.com/badge/AgentPubkey111111111111111111111111111111111/svg)](https://countersig.com/agents/AgentPubkey111111111111111111111111111111111)
+[![Countersig](https://api.countersig.com/badge/AgentPubkey111111111111111111111111111111111/svg)](https://countersig.com/agents/AgentPubkey111111111111111111111111111111111)
 
 An automated trading agent for Solana DeFi protocols.
 
@@ -418,11 +418,11 @@ An automated trading agent for Solana DeFi protocols.
 **Problem:** iframe shows blank or error page.
 
 **Checklist:**
-1. Verify the pubkey is correct and URL-encoded if necessary
+1. Verify the agent ID is correct (a UUID, not the public key)
 2. Check browser console for 404 errors
 3. Ensure the agent is registered:
    ```bash
-   curl https://countersig.com/badge/{PUBKEY}
+   curl https://api.countersig.com/badge/{AGENT_ID}
    ```
 4. Check that the iframe dimensions are sufficient (min 320x200)
 
@@ -435,7 +435,7 @@ An automated trading agent for Solana DeFi protocols.
 2. Badge data is cached for 60 seconds (configurable via `BADGE_CACHE_TTL`)
 3. Force refresh by adding cache-buster:
    ```html
-   <iframe src="https://countersig.com/widget/{PUBKEY}?t=123456"></iframe>
+   <iframe src="https://api.countersig.com/widget/{AGENT_ID}?t=123456"></iframe>
    ```
 
 ### SVG Not Rendering
@@ -443,7 +443,7 @@ An automated trading agent for Solana DeFi protocols.
 **Problem:** SVG badge shows as broken image or text.
 
 **Solutions:**
-1. Verify the pubkey is valid and registered
+1. Verify the agent ID is valid and registered
 2. Check Content-Type header is `image/svg+xml`
 3. For GitHub/MDX, ensure raw SVG URL is used (not API endpoint)
 
@@ -515,10 +515,10 @@ An automated trading agent for Solana DeFi protocols.
    <iframe sandbox="allow-scripts allow-same-origin" ...></iframe>
    ```
 
-2. **Validate pubkey format before embedding:**
+2. **Validate the agent ID format before embedding:**
    ```javascript
-   function isValidPubkey(pubkey) {
-     return /^[A-HJ-NP-Za-km-z1-9]{32,44}$/.test(pubkey);
+   function isValidAgentId(agentId) {
+     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(agentId);
    }
    ```
 
@@ -529,7 +529,7 @@ An automated trading agent for Solana DeFi protocols.
 ### Widget Endpoint
 
 ```
-GET /widget/:pubkey
+GET /widget/:agentId
 ```
 
 Returns a complete HTML page with the styled widget.
@@ -537,7 +537,7 @@ Returns a complete HTML page with the styled widget.
 ### Badge JSON Endpoint
 
 ```
-GET /badge/:pubkey
+GET /badge/:agentId
 ```
 
 Returns badge data as JSON for custom implementations.
@@ -545,7 +545,7 @@ Returns badge data as JSON for custom implementations.
 ### Badge SVG Endpoint
 
 ```
-GET /badge/:pubkey/svg
+GET /badge/:agentId/svg
 ```
 
 Returns the badge as an SVG image (320x80px).
@@ -557,8 +557,8 @@ Returns the badge as an SVG image (320x80px).
 For integration support or feature requests:
 
 - **Documentation:** https://countersig.com/docs
-- **API Status:** https://countersig.com/health
-- **GitHub Issues:** https://github.com/RunTimeAdmin/Countersig/issues
+- **API Status:** https://api.countersig.com/health
+- **GitHub Issues:** https://github.com/RunTimeAdmin/Countersig-Public/issues
 
 ---
 
