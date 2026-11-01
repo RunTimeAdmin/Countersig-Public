@@ -125,24 +125,12 @@ What's pending:
 
 **Public pricing anchor:** $30,000/year starting price on counteraegis.com. No tiered comparison table publicly. Pilot and production scopes quoted individually.
 
-**Internal tier guideline (not published):**
-
-- Core (≈ $30K/year): Single environment, single org, one connector type, community support, no SLA, no SSO. Pilot or small production deployment.
-- Pro (≈ $80K/year): Up to 3 environments, multiple orgs, all connectors, business-hours support with named contact, 99.5% SLA, SIEM integration, one-time custom compliance mapping. Mid-market security team running AI agents in production.
-- Enterprise (≈ $180K+/year): Unlimited environments, dedicated VPC or air-gapped, 24/7 support, 99.9% SLA, SSO + SCIM, 40 hours custom integration work, quarterly compliance attestations.
-
-**Walk-away floors:** $25K pilot, $60K annual.
-
-**Pilot pricing:** $15K for 90 days with documented success criteria and automatic conversion to Pro tier annual contract if criteria are met. Success criteria signed at kickoff.
-
-**Multi-year discounts:** 10% off for 2-year commit, 15% off for 3-year. Both with 5% annual escalator built in.
+Quotes for pilot and production scopes follow an internal guideline that is not published here.
 
 **Sales motion split:**
 
 - Platform sales (CounterAegis bundle): sales-led. Calendly scoping call, Contact Sales, signed annual contract. No Stripe.
 - Individual product sales: Stripe self-serve for Developer tier on each product site. Production tier on each product page links back to counteraegis.com scoping call.
-
-**Why no public tier table:** zero closed customers, need 60 days of buyer-conversation data before committing publicly to tier pricing. Decision date for publishing validated tier page: July 13, 2026.
 
 ---
 
