@@ -1239,36 +1239,44 @@ GET /.well-known/did.json
   "@context": [
     "https://www.w3.org/ns/did/v1",
     "https://w3id.org/security/suites/ed25519-2020/v1",
-    "https://w3id.org/security/suites/secp256k1-2019/v1"
+    "https://w3id.org/security/suites/secp256k1-2019/v1",
+    "https://w3id.org/security/multikey/v1"
   ],
-  "id": "did:web:api.countersig.com",
-  "controller": "did:web:api.countersig.com",
+  "id": "did:web:countersig.com",
+  "controller": "did:web:countersig.com",
   "verificationMethod": [
     {
-      "id": "did:web:api.countersig.com#ed25519-key",
+      "id": "did:web:countersig.com#ed25519-key",
       "type": "Ed25519VerificationKey2020",
-      "controller": "did:web:api.countersig.com",
-      "publicKeyMultibase": "<DID_ED25519_PUBLIC_KEY>"
+      "controller": "did:web:countersig.com",
+      "publicKeyMultibase": "<DID_ED25519_PUBLIC_KEY, as z6Mk...>"
     },
     {
-      "id": "did:web:api.countersig.com#secp256k1-key",
+      "id": "did:web:countersig.com#secp256k1-key",
       "type": "EcdsaSecp256k1VerificationKey2019",
-      "controller": "did:web:api.countersig.com",
-      "publicKeyMultibase": "<DID_SECP256K1_PUBLIC_KEY>"
+      "controller": "did:web:countersig.com",
+      "publicKeyJwk": { "kty": "EC", "crv": "secp256k1", "x": "<...>", "y": "<...>" }
+    },
+    {
+      "id": "did:web:countersig.com#a2a-ed25519-1",
+      "type": "Multikey",
+      "controller": "did:web:countersig.com",
+      "publicKeyMultibase": "<A2A public key, multibase>"
     }
   ],
   "authentication": [
-    "did:web:api.countersig.com#ed25519-key",
-    "did:web:api.countersig.com#secp256k1-key"
+    "did:web:countersig.com#ed25519-key",
+    "did:web:countersig.com#secp256k1-key"
   ],
   "assertionMethod": [
-    "did:web:api.countersig.com#ed25519-key",
-    "did:web:api.countersig.com#secp256k1-key"
+    "did:web:countersig.com#ed25519-key",
+    "did:web:countersig.com#secp256k1-key",
+    "did:web:countersig.com#a2a-ed25519-1"
   ]
 }
 ```
 
-The DID is `did:web:` plus the host of `COUNTERSIG_BASE_URL` (`did:web:api.countersig.com` on the hosted service). Set `DID_ED25519_PUBLIC_KEY` and `DID_SECP256K1_PUBLIC_KEY` in your `.env` to populate the verification methods with real public keys (multibase-encoded).
+The DID is `did:web:countersig.com`, the issuer named in Countersig credentials; `https://countersig.com/.well-known/did.json` redirects to the API, which serves the document. The `#a2a-ed25519-1` method is the A2A signing key that signs credentials (from `A2A_VERIFY_KEY`), and is listed only when the A2A keys are configured. Set `DID_ED25519_PUBLIC_KEY` and `DID_SECP256K1_PUBLIC_KEY` in your `.env` to populate the verification methods with real public keys (multibase-encoded). `src/utils/didKeys.js` reads the accepted forms (the Ed25519 key bare or as `z6Mk...`; the secp256k1 key as a point or a DER SubjectPublicKeyInfo) and publishes each in the form its method type defines; the document returns 503 if either key cannot be read.
 
 #### Verifiable Credentials
 
