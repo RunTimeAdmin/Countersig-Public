@@ -3411,7 +3411,7 @@ curl https://api.countersig.com/.well-known/jwks.json
 
 #### GET /.well-known/did.json
 
-W3C DID document for `did:web:api.countersig.com` (the host of `COUNTERSIG_BASE_URL`). Exposes verification methods for Ed25519 and SECP256K1 keys, along with service endpoints for Countersig APIs.
+W3C DID document for `did:web:countersig.com`, the issuer named in Countersig credentials. Exposes verification methods for the Ed25519 and SECP256K1 keys, the A2A signing key (`#a2a-ed25519-1`, the key that signs credentials, also published at `/.well-known/jwks.json`), and service endpoints for Countersig APIs. `https://countersig.com/.well-known/did.json`, where `did:web:countersig.com` resolves, redirects here.
 
 **Authentication:** None
 
@@ -3423,51 +3423,62 @@ W3C DID document for `did:web:api.countersig.com` (the host of `COUNTERSIG_BASE_
   "@context": [
     "https://www.w3.org/ns/did/v1",
     "https://w3id.org/security/suites/ed25519-2020/v1",
-    "https://w3id.org/security/suites/secp256k1-2019/v1"
+    "https://w3id.org/security/suites/secp256k1-2019/v1",
+    "https://w3id.org/security/multikey/v1"
   ],
-  "id": "did:web:api.countersig.com",
-  "controller": "did:web:api.countersig.com",
+  "id": "did:web:countersig.com",
+  "controller": "did:web:countersig.com",
   "verificationMethod": [
     {
-      "id": "did:web:api.countersig.com#ed25519-key",
+      "id": "did:web:countersig.com#ed25519-key",
       "type": "Ed25519VerificationKey2020",
-      "controller": "did:web:api.countersig.com",
-      "publicKeyMultibase": "z_PLACEHOLDER_CONFIGURE_IN_ENV"
+      "controller": "did:web:countersig.com",
+      "publicKeyMultibase": "z6Mk_DID_ED25519_PUBLIC_KEY"
     },
     {
-      "id": "did:web:api.countersig.com#secp256k1-key",
+      "id": "did:web:countersig.com#secp256k1-key",
       "type": "EcdsaSecp256k1VerificationKey2019",
-      "controller": "did:web:api.countersig.com",
-      "publicKeyMultibase": "z_PLACEHOLDER_CONFIGURE_IN_ENV"
+      "controller": "did:web:countersig.com",
+      "publicKeyJwk": { "kty": "EC", "crv": "secp256k1", "x": "...", "y": "..." }
+    },
+    {
+      "id": "did:web:countersig.com#a2a-ed25519-1",
+      "type": "Multikey",
+      "controller": "did:web:countersig.com",
+      "publicKeyMultibase": "z6Mk_A2A_PUBLIC_KEY"
     }
   ],
   "authentication": [
-    "did:web:api.countersig.com#ed25519-key",
-    "did:web:api.countersig.com#secp256k1-key"
+    "did:web:countersig.com#ed25519-key",
+    "did:web:countersig.com#secp256k1-key"
   ],
   "assertionMethod": [
-    "did:web:api.countersig.com#ed25519-key",
-    "did:web:api.countersig.com#secp256k1-key"
+    "did:web:countersig.com#ed25519-key",
+    "did:web:countersig.com#secp256k1-key",
+    "did:web:countersig.com#a2a-ed25519-1"
   ],
   "service": [
     {
-      "id": "did:web:api.countersig.com#countersig-api",
+      "id": "did:web:countersig.com#countersig-api",
       "type": "CountersigService",
       "serviceEndpoint": "https://api.countersig.com"
     },
     {
-      "id": "did:web:api.countersig.com#a2a-verify",
+      "id": "did:web:countersig.com#a2a-verify",
       "type": "A2AVerificationService",
-      "serviceEndpoint": "https://api.countersig.com/agents/verify-token"
+      "serviceEndpoint": "https://api.countersig.com/verify-token"
     },
     {
-      "id": "did:web:api.countersig.com#credential-issuance",
+      "id": "did:web:countersig.com#credential-issuance",
       "type": "VerifiableCredentialService",
       "serviceEndpoint": "https://api.countersig.com/agents/{agentId}/credential"
     }
   ]
 }
 ```
+
+**Error Responses:**
+- `503` - `DID_ED25519_PUBLIC_KEY` or `DID_SECP256K1_PUBLIC_KEY` is missing or cannot be read
 
 **Example Request:**
 ```bash
