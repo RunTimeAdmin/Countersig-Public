@@ -1195,7 +1195,7 @@ Tokens are short-lived (60 seconds) and signed with Ed25519 (EdDSA, kid `a2a-ed2
 Any agent can verify a token with the public verification endpoint:
 
 ```bash
-curl -X POST https://api.countersig.com/agents/verify-token \
+curl -X POST https://api.countersig.com/verify-token \
   -H "Content-Type: application/json" \
   -d '{ "token": "eyJhbGciOiJFZERTQSIs..." }'
 

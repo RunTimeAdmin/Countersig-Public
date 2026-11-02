@@ -181,7 +181,7 @@ These work without any configuration:
 |----------|-------------|
 | `GET /public/agents` | Browse agent registry |
 | `GET /badge/:agentId` | View trust badges |
-| `POST /agents/verify-token` | Verify A2A tokens |
+| `POST /verify-token` | Verify A2A tokens |
 | `GET /agents/chains` | List supported chains |
 
 ---
