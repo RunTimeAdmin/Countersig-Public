@@ -37,6 +37,8 @@ The recommended deployment for production uses **both** enforcement layers:
 - **SDK** catches honest mistakes with zero-latency local evaluation — fast developer feedback during development
 - **Gateway** enforces the actual boundary at the network layer — security teams sleep at night
 
+The gateway repository was archived on 2026-10-30 and gets no updates.
+
 Use the [SDK alone](POLICY_SDK.md) when you're in dev/staging, control all the code in the agent, and want microsecond decision latency without a network hop.
 
 **Repository:** [github.com/RunTimeAdmin/countersig-gateway](https://github.com/RunTimeAdmin/countersig-gateway)  

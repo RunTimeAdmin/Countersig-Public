@@ -124,6 +124,7 @@ What happens:
 | `issue_a2a_token` | Generate agent-to-agent JWT (60s) | Yes | "Generate an A2A token" |
 | `verify_a2a_token` | Verify token from another agent | Yes | "Verify this token: eyJ..." |
 | `authenticated_fetch` | HTTP with auto A2A token injection + host allowlist | Yes | "Fetch https://api.example.com/data" |
+| `create_api_key` | Create an organization API key (needs an admin-scoped key; shows the new key once) | Yes | "Create an API key called ci-bot" |
 
 ---
 
@@ -149,7 +150,7 @@ Claude: Here's your token (valid 60 seconds): eyJhbG...
 ```
 You: "Call https://api.partner.com/verify with my agent identity"
 Claude: ✓ Response (200): { "verified": true, "agent": "my-research-bot" }
-        (Automatically included X-AgentID-Token and Authorization headers)
+        (Automatically included X-Countersig-Token and Authorization headers)
 ```
 
 ### Exporting Credentials
@@ -180,7 +181,7 @@ These work without any configuration:
 |----------|-------------|
 | `GET /public/agents` | Browse agent registry |
 | `GET /badge/:agentId` | View trust badges |
-| `POST /agents/verify-token` | Verify A2A tokens |
+| `POST /verify-token` | Verify A2A tokens |
 | `GET /agents/chains` | List supported chains |
 
 ---
@@ -224,8 +225,8 @@ These work without any configuration:
 
 **Packages:**
 
-- **SDK:** `npm install @countersig/sdk` | [npm](https://www.npmjs.com/package/@countersig/sdk) | [Source](https://www.npmjs.com/package/@countersig/sdk)
-- **MCP Server:** `npm i -g @countersig/mcp` | [npm](https://www.npmjs.com/package/@countersig/mcp) | [Source](https://www.npmjs.com/package/@countersig/mcp)
+- **SDK:** `npm install @countersig/sdk` | [npm](https://www.npmjs.com/package/@countersig/sdk)
+- **MCP Server:** `npm i -g @countersig/mcp` | [npm](https://www.npmjs.com/package/@countersig/mcp)
 - **React Components:** `npm install @countersig/react` | [npm](https://www.npmjs.com/package/@countersig/react)
 - **Verifier:** `npm install @countersig/verify` | [npm](https://www.npmjs.com/package/@countersig/verify)
 

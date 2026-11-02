@@ -78,7 +78,7 @@ A proxy (the Caddy module described in [POLICY_GATEWAY.md](POLICY_GATEWAY.md)) s
 - Supports forward proxy, reverse proxy, and sidecar deployment patterns
 - Best for: production environments, compliance-sensitive workloads, enterprise customers
 
-**Recommendation:** For serious deployments, use **both**. The SDK catches honest mistakes early (fast feedback loop for developers). The gateway enforces the actual boundary (security teams sleep at night).
+**Recommendation:** For serious deployments, use **both**. The SDK catches honest mistakes early (fast feedback loop for developers). The gateway enforces the actual boundary (security teams sleep at night). The gateway repository was archived on 2026-10-30 and gets no updates.
 
 ---
 

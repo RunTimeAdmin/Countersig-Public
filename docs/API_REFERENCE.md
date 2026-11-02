@@ -21,13 +21,14 @@ The authentication flow follows a challenge-response pattern:
 
 ### Message Format
 
-Challenge messages follow this exact format:
+Sign the bytes from base58-decoding the `challenge` that `POST /verify/challenge` returns. Decoded, it reads:
 
 ```
-COUNTERSIG-VERIFY:{pubkey}:{nonce}:{timestamp}
+AGENTID-VERIFY:{agentId}:{pubkey}:{nonce}:{timestamp}
 ```
 
 Where:
+- `agentId` - Agent UUID
 - `pubkey` - Base58-encoded Ed25519 public key (32 bytes)
 - `nonce` - UUID v4 string for replay protection
 - `timestamp` - Unix timestamp in milliseconds
@@ -38,9 +39,8 @@ Where:
 const nacl = require('tweetnacl');
 const bs58 = require('bs58');
 
-// Message to sign
-const message = `COUNTERSIG-VERIFY:${pubkey}:${nonce}:${timestamp}`;
-const messageBytes = Buffer.from(message, 'utf-8');
+// Message to sign: the challenge returned by POST /verify/challenge, base58-decoded
+const messageBytes = bs58.decode(challenge);
 
 // Sign with private key
 const signatureBytes = nacl.sign.detached(messageBytes, privateKeyBytes);
@@ -138,7 +138,7 @@ The Countersig reputation system computes a **Reputation Score (0-100)** using a
 | **Fee Activity** | 30% | 30 pts | Trading fee generation on Bags.fm (1 pt per 0.1 SOL) |
 | **Success Rate** | 25% | 25 pts | Ratio of successful to total actions |
 | **Registration Age** | 20% | 20 pts | Days since registration (1 pt per day, max 20) |
-| **SAID Trust Score** | 15% | 15 pts | External trust verification from SAID Identity Gateway |
+| **SAID Trust Score** | 15% | 15 pts | Currently unavailable; the SAID gateway is offline |
 | **Community Verification** | 10% | 10 pts | Penalty for unresolved flags (10=none, 5=one, 0=two+) |
 
 ### Score Calculation
@@ -255,7 +255,7 @@ curl -X POST https://api.countersig.com/register \
 
 ---
 
-#### PUT /agents/:pubkey/update
+#### PUT /agents/:agentId/update
 
 Update agent metadata with signature verification.
 
@@ -270,7 +270,7 @@ Content-Type: application/json
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `pubkey` | string | Agent's public key |
+| `agentId` | string | Agent UUID |
 
 **Request Body:**
 
@@ -286,8 +286,10 @@ Content-Type: application/json
 
 **Signature Message Format:**
 ```
-COUNTERSIG-UPDATE:{pubkey}:{timestamp}
+AGENTID-UPDATE:{agentId}:{timestamp}:{fieldsHash}
 ```
+
+`fieldsHash` is the SHA-256 hex of the JSON for `{name, description, capabilities, creatorX, tokenMint}`.
 
 **Response Body (200 OK):**
 ```json
@@ -2884,7 +2886,7 @@ Revoke an agent, permanently disabling it. Requires ownership verification via E
 |-------|------|----------|-------------|
 | `pubkey` | string | Yes | Agent's registered public key |
 | `signature` | string | Yes | Base58-encoded Ed25519 signature |
-| `message` | string | Yes | `COUNTERSIG-REVOKE:{agentId}:{timestamp}` |
+| `message` | string | Yes | `AGENTID-REVOKE:{agentId}:{timestamp}` |
 
 **Response Body (200 OK):**
 ```json
@@ -2916,7 +2918,7 @@ curl -X POST https://api.countersig.com/agents/550e8400-e29b-41d4-a716-446655440
   -d '{
     "pubkey": "AgentPubkey111111111111111111111111111111111",
     "signature": "Base58Signature...",
-    "message": "COUNTERSIG-REVOKE:550e8400-e29b-41d4-a716-446655440000:1705753200000"
+    "message": "AGENTID-REVOKE:550e8400-e29b-41d4-a716-446655440000:1705753200000"
   }'
 ```
 
@@ -2944,7 +2946,7 @@ Issue a short-lived A2A (Agent-to-Agent) authentication JWT token. The token inc
 **Response Body (200 OK):**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "token": "eyJhbGciOiJFZERTQSIs...",
   "expiresIn": 60,
   "agentId": "550e8400-e29b-41d4-a716-446655440000",
   "issuedAt": "2024-01-20T14:22:00.000Z"
@@ -3002,7 +3004,7 @@ Verify an A2A token statelessly. No authentication required — receiving agents
 curl -X POST https://api.countersig.com/verify-token \
   -H "Content-Type: application/json" \
   -d '{
-    "token": "eyJhbGciOiJIUzI1NiIs..."
+    "token": "eyJhbGciOiJFZERTQSIs..."
   }'
 ```
 
@@ -3042,7 +3044,7 @@ Get a W3C Verifiable Credential (JSON-LD) for an agent. No authentication requir
       "lastVerified": "https://countersig.com/schemas/credential/v1#lastVerified"
     }
   ],
-  "id": "urn:agentid:credential:550e8400-e29b-41d4-a716-446655440000",
+  "id": "urn:countersig:credential:550e8400-e29b-41d4-a716-446655440000",
   "type": ["VerifiableCredential", "AIAgentIdentityCredential"],
   "issuer": {
     "id": "did:web:countersig.com",
@@ -4269,7 +4271,7 @@ Environment variables for API configuration:
 | `BADGE_CACHE_TTL` | 60 | Badge cache TTL in seconds |
 | `CHALLENGE_EXPIRY_SECONDS` | 300 | Challenge expiration time |
 | `BAGS_API_KEY` | - | API key for Bags.fm integration |
-| `SAID_GATEWAY_URL` | https://said-identity-gateway.up.railway.app | SAID gateway endpoint |
+| `SAID_GATEWAY_URL` | https://said-identity-gateway.up.railway.app | SAID gateway endpoint. The default host is offline. |
 
 ---
 

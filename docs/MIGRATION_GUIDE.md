@@ -113,7 +113,7 @@ Server-to-server scripts that previously called public endpoints must now:
 
 1. Authenticate as a user
 2. Create an API key via `POST /api-keys`
-3. Use the `X-API-Key` header in automated requests
+3. Send the key as `Authorization: Bearer cs_...` in automated requests
 
 ---
 

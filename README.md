@@ -18,7 +18,7 @@ Countersig is the identity and trust layer within the broader CounterAegis platf
 
 - **Frontend**: [countersig.com](https://countersig.com)
 - **API**: [api.countersig.com](https://api.countersig.com/health)
-- **Documentation**: [Wiki](https://github.com/RunTimeAdmin/Countersig-Public/wiki)
+- **Documentation**: [countersig.com/docs](https://countersig.com/docs)
 - **Platform**: [counteraegis.com](https://counteraegis.com)
 
 ## Key Features
@@ -131,7 +131,7 @@ Countersig 2.0 is built around a **pluggable, multi-provider authentication arch
 
 This is a documentation and concepts repository. To integrate with Countersig, use the published client libraries below or explore the [API Reference](docs/API_REFERENCE.md).
 
-For deployment and self-hosting guides, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md).
+[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) describes how the Countersig backend is deployed. The source is private, so it applies only to teams with source access.
 
 ## Packaging & Pricing
 
@@ -155,9 +155,9 @@ Now live on npm:
 
 | Package | Version | Install | Description |
 |---------|---------|---------|-------------|
-| [@countersig/sdk](https://www.npmjs.com/package/@countersig/sdk) | 1.0.2 | `npm install @countersig/sdk` | TypeScript SDK for all Countersig operations |
-| [@countersig/mcp](https://www.npmjs.com/package/@countersig/mcp) | 1.0.2 | `npm i -g @countersig/mcp` | MCP server for Claude Code / Claude Desktop |
-| @countersig/verify | 1.0.2 | `npm install @countersig/verify` | Lightweight A2A token verification |
+| [@countersig/sdk](https://www.npmjs.com/package/@countersig/sdk) | 1.0.3 | `npm install @countersig/sdk` | TypeScript SDK for all Countersig operations |
+| [@countersig/mcp](https://www.npmjs.com/package/@countersig/mcp) | 1.0.4 | `npm i -g @countersig/mcp` | MCP server for Claude Code / Claude Desktop |
+| @countersig/verify | 1.0.3 | `npm install @countersig/verify` | Lightweight A2A token verification |
 | [@countersig/react](https://www.npmjs.com/package/@countersig/react) | 1.0.2 | `npm install @countersig/react` | React components — trust badges, reputation displays, capability lists |
 | [@countersig/policy-client](https://www.npmjs.com/package/@countersig/policy-client) | 0.1.1 | `npm install @countersig/policy-client` | Client-side policy bundle evaluation for SDK enforcement |
 
