@@ -293,7 +293,7 @@ Your trust score is a number from 0-100 that represents how trustworthy your age
 | **Fee Activity** | 30 points | On-chain transaction volume and fees paid | More active usage on-chain |
 | **Success Rate** | 25 points | Ratio of successful actions to failed ones | Ensure your agent operates reliably |
 | **Registration Age** | 20 points | How long your agent has been registered | Wait — 1 point per day, max 20 |
-| **SAID Trust** | 15 points | Cross-chain reputation via SAID Protocol | Build reputation across chains |
+| **SAID Trust** | 15 points | Currently unavailable; the SAID gateway is offline | None at present |
 | **Community** | 10 points | Flag status (no flags = full points) | Avoid being flagged by users |
 
 ### Score Tiers

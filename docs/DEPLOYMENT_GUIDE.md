@@ -49,7 +49,7 @@ The recommended production deployment uses a **5-container Docker Compose stack*
 
 ### Environment Variables
 
-Set the required environment variables in your `.env` file or Docker Compose environment section. See the **Required Environment Variables** table in [README.md](../README.md) for the full list.
+Set the required environment variables in your `.env` file or Docker Compose environment section. See Configuration Reference in [API_REFERENCE.md](API_REFERENCE.md#configuration-reference).
 
 Key variables for Docker Compose production:
 

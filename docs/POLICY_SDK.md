@@ -33,7 +33,7 @@ The `@countersig/policy-client` SDK is a lightweight Node.js library that enforc
 >
 > For hard enforcement that cannot be bypassed by the agent process, deploy the [Countersig Gateway](POLICY_GATEWAY.md) at the network layer.
 
-The recommended pattern for serious deployments is **both** — the SDK catches honest mistakes early, the gateway enforces the actual boundary.
+The recommended pattern for serious deployments is **both**: the SDK catches honest mistakes early, the gateway enforces the actual boundary. The gateway repository was archived on 2026-10-30 and gets no updates.
 
 **Use this SDK to:**
 

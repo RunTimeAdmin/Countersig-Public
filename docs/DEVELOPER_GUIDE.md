@@ -56,24 +56,24 @@ const client = new CountersigClient({
   apiUrl: 'https://api.countersig.com'
 });
 
-// Register an agent
-const agent = await client.agents.register({
+// Register an agent (message, signature and nonce come from the agent's Ed25519 key)
+const { agentId } = await client.agents.register({
+  pubkey: '...',
   name: 'My AI Agent',
-  capabilities: ['text-generation'],
-  credential_type: 'api_key'
+  message: '...',
+  signature: '...',
+  nonce: '...',
+  capabilities: ['text-generation']
 });
 
 // Get reputation
-const reputation = await client.reputation.get(agent.agent_id);
+const reputation = await client.reputation.get(agentId);
 
 // Get trust badge
-const badge = await client.badges.get(agent.agent_id);
+const badge = await client.badges.get(agentId);
 
 // Issue A2A token
-const token = await client.tokens.issue(agent.agent_id, {
-  audience: 'target-agent-id',
-  scope: 'read:data'
-});
+const token = await client.tokens.issue(agentId);
 ```
 
 ### MCP Integration
@@ -211,13 +211,14 @@ Copy `.env.example` to `.env` and configure the following variables:
 |----------|-------------|---------|-------|
 | `PORT` | API server port | `3002` | Change if port is in use |
 | `NODE_ENV` | Environment mode | `development` | Set to `production` for deploys |
-| `SAID_GATEWAY_URL` | SAID Protocol gateway | `https://said-identity-gateway.up.railway.app` | Only change if self-hosting SAID |
+| `SAID_GATEWAY_URL` | SAID Protocol gateway | `https://said-identity-gateway.up.railway.app` | The default host is offline |
 | `REDIS_URL` | Redis connection string | `redis://localhost:6379` | Must match your Redis instance |
 | `CORS_ORIGIN` | Allowed frontend origin | `http://localhost:5173` | Update for production domains |
 | `BADGE_CACHE_TTL` | Badge cache duration (seconds) | `60` | Increase for production |
 | `CHALLENGE_EXPIRY_SECONDS` | PKI challenge lifetime | `300` | 5 minutes default |
 | `COUNTERSIG_BASE_URL` | Public API base URL | `http://localhost:3002` | Update for production |
-| `A2A_TOKEN_SECRET` | Secret for signing A2A tokens | Falls back to `JWT_SECRET` | Recommended to set a separate secret for production |
+| `A2A_SIGNING_KEY` | Ed25519 private key for signing A2A tokens (base64-encoded PKCS8 PEM) | (empty) | Required for A2A tokens |
+| `A2A_VERIFY_KEY` | Ed25519 public key for verifying A2A tokens (base64-encoded SPKI PEM) | (empty) | Required for A2A tokens |
 | `DID_ED25519_PUBLIC_KEY` | Ed25519 public key for DID document (multibase-encoded) | (empty) | Required for Solana agent VC signing |
 | `DID_SECP256K1_PUBLIC_KEY` | SECP256K1 public key for DID document (multibase-encoded) | (empty) | Required for EVM agent VC signing |
 | `OAUTH2_ENABLED` | Enable OAuth2/OIDC authentication | `false` | Set to `true` to enable |
@@ -746,19 +747,19 @@ Countersig 2.0 introduces JWT cookie-based authentication alongside the existing
 For programmatic access (CI/CD, server-to-server), use API keys:
 
 1. Generate an API key via `POST /api-keys` (requires JWT auth)
-2. Include the key in the `X-API-Key` header for subsequent requests
+2. Send the key as `Authorization: Bearer cs_...` on subsequent requests
 3. Keys are scoped to an organization and can be limited by `scopes` and `expiresAt`
 
 ```bash
 curl https://api.countersig.com/orgs/org-uuid/agents \
-  -H "X-API-Key: cs_abc123xyz789secret"
+  -H "Authorization: Bearer cs_abc123xyz789secret"
 ```
 
 #### Middleware Stack
 
 | Middleware | Purpose |
 |------------|---------|
-| `authenticate` | Validates JWT cookie or `X-API-Key` header, attaches `req.user` |
+| `authenticate` | Validates JWT cookie or `Authorization: Bearer` API key, attaches `req.user` |
 | `authorize` | Checks `req.user.role` against required role for the endpoint |
 | `orgContext` | Ensures `req.user.orgId` matches the route's `:orgId` parameter |
 
@@ -885,7 +886,7 @@ When `agent.verified` or scheduled score updates trigger the condition, the acti
 
 #### Webhook Delivery
 
-Webhooks are delivered with an `X-Webhook-Signature` HMAC-SHA256 header for verification:
+Webhooks are delivered with an `X-Countersig-Signature` HMAC-SHA256 header for verification:
 
 ```javascript
 const signature = crypto
@@ -1172,7 +1173,7 @@ curl -X POST https://api.countersig.com/agents/agent-uuid/issue-token \
 
 # Response:
 # {
-#   "token": "eyJhbGciOiJIUzI1NiIs...",
+#   "token": "eyJhbGciOiJFZERTQSIs...",
 #   "expiresIn": 60
 # }
 ```
@@ -1187,16 +1188,16 @@ The issued JWT contains the agent's claims:
 - `score` — Reputation score
 - `credentialType`, `externalId`, `provider` — (enterprise agents only)
 
-Tokens are short-lived (60 seconds) and signed with `A2A_TOKEN_SECRET`.
+Tokens are short-lived (60 seconds) and signed with Ed25519 (EdDSA, kid `a2a-ed25519-1`).
 
 #### Verify a Token
 
-Any agent can verify a token without sharing the secret, using the public verification endpoint:
+Any agent can verify a token with the public verification endpoint:
 
 ```bash
 curl -X POST https://api.countersig.com/agents/verify-token \
   -H "Content-Type: application/json" \
-  -d '{ "token": "eyJhbGciOiJIUzI1NiIs..." }'
+  -d '{ "token": "eyJhbGciOiJFZERTQSIs..." }'
 
 # Response:
 # {
@@ -1213,11 +1214,11 @@ The platform exposes key metadata for A2A token verification at:
 GET /.well-known/jwks.json
 ```
 
-This endpoint documents the signing algorithm (`HS256`) and key identifier (`agentid-a2a-v1`). Since HMAC is symmetric, the actual secret is not exposed — verifiers must use the `/agents/verify-token` endpoint or obtain the shared secret via a secure channel.
+This endpoint serves the Ed25519 public key (EdDSA, kid `a2a-ed25519-1`). Verify tokens locally with it, or call the verification endpoint above.
 
 #### Configuration
 
-Set `A2A_TOKEN_SECRET` in your `.env` file. If not set, it falls back to `JWT_SECRET`, but a separate secret is recommended for production.
+Set `A2A_SIGNING_KEY` (base64-encoded PKCS8 PEM Ed25519 private key) and `A2A_VERIFY_KEY` (base64-encoded SPKI PEM public key) in your `.env` file.
 
 ---
 
@@ -1294,7 +1295,7 @@ Returns a W3C Verifiable Credential for the specified agent:
       "lastVerified": "https://countersig.com/schemas/credential/v1#lastVerified"
     }
   ],
-  "id": "urn:agentid:credential:<agentId>",
+  "id": "urn:countersig:credential:<agentId>",
   "type": ["VerifiableCredential", "AIAgentIdentityCredential"],
   "issuer": {
     "id": "did:web:countersig.com",
@@ -1441,7 +1442,7 @@ Webhook delivery has been upgraded from fire-and-forget HTTP calls to a BullMQ-b
 - **Reliable delivery**: Jobs persist in Redis until completed or exhausted
 - **Exponential backoff**: Failed deliveries are retried with increasing delays (5s base, 3 attempts)
 - **SSRF protection**: URLs are re-validated at delivery time; DNS resolution is pinned to the validated IP
-- **HMAC signing**: All payloads include `X-AgentID-Signature` header for verification
+- **HMAC signing**: All payloads include `X-Countersig-Signature` header for verification
 - **Delivery logging**: Each attempt is recorded in the `webhook_deliveries` table
 
 #### Configuration
@@ -1483,7 +1484,7 @@ The Trust Layer offers defense-in-depth through two complementary enforcement me
 
 **Gateway enforcement (`countersig-gateway`):** A Go-based Caddy module that sits in the network path between agents and the internet. The gateway enforces policy at the network layer, so agents cannot bypass it regardless of what code they run. For each agent and destination it calls `POST /v1/policy/check` and caches the decision, so cache hits take under a millisecond. Its repository was archived on 2026-10-30 and no pre-built image is published; see [POLICY_GATEWAY.md](POLICY_GATEWAY.md).
 
-For production environments, deploy both: SDK for fast developer feedback, gateway for enforced security boundary.
+For production environments, deploy both: SDK for fast developer feedback, gateway for enforced security boundary. The gateway repository was archived on 2026-10-30 and gets no updates.
 
 #### Policy Precedence
 
@@ -1499,11 +1500,11 @@ Policies follow a strict precedence model where denies always win over allows:
 
 | Endpoint | Method | Purpose |
 |----------|--------|----------|
-| `/api/v1/policy/bundle/:agentId` | GET | Pull signed policy bundle for an agent |
-| `/api/v1/policy/check` | POST | Per-call policy evaluation (gateway path) |
-| `/api/v1/policy/settings` | GET/PUT | Read or update org policy mode and settings |
-| `/api/v1/policy/whitelist` | GET/POST/DELETE | Manage org whitelist entries |
-| `/api/v1/policy/blacklist` | GET/POST/DELETE | Manage org blacklist entries |
+| `/v1/policy/bundle/:agentId` | GET | Pull signed policy bundle for an agent |
+| `/v1/policy/check` | POST | Per-call policy evaluation (gateway path) |
+| `/v1/policy/settings` | GET/PUT | Read or update org policy mode and settings |
+| `/v1/policy/whitelist` | GET/POST/DELETE | Manage org whitelist entries |
+| `/v1/policy/blacklist` | GET/POST/DELETE | Manage org blacklist entries |
 
 #### Policy Bundles
 
